@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id" data-theme="light">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -10,7 +11,8 @@
   <link rel="icon" type="image/webp" id="app-favicon" href="/static/img/favicon_87007b6344.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -37,6 +39,7 @@
     }
   </style>
 </head>
+
 <body class="has-sidebar">
 
   <!-- Mobile Sidebar Backdrop -->
@@ -44,20 +47,25 @@
 
   <!-- App Shell -->
   <div class="app-shell" id="app_shell">
-    
+
     <!-- Left Sidebar -->
     <aside class="app-sidebar" id="app_sidebar">
       <div class="sidebar-brand">
-        <a href="#overview" class="brand-link" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+        <a href="#overview" class="brand-link"
+          style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
           <div class="brand-logo-box">
-            <img id="sidebar-logo" src="/static/img/logo_e7a8b6a95d.webp" alt="Logo" class="brand-img" style="height: 36px; width: auto; border-radius: 6px;" onerror="this.style.display='none'">
+            <img id="sidebar-logo" src="/static/img/logo_e7a8b6a95d.webp" alt="Logo" class="brand-img"
+              style="height: 36px; width: auto; border-radius: 6px;" onerror="this.style.display='none'">
           </div>
           <div class="brand-text">
-            <span class="brand-title" id="sidebar-title" style="font-weight: 800; font-size: 1rem; color: #ffffff !important;">PSB Maskumambang</span>
-            <span class="brand-subtitle" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.7) !important;">Portal Resmi PSB</span>
+            <span class="brand-title" id="sidebar-title"
+              style="font-weight: 800; font-size: 1rem; color: #ffffff !important;">PSB Maskumambang</span>
+            <span class="brand-subtitle" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.7) !important;">Portal
+              Resmi PSB</span>
           </div>
         </a>
-        <button type="button" class="sidebar-close-btn" onclick="toggleSidebarDrawer()" aria-label="Tutup">&times;</button>
+        <button type="button" class="sidebar-close-btn" onclick="toggleSidebarDrawer()"
+          aria-label="Tutup">&times;</button>
       </div>
 
       <!-- Navigation Menu -->
@@ -66,17 +74,24 @@
       </nav>
 
       <!-- Sidebar User Pill with Logout Button underneath -->
-      <div class="sidebar-user-footer" style="padding: 16px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; gap: 12px;">
+      <div class="sidebar-user-footer"
+        style="padding: 16px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; gap: 12px;">
         <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-          <div class="user-avatar-circle" id="sidebar-avatar" style="width: 38px; height: 38px; border-radius: 50%; background: var(--primary-600); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">
+          <div class="user-avatar-circle" id="sidebar-avatar"
+            style="width: 38px; height: 38px; border-radius: 50%; background: var(--primary-600); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; flex-shrink: 0;">
             U
           </div>
           <div class="user-info-text" style="flex: 1; min-width: 0; overflow: hidden;">
-            <div class="user-name-label" id="sidebar-username" style="font-weight: 700; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ffffff !important;">Memuat...</div>
+            <div class="user-name-label" id="sidebar-username"
+              style="font-weight: 700; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #ffffff !important;">
+              Memuat...</div>
             <span class="role-badge-pill role-PESERTA" id="sidebar-role-badge" style="font-size: 0.7rem;">PESERTA</span>
           </div>
         </div>
-        <button type="button" onclick="handleLogout()" class="btn-sidebar-logout" style="width: 100%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.825rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.3)';this.style.color='#ffffff'" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)';this.style.color='#fca5a5'">
+        <button type="button" onclick="handleLogout()" class="btn-sidebar-logout"
+          style="width: 100%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.825rem; cursor: pointer; transition: all 0.2s;"
+          onmouseover="this.style.background='rgba(239, 68, 68, 0.3)';this.style.color='#ffffff'"
+          onmouseout="this.style.background='rgba(239, 68, 68, 0.15)';this.style.color='#fca5a5'">
           <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar / Logout
         </button>
       </div>
@@ -85,14 +100,18 @@
     <!-- Main Wrapper -->
     <div class="app-main-layout">
       <!-- Topbar Header -->
-      <header class="app-topbar" style="background: var(--bg-topbar); border-bottom: 1px solid var(--border-subtle); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;">
+      <header class="app-topbar"
+        style="background: var(--bg-topbar); border-bottom: 1px solid var(--border-subtle); padding: 12px 24px; display: flex; justify-content: space-between; align-items: center;">
         <div class="topbar-left" style="display: flex; align-items: center; gap: 14px;">
-          <button type="button" class="btn-toggle-sidebar" id="btn-toggle-sidebar" onclick="toggleSidebarDrawer(event)" aria-label="Menu" style="cursor: pointer;">
+          <button type="button" class="btn-toggle-sidebar" id="btn-toggle-sidebar" onclick="toggleSidebarDrawer(event)"
+            aria-label="Menu" style="cursor: pointer;">
             <i class="fa-solid fa-bars"></i>
           </button>
           <div class="topbar-event-badge" style="display: flex; align-items: center; gap: 8px;">
-            <span class="event-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--success-500);"></span>
-            <span class="event-name" id="topbar-event-name" style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading);">PSB Maskumambang</span>
+            <span class="event-dot"
+              style="width: 8px; height: 8px; border-radius: 50%; background: var(--success-500);"></span>
+            <span class="event-name" id="topbar-event-name"
+              style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading);">PSB Maskumambang</span>
           </div>
         </div>
 
@@ -101,8 +120,10 @@
             <!-- CTA Button injected based on role -->
           </div>
 
-          <div class="topbar-user-pill" style="display: flex; align-items: center; gap: 8px; background: var(--bg-body); border: 1px solid var(--border-subtle); padding: 4px 12px; border-radius: 9999px;">
-            <span class="user-pill-name" id="topbar-username" style="font-weight: 600; font-size: 0.85rem; color: var(--text-heading);">User</span>
+          <div class="topbar-user-pill"
+            style="display: flex; align-items: center; gap: 8px; background: var(--bg-body); border: 1px solid var(--border-subtle); padding: 4px 12px; border-radius: 9999px;">
+            <span class="user-pill-name" id="topbar-username"
+              style="font-weight: 600; font-size: 0.85rem; color: var(--text-heading);">User</span>
             <span class="role-badge-pill role-PESERTA" id="topbar-role-badge" style="font-size: 0.65rem;">PESERTA</span>
           </div>
         </div>
@@ -111,9 +132,11 @@
       <!-- Main Content Container -->
       <main class="dashboard-content-area" style="padding: 24px; flex: 1;">
         <div class="content-inner-container" style="max-width: 1200px; margin: 0 auto;">
-          
+
           <!-- Global Flash Alert Notification -->
-          <div id="app-alert" style="display: none; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem;"></div>
+          <div id="app-alert"
+            style="display: none; padding: 14px 18px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem;">
+          </div>
 
           <!-- Dynamic View Slot (SPA) -->
           <div id="main-view-slot">
@@ -121,12 +144,13 @@
               <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-600);"></i>
               <p style="margin-top: 10px;">Memuat aplikasi...</p>
             </div>
-        </div>
+          </div>
       </main>
 
       <!-- Dashboard Footer -->
-      <footer id="footer-copyright" style="padding: 16px 24px; text-align: center; font-size: 0.8rem; color: var(--text-dim); border-top: 1px solid var(--border-subtle); background: var(--bg-card);">
-        &copy; 2026 PSB Maskumambang. Hak Cipta Dilindungi.
+      <footer id="footer-copyright"
+        style="padding: 16px 24px; text-align: center; font-size: 0.8rem; color: var(--text-dim); border-top: 1px solid var(--border-subtle); background: var(--bg-card);">
+        &copy; 2026 Maskumambang Creative Center
       </footer>
     </div>
 
@@ -134,7 +158,8 @@
 
   <!-- Global Modal Dialog (For small popups like confirmation, rejection reason, password reset) -->
   <div id="app-modal" class="modal-backdrop">
-    <div class="modal-container" id="app-modal-body" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); padding: 28px; max-width: 550px; width: 100%;">
+    <div class="modal-container" id="app-modal-body"
+      style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); box-shadow: var(--shadow-xl); padding: 28px; max-width: 550px; width: 100%;">
       <!-- Injected modal content -->
     </div>
   </div>
@@ -180,4 +205,5 @@
     }
   </script>
 </body>
+
 </html>
