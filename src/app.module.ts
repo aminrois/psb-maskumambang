@@ -20,6 +20,7 @@ import { CbtModule } from './cbt/cbt.module';
 import { InterviewModule } from './interview/interview.module';
 import { MailModule } from './mail/mail.module';
 import { HeroSliderModule } from './hero-slider/hero-slider.module';
+import { RegistrationFlowModule } from './registration-flow/registration-flow.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -56,6 +57,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     CbtModule,
     InterviewModule,
     HeroSliderModule,
+    RegistrationFlowModule,
   ],
   providers: [
     {

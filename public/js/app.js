@@ -19,6 +19,17 @@ const safeStorage = {
   },
 };
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+window.escapeHtml = escapeHtml;
+
 // Global Application State
 const state = {
   token: null, // Token dikelola via HttpOnly Cookie oleh server, tidak disimpan di JS
@@ -850,7 +861,7 @@ function buildRoleSidebar(role) {
           <a href="#homepage-info" id="nav-homepage-info" class="sidebar-nav-item" onclick="alert('Fitur Informasi Singkat akan segera hadir.'); return false;"><span class="nav-icon"><i class="fa-solid fa-circle-info"></i></span><span class="nav-label">Informasi Singkat</span></a>
           <a href="#countdown-settings" id="nav-countdown-settings" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-stopwatch"></i></span><span class="nav-label">Countdown Pendaftaran</span></a>
           <a href="#homepage-announcements" id="nav-homepage-announcements" class="sidebar-nav-item" onclick="alert('Fitur Pengumuman Homepage akan segera hadir.'); return false;"><span class="nav-icon"><i class="fa-solid fa-bullhorn"></i></span><span class="nav-label">Pengumuman Homepage</span></a>
-          <a href="#homepage-flow" id="nav-homepage-flow" class="sidebar-nav-item" onclick="alert('Fitur Alur Pendaftaran akan segera hadir.'); return false;"><span class="nav-icon"><i class="fa-solid fa-route"></i></span><span class="nav-label">Alur Pendaftaran</span></a>
+          <a href="#homepage-flow" id="nav-homepage-flow" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-route"></i></span><span class="nav-label">Alur Pendaftaran</span></a>
         </div>
       </div>
 
@@ -1149,6 +1160,9 @@ function handleDashboardRoute() {
     // ---- END WAWANCARA ROUTES ----
     else if (mainRoute === 'homepage-hero-slider' || mainRoute === 'hero-slider') {
       if (typeof renderHeroSliderAdminView === 'function') renderHeroSliderAdminView(param);
+    }
+    else if (mainRoute === 'homepage-flow') {
+      if (typeof renderRegistrationFlowAdminView === 'function') renderRegistrationFlowAdminView();
     }
     else if (mainRoute === 'master-kategori') renderAdminCategoriesView();
     else if (mainRoute === 'master-cabang') renderAdminBranchesView();

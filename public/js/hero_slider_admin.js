@@ -71,7 +71,7 @@
         </div>
       </div>
 
-      <div class="hero-slider-grid-layout" style="display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start;">
+      <div class="hero-slider-grid-layout" style="display: block;">
         <!-- Left Table Container -->
         <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm); overflow: hidden;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -93,8 +93,7 @@
                   <th style="padding: 12px 14px; width: 140px;">Badge</th>
                   <th style="padding: 12px 14px; width: 100px; text-align: center;">Status</th>
                   <th style="padding: 12px 14px; width: 80px; text-align: center;">Urutan</th>
-                  <th style="padding: 12px 14px; width: 150px; text-align: center;">Aksi</th>
-                  <th style="padding: 12px 14px; border-top-right-radius: 8px; border-bottom-right-radius: 8px; width: 40px; text-align: center;"></th>
+                  <th style="padding: 12px 14px; width: 100px; text-align: center; border-top-right-radius: 8px; border-bottom-right-radius: 8px;">Aksi</th>
                 </tr>
               </thead>
               <tbody id="hero-slider-table-body">
@@ -112,57 +111,6 @@
             <i class="fa-solid fa-arrows-up-down" style="color: var(--primary-500);"></i>
             <span>Geser dan lepas (drag & drop) untuk mengubah urutan tampilan slider pada homepage.</span>
           </div>
-        </div>
-
-        <!-- Right Side Info Cards -->
-        <div style="display: flex; flex-direction: column; gap: 20px;">
-          <!-- Format Gambar Card -->
-          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm);">
-            <h4 style="font-size: 1rem; font-weight: 700; margin: 0 0 16px 0; color: var(--text-heading); display: flex; align-items: center; gap: 8px;">
-              <i class="fa-regular fa-image" style="color: var(--primary-500);"></i> Format Gambar
-            </h4>
-            
-            <div style="display: flex; flex-direction: column; gap: 14px;">
-              <!-- Desktop Info -->
-              <div style="padding: 12px; background: var(--bg-body); border-radius: 10px; border-left: 3px solid var(--primary-500);">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                  <i class="fa-solid fa-desktop" style="color: var(--primary-600); font-size: 0.9rem;"></i>
-                  <strong style="font-size: 0.85rem; color: var(--text-heading);">Gambar Desktop</strong>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
-                  Ukuran rekomendasi: <strong>1920 × 1080 px</strong> (16:9)<br>
-                  Format: <strong>JPG, PNG, WebP</strong><br>
-                  Maks. ukuran: <strong>2 MB</strong>
-                </div>
-              </div>
-
-              <!-- Mobile Info -->
-              <div style="padding: 12px; background: var(--bg-body); border-radius: 10px; border-left: 3px solid #06b6d4;">
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                  <i class="fa-solid fa-mobile-screen-button" style="color: #06b6d4; font-size: 0.9rem;"></i>
-                  <strong style="font-size: 0.85rem; color: var(--text-heading);">Gambar Mobile</strong>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.5;">
-                  Ukuran rekomendasi: <strong>1080 × 1920 px</strong> (9:16)<br>
-                  Format: <strong>JPG, PNG, WebP</strong><br>
-                  Maks. ukuran: <strong>2 MB</strong> (Opsional)
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tips Card -->
-          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 20px; box-shadow: var(--shadow-sm);">
-            <h4 style="font-size: 1rem; font-weight: 700; margin: 0 0 14px 0; color: var(--text-heading); display: flex; align-items: center; gap: 8px;">
-              <i class="fa-solid fa-lightbulb" style="color: #f59e0b;"></i> Tips
-            </h4>
-            <ul style="margin: 0; padding-left: 18px; font-size: 0.825rem; color: var(--text-muted); line-height: 1.6; display: flex; flex-direction: column; gap: 8px;">
-              <li>Gunakan gambar yang relevan dan berkualitas tinggi agar website tampak profesional.</li>
-              <li>Pastikan teks dan kontras gambar tetap terbaca dengan jelas di semua jenis perangkat.</li>
-              <li>Disarankan menggunakan <strong>maksimal 3 - 5 slider</strong> agar waktu muat halaman tetap cepat dan pengunjung tidak bingung.</li>
-            </ul>
-          </div>
-        </div>
       </div>
     `;
 
@@ -225,34 +173,35 @@
               <td style="padding: 12px 14px;">${badgePill}</td>
               <td style="padding: 12px 14px; text-align: center;">${statusBadge}</td>
               <td style="padding: 12px 14px; text-align: center; font-weight: 700; color: var(--primary-600);">${item.sortOrder}</td>
-              <td style="padding: 12px 14px; text-align: center;">
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                  <!-- Preview Button -->
-                  <button type="button" class="btn-action-icon" title="Preview Slider" onclick="window.previewHeroSlider('${item.id}')" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;">
-                    <i class="fa-regular fa-eye"></i>
+              <td style="padding: 10px 14px; text-align: center;">
+                <div class="slider-action-dropdown" style="position: relative; display: inline-block;">
+                  <button type="button" class="btn-aksi-toggle" onclick="window.toggleSliderDropdown(this)" style="background: var(--bg-body); color: var(--text-heading); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                    Aksi <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
                   </button>
-                  <!-- Edit Button -->
-                  <a href="#homepage-hero-slider/edit/${item.id}" class="btn-action-icon" title="Edit Slider" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.2s;">
-                    <i class="fa-regular fa-pen-to-square"></i>
-                  </a>
-                  <!-- Toggle Status Button -->
-                  <button type="button" class="btn-action-icon" title="${item.isActive ? 'Nonaktifkan Slider' : 'Aktifkan Slider'}" onclick="window.toggleHeroSliderStatus('${item.id}', ${!item.isActive})" style="background: ${item.isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(148, 163, 184, 0.1)'}; color: ${item.isActive ? '#10b981' : '#94a3b8'}; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;">
-                    <i class="fa-solid ${item.isActive ? 'fa-toggle-on' : 'fa-toggle-off'}"></i>
-                  </button>
-                  <!-- Delete Button -->
-                  <button type="button" class="btn-action-icon" title="Hapus Slider" onclick="window.deleteHeroSlider('${item.id}', '${escapeHtml(item.title.replace(/'/g, ''))}')" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s;">
-                    <i class="fa-regular fa-trash-can"></i>
-                  </button>
+                  <div class="slider-action-menu" style="display: none; position: absolute; right: 0; top: calc(100% + 4px); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 100; min-width: 175px; overflow: hidden;">
+                    <button type="button" onclick="window.previewHeroSlider('${item.id}'); window.closeAllSliderDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: var(--text-main); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='none'">
+                      <i class="fa-regular fa-eye" style="color: #3b82f6; width: 16px;"></i> Preview
+                    </button>
+                    <a href="#homepage-hero-slider/edit/${item.id}" onclick="window.closeAllSliderDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: var(--text-main); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-decoration: none;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='none'">
+                      <i class="fa-regular fa-pen-to-square" style="color: #f59e0b; width: 16px;"></i> Edit
+                    </a>
+                    <button type="button" onclick="window.toggleHeroSliderStatus('${item.id}', ${!item.isActive}); window.closeAllSliderDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: var(--text-main); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='none'">
+                      <i class="fa-solid ${item.isActive ? 'fa-toggle-off' : 'fa-toggle-on'}" style="color: ${item.isActive ? '#94a3b8' : '#10b981'}; width: 16px;"></i> ${item.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                    </button>
+                    <div style="margin: 4px 10px; border-top: 1px solid var(--border-subtle);"></div>
+                    <button type="button" onclick="window.deleteHeroSlider('${item.id}', '${escapeHtml(item.title.replace(/'/g, ''))}'); window.closeAllSliderDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: #ef4444; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background='none'">
+                      <i class="fa-regular fa-trash-can" style="width: 16px;"></i> Hapus
+                    </button>
+                  </div>
                 </div>
-              </td>
-              <td style="padding: 12px 14px; text-align: center; color: var(--text-dim); cursor: grab;">
-                <i class="fa-solid fa-grip-vertical"></i>
               </td>
             </tr>
           `;
         }).join('');
 
         setupDragAndDropTable();
+        setupSliderDropdownGlobalClose();
+
       }
     } catch (e) {
       console.error('Failed to load hero sliders:', e);
@@ -833,6 +782,31 @@
     }
   };
 
+  // Dropdown toggle helper
+  window.toggleSliderDropdown = function (btn) {
+    const menu = btn.nextElementSibling;
+    const allMenus = document.querySelectorAll('.slider-action-menu');
+    allMenus.forEach(m => {
+      if (m !== menu) m.style.display = 'none';
+    });
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  };
+
+  window.closeAllSliderDropdowns = function () {
+    document.querySelectorAll('.slider-action-menu').forEach(m => m.style.display = 'none');
+  };
+
+  function setupSliderDropdownGlobalClose() {
+    document.removeEventListener('click', _sliderDropdownCloseHandler);
+    document.addEventListener('click', _sliderDropdownCloseHandler);
+  }
+
+  function _sliderDropdownCloseHandler(e) {
+    if (!e.target.closest('.slider-action-dropdown')) {
+      window.closeAllSliderDropdowns();
+    }
+  }
+
   // ==========================================================================
   // 6. LIVE PREVIEW MODAL (DESKTOP & MOBILE SIMULATION)
   // ==========================================================================
@@ -897,7 +871,7 @@
 
   function renderDesktopSimulation(data, imgUrl) {
     return `
-      <div style="border-radius: 16px; overflow: hidden; border: 1px solid var(--border-subtle); box-shadow: 0 10px 25px rgba(0,0,0,0.15); background: #ffffff;">
+      <div style="border-radius: 16px; overflow: hidden; border: 1px solid var(--border-subtle); box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
         <!-- Browser Chrome Bar -->
         <div style="background: #f1f5f9; padding: 8px 14px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px;">
           <div style="display: flex; gap: 6px;">
@@ -910,42 +884,37 @@
           </div>
         </div>
 
-        <!-- Desktop Hero Banner View -->
-        <div style="position: relative; min-height: 380px; display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%); overflow: hidden; padding: 36px 30px;">
-          <!-- Left Text Content -->
-          <div style="z-index: 2; padding-right: 20px;">
+        <!-- Desktop Hero - Full Background Image -->
+        <div style="position: relative; min-height: 380px; display: flex; align-items: center; background-image: linear-gradient(90deg, rgba(15,23,42,0.90) 0%, rgba(15,23,42,0.65) 55%, rgba(15,23,42,0.20) 100%), url('${imgUrl}'); background-size: cover; background-position: center; overflow: hidden; padding: 36px 40px;">
+          <!-- Text Content (Left) -->
+          <div style="z-index: 2; max-width: 55%;">
             ${data.badge ? `
-              <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(2, 132, 199, 0.12); color: #0284c7; padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 0.78rem; margin-bottom: 14px; border: 1px solid rgba(2, 132, 199, 0.2);">
+              <div style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); color: #e0f2fe; padding: 4px 12px; border-radius: 9999px; font-weight: 700; font-size: 0.78rem; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.25);">
                 <i class="fa-solid fa-graduation-cap"></i> ${escapeHtml(data.badge)}
               </div>
             ` : ''}
             
-            <h1 style="font-size: 1.85rem; font-weight: 900; color: #0f172a; line-height: 1.25; margin: 0 0 12px 0;">
+            <h1 style="font-size: 1.85rem; font-weight: 900; color: #ffffff; line-height: 1.25; margin: 0 0 12px 0; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
               ${escapeHtml(data.title)}
             </h1>
 
-            <p style="font-size: 0.92rem; color: #475569; line-height: 1.6; margin: 0 0 24px 0;">
+            <p style="font-size: 0.92rem; color: rgba(241,245,249,0.88); line-height: 1.6; margin: 0 0 24px 0;">
               ${escapeHtml(data.description)}
             </p>
 
             <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
               ${data.primaryButtonText ? `
-                <span style="display: inline-flex; align-items: center; gap: 8px; background: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.85rem; padding: 10px 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);">
+                <span style="display: inline-flex; align-items: center; gap: 8px; background: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.85rem; padding: 10px 20px; border-radius: 10px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.5);">
                   ${escapeHtml(data.primaryButtonText)} <i class="fa-solid fa-arrow-right"></i>
                 </span>
               ` : ''}
 
               ${data.secondaryButtonText ? `
-                <span style="display: inline-flex; align-items: center; gap: 8px; background: #ffffff; color: #0f172a; font-weight: 700; font-size: 0.85rem; padding: 10px 18px; border-radius: 10px; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                  <i class="fa-solid fa-book-open" style="color: #0284c7;"></i> ${escapeHtml(data.secondaryButtonText)}
+                <span style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.12); backdrop-filter: blur(8px); color: #f1f5f9; font-weight: 700; font-size: 0.85rem; padding: 10px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.3);">
+                  <i class="fa-solid fa-book-open"></i> ${escapeHtml(data.secondaryButtonText)}
                 </span>
               ` : ''}
             </div>
-          </div>
-
-          <!-- Right Image Artwork -->
-          <div style="position: relative; height: 320px; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.12);">
-            <img src="${imgUrl}" alt="Desktop Hero" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
         </div>
       </div>
@@ -957,51 +926,46 @@
       <div style="display: flex; justify-content: center;">
         <!-- Smartphone Frame -->
         <div style="width: 320px; height: 600px; background: #0f172a; border-radius: 40px; padding: 10px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); border: 4px solid #334155; position: relative;">
-          <!-- Speaker Notch / Island -->
+          <!-- Speaker Notch -->
           <div style="position: absolute; top: 16px; left: 50%; transform: translateX(-50%); width: 90px; height: 16px; background: #000000; border-radius: 9999px; z-index: 10;"></div>
           
           <!-- Screen Content -->
-          <div style="width: 100%; height: 100%; background: #ffffff; border-radius: 30px; overflow-y: auto; overflow-x: hidden; position: relative; display: flex; flex-direction: column;">
-            <!-- Mobile Header Bar -->
-            <div style="padding: 24px 16px 8px; background: #ffffff; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-weight: 800; font-size: 0.8rem; color: #0284c7;">PSB MASKUMAMBANG</div>
-              <i class="fa-solid fa-bars" style="color: #64748b; font-size: 0.9rem;"></i>
-            </div>
+          <div style="width: 100%; height: 100%; border-radius: 30px; overflow: hidden; position: relative;">
+            <!-- Mobile Hero - Full Background Image -->
+            <div style="position: relative; height: 100%; background-image: linear-gradient(180deg, rgba(15,23,42,0.88) 0%, rgba(15,23,42,0.50) 50%, rgba(15,23,42,0.85) 100%), url('${imgUrl}'); background-size: cover; background-position: center; display: flex; flex-direction: column; padding: 36px 16px 20px;">
+              <!-- Mobile Header -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <div style="font-weight: 800; font-size: 0.72rem; color: #7dd3fc; letter-spacing: 0.5px;">PSB MASKUMAMBANG</div>
+                <i class="fa-solid fa-bars" style="color: #94a3b8; font-size: 0.85rem;"></i>
+              </div>
 
-            <!-- Mobile Hero Slide -->
-            <div style="padding: 16px; background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%); flex: 1; display: flex; flex-direction: column;">
               ${data.badge ? `
-                <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(2, 132, 199, 0.1); color: #0284c7; padding: 3px 8px; border-radius: 9999px; font-weight: 700; font-size: 0.65rem; margin-bottom: 10px; align-self: flex-start;">
+                <div style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.12); backdrop-filter: blur(6px); color: #bae6fd; padding: 3px 8px; border-radius: 9999px; font-weight: 700; font-size: 0.62rem; margin-bottom: 10px; align-self: flex-start; border: 1px solid rgba(255,255,255,0.2);">
                   <i class="fa-solid fa-graduation-cap"></i> ${escapeHtml(data.badge)}
                 </div>
               ` : ''}
 
-              <h2 style="font-size: 1.15rem; font-weight: 900; color: #0f172a; line-height: 1.25; margin: 0 0 8px 0;">
+              <h2 style="font-size: 1.15rem; font-weight: 900; color: #ffffff; line-height: 1.25; margin: 0 0 8px 0; text-shadow: 0 2px 8px rgba(0,0,0,0.4);">
                 ${escapeHtml(data.title)}
               </h2>
 
-              <p style="font-size: 0.75rem; color: #475569; line-height: 1.5; margin: 0 0 14px 0;">
+              <p style="font-size: 0.72rem; color: rgba(226,232,240,0.85); line-height: 1.5; margin: 0 0 16px 0;">
                 ${escapeHtml(data.description)}
               </p>
 
-              <!-- Mobile Stacked CTA Buttons -->
-              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+              <!-- Mobile Buttons -->
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
                 ${data.primaryButtonText ? `
-                  <span style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.78rem; padding: 8px 14px; border-radius: 8px;">
-                    ${escapeHtml(data.primaryButtonText)} <i class="fa-solid fa-arrow-right" style="font-size: 0.7rem;"></i>
+                  <span style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.75rem; padding: 9px 14px; border-radius: 8px; box-shadow: 0 4px 12px rgba(2,132,199,0.4);">
+                    ${escapeHtml(data.primaryButtonText)} <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem;"></i>
                   </span>
                 ` : ''}
 
                 ${data.secondaryButtonText ? `
-                  <span style="display: flex; align-items: center; justify-content: center; gap: 6px; background: #ffffff; color: #0f172a; font-weight: 700; font-size: 0.78rem; padding: 7px 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
-                    <i class="fa-solid fa-book-open" style="color: #0284c7; font-size: 0.7rem;"></i> ${escapeHtml(data.secondaryButtonText)}
+                  <span style="display: flex; align-items: center; justify-content: center; gap: 6px; background: rgba(255,255,255,0.12); backdrop-filter: blur(6px); color: #f1f5f9; font-weight: 700; font-size: 0.75rem; padding: 8px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25);">
+                    <i class="fa-solid fa-book-open" style="font-size: 0.65rem;"></i> ${escapeHtml(data.secondaryButtonText)}
                   </span>
                 ` : ''}
-              </div>
-
-              <!-- Mobile Image Artwork -->
-              <div style="flex: 1; min-height: 180px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: auto;">
-                <img src="${imgUrl}" alt="Mobile Hero" style="width: 100%; height: 100%; object-fit: cover;">
               </div>
             </div>
           </div>
@@ -1042,5 +1006,494 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
   }
+
+
+  // ==========================================================================
+  // 8. ALUR PENDAFTARAN ADMIN MODULE
+  // ==========================================================================
+
+  const flowState = {
+    steps: [],
+    dragSrcEl: null,
+  };
+
+  async function renderRegistrationFlowListView() {
+    const main = document.getElementById('main-content');
+    if (!main) return;
+
+    main.innerHTML = `
+      <div style="max-width: 900px; margin: 0 auto; padding: 32px 20px;">
+        <!-- Page Header -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h1 style="font-size: 1.45rem; font-weight: 800; color: var(--text-heading); margin: 0 0 4px 0; display: flex; align-items: center; gap: 10px;">
+              <i class="fa-solid fa-route" style="color: #0284c7;"></i> Alur Pendaftaran
+            </h1>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin: 0;">
+              Kelola langkah-langkah alur pendaftaran yang ditampilkan pada homepage PSB.
+            </p>
+          </div>
+          <button type="button" onclick="window.renderFlowStepFormView(null)"
+            style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 12px rgba(2,132,199,0.3); transition: all 0.2s;">
+            <i class="fa-solid fa-plus"></i> Tambah Langkah
+          </button>
+        </div>
+
+        <!-- Info Card -->
+        <div style="background: linear-gradient(135deg, rgba(2,132,199,0.06), rgba(3,105,161,0.03)); border: 1px solid rgba(2,132,199,0.2); border-radius: 14px; padding: 14px 18px; margin-bottom: 22px; display: flex; align-items: center; gap: 12px;">
+          <i class="fa-solid fa-circle-info" style="color: #0284c7; font-size: 1.1rem;"></i>
+          <div style="font-size: 0.85rem; color: var(--text-muted);">
+            <strong style="color: var(--text-heading);">Tips:</strong> Seret dan lepas baris untuk mengubah urutan tampilan. Urutan otomatis tersimpan ke database.
+          </div>
+        </div>
+
+        <!-- Table Card -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 18px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+          <div id="flow-steps-table-wrapper">
+            <div style="text-align: center; padding: 50px; color: var(--text-muted);">
+              <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: #0284c7;"></i>
+              <p style="margin-top: 10px;">Memuat data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await loadFlowStepsTable();
+  }
+
+  async function loadFlowStepsTable() {
+    const wrapper = document.getElementById('flow-steps-table-wrapper');
+    if (!wrapper) return;
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch('/api/registration-flow', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!data.success || !data.data.length) {
+        wrapper.innerHTML = `
+          <div style="text-align: center; padding: 60px; color: var(--text-muted);">
+            <i class="fa-solid fa-route" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 14px; display: block;"></i>
+            <p style="font-weight: 600; margin-bottom: 8px;">Belum ada langkah alur pendaftaran.</p>
+            <button type="button" onclick="window.renderFlowStepFormView(null)" style="margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+              <i class="fa-solid fa-plus"></i> Tambah Langkah Pertama
+            </button>
+          </div>`;
+        return;
+      }
+      flowState.steps = data.data;
+
+      wrapper.innerHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background: var(--bg-body); border-bottom: 2px solid var(--border-subtle);">
+              <th style="padding: 12px 14px; text-align: left; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; width: 42px;">#</th>
+              <th style="padding: 12px 14px; text-align: left; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Langkah / Judul</th>
+              <th style="padding: 12px 14px; text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Status</th>
+              <th style="padding: 12px 14px; text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Urutan</th>
+              <th style="padding: 12px 14px; text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Aksi</th>
+              <th style="padding: 12px 14px; text-align: center; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; width: 40px;">⠿</th>
+            </tr>
+          </thead>
+          <tbody id="flow-steps-tbody">
+            ${flowState.steps.map((step, idx) => {
+              const color = step.badgeColor || '#0284c7';
+              const icon = step.icon || 'fa-diagram-project';
+              const statusBadge = step.isActive
+                ? `<span style="background: rgba(16,185,129,0.12); color: #10b981; font-weight: 700; padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-check"></i> Aktif</span>`
+                : `<span style="background: rgba(148,163,184,0.12); color: #94a3b8; font-weight: 700; padding: 4px 10px; border-radius: 9999px; font-size: 0.75rem;">Nonaktif</span>`;
+              return `
+                <tr class="flow-step-row" draggable="true" data-id="${step.id}" data-index="${idx}"
+                  style="border-bottom: 1px solid var(--border-subtle); transition: background 0.2s; cursor: grab;">
+                  <td style="padding: 12px 14px; font-weight: 600; color: var(--text-muted);">${idx + 1}</td>
+                  <td style="padding: 12px 14px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <div style="width: 40px; height: 40px; border-radius: 10px; background: ${color}18; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fa-solid ${escapeHtml(icon)}" style="color: ${color};"></i>
+                      </div>
+                      <div>
+                        <div style="font-weight: 700; color: var(--text-heading);">${escapeHtml(step.title)}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(step.description)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding: 12px 14px; text-align: center;">${statusBadge}</td>
+                  <td style="padding: 12px 14px; text-align: center; font-weight: 700; color: var(--primary-600);">${step.sortOrder}</td>
+                  <td style="padding: 10px 14px; text-align: center;">
+                    <div class="flow-action-dropdown" style="position: relative; display: inline-block;">
+                      <button type="button" onclick="window.toggleFlowDropdown(this)"
+                        style="background: var(--bg-body); color: var(--text-heading); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 6px 14px; cursor: pointer; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s;">
+                        Aksi <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
+                      </button>
+                      <div class="flow-action-menu" style="display: none; position: absolute; right: 0; top: calc(100% + 4px); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 100; min-width: 170px; overflow: hidden;">
+                        <button type="button" onclick="window.renderFlowStepFormView('${step.id}'); window.closeAllFlowDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: var(--text-main); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='none'">
+                          <i class="fa-regular fa-pen-to-square" style="color: #f59e0b; width: 16px;"></i> Edit
+                        </button>
+                        <button type="button" onclick="window.toggleFlowStepStatus('${step.id}', ${!step.isActive}); window.closeAllFlowDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: var(--text-main); font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='none'">
+                          <i class="fa-solid ${step.isActive ? 'fa-toggle-off' : 'fa-toggle-on'}" style="color: ${step.isActive ? '#94a3b8' : '#10b981'}; width: 16px;"></i> ${step.isActive ? 'Nonaktifkan' : 'Aktifkan'}
+                        </button>
+                        <div style="margin: 4px 10px; border-top: 1px solid var(--border-subtle);"></div>
+                        <button type="button" onclick="window.deleteFlowStep('${step.id}', '${escapeHtml(step.title.replace(/'/g, ''))}'); window.closeAllFlowDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: #ef4444; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background='none'">
+                          <i class="fa-regular fa-trash-can" style="width: 16px;"></i> Hapus
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding: 12px 14px; text-align: center; color: var(--text-dim); cursor: grab; font-size: 1.1rem; letter-spacing: 1px;">⠿</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+
+      setupFlowDragDrop();
+      setupFlowDropdownClose();
+    } catch (e) {
+      wrapper.innerHTML = `<div style="text-align:center;padding:40px;color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Gagal memuat: ${e.message}</div>`;
+    }
+  }
+
+  function setupFlowDragDrop() {
+    const rows = document.querySelectorAll('.flow-step-row');
+    const tbody = document.getElementById('flow-steps-tbody');
+    if (!rows.length || !tbody) return;
+
+    rows.forEach(row => {
+      row.addEventListener('dragstart', function (e) {
+        flowState.dragSrcEl = this;
+        this.style.opacity = '0.4';
+        this.style.background = 'var(--primary-50)';
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      row.addEventListener('dragend', function () {
+        this.style.opacity = '1';
+        this.style.background = '';
+        document.querySelectorAll('.flow-step-row').forEach(r => r.classList.remove('drag-over'));
+      });
+      row.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (this !== flowState.dragSrcEl) {
+          document.querySelectorAll('.flow-step-row').forEach(r => r.classList.remove('drag-over'));
+          this.style.background = 'rgba(2,132,199,0.06)';
+        }
+      });
+      row.addEventListener('dragleave', function () {
+        this.style.background = '';
+      });
+      row.addEventListener('drop', async function (e) {
+        e.preventDefault();
+        if (this === flowState.dragSrcEl) return;
+        this.style.background = '';
+        const rows = [...document.querySelectorAll('.flow-step-row')];
+        const srcIdx = rows.indexOf(flowState.dragSrcEl);
+        const tgtIdx = rows.indexOf(this);
+        if (srcIdx < tgtIdx) {
+          this.after(flowState.dragSrcEl);
+        } else {
+          this.before(flowState.dragSrcEl);
+        }
+        // Kirim urutan baru ke API
+        const newOrder = [...document.querySelectorAll('.flow-step-row')].map(r => r.dataset.id);
+        try {
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          const res = await fetch('/api/registration-flow/reorder', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ stepIds: newOrder }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            showFlowToast('Urutan berhasil diperbarui.', 'success');
+          } else {
+            showFlowToast('Gagal memperbarui urutan.', 'error');
+          }
+        } catch (err) {
+          showFlowToast('Gagal memperbarui urutan: ' + err.message, 'error');
+        }
+      });
+    });
+  }
+
+  function setupFlowDropdownClose() {
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.flow-action-dropdown')) {
+        window.closeAllFlowDropdowns();
+      }
+    });
+  }
+
+  window.toggleFlowDropdown = function (btn) {
+    const allMenus = document.querySelectorAll('.flow-action-menu');
+    const thisMenu = btn.nextElementSibling;
+    allMenus.forEach(m => { if (m !== thisMenu) m.style.display = 'none'; });
+    thisMenu.style.display = thisMenu.style.display === 'block' ? 'none' : 'block';
+  };
+
+  window.closeAllFlowDropdowns = function () {
+    document.querySelectorAll('.flow-action-menu').forEach(m => m.style.display = 'none');
+  };
+
+  window.toggleFlowStepStatus = async function (id, newStatus) {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`/api/registration-flow/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ isActive: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showFlowToast(data.message || 'Status berhasil diperbarui.', 'success');
+        await loadFlowStepsTable();
+      } else {
+        showFlowToast(data.message || 'Gagal mengubah status.', 'error');
+      }
+    } catch (e) {
+      showFlowToast('Gagal: ' + e.message, 'error');
+    }
+  };
+
+  window.deleteFlowStep = async function (id, title) {
+    if (!confirm(`Hapus langkah "${title}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`/api/registration-flow/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success) {
+        showFlowToast('Langkah berhasil dihapus.', 'success');
+        await loadFlowStepsTable();
+      } else {
+        showFlowToast(data.message || 'Gagal menghapus.', 'error');
+      }
+    } catch (e) {
+      showFlowToast('Gagal: ' + e.message, 'error');
+    }
+  };
+
+  // ICON options for dropdown
+  const FLOW_ICON_OPTIONS = [
+    { value: 'fa-user-plus', label: 'Buat Akun' },
+    { value: 'fa-school', label: 'Pilih Jenjang' },
+    { value: 'fa-money-bill-wave', label: 'Pembayaran' },
+    { value: 'fa-folder-open', label: 'Upload Berkas' },
+    { value: 'fa-graduation-cap', label: 'Ujian/Wisuda' },
+    { value: 'fa-diagram-project', label: 'Alur' },
+    { value: 'fa-check-circle', label: 'Selesai' },
+    { value: 'fa-clock', label: 'Waktu' },
+    { value: 'fa-file-signature', label: 'Tanda Tangan' },
+    { value: 'fa-id-card', label: 'Identitas' },
+    { value: 'fa-envelope', label: 'Email' },
+    { value: 'fa-phone', label: 'Telepon' },
+    { value: 'fa-building', label: 'Gedung' },
+    { value: 'fa-calendar-check', label: 'Jadwal' },
+    { value: 'fa-award', label: 'Penghargaan' },
+  ];
+
+  async function renderFlowStepFormView(stepId) {
+    const main = document.getElementById('main-content');
+    if (!main) return;
+    const isEdit = !!stepId;
+    let stepData = null;
+
+    if (isEdit) {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const res = await fetch(`/api/registration-flow/${stepId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const d = await res.json();
+        if (d.success) stepData = d.data;
+      } catch (e) {
+        console.error('Error loading step:', e);
+      }
+    }
+
+    const iconOptions = FLOW_ICON_OPTIONS.map(opt =>
+      `<option value="${opt.value}" ${stepData?.icon === opt.value ? 'selected' : ''}>${opt.label} (${opt.value})</option>`
+    ).join('');
+
+    main.innerHTML = `
+      <div style="max-width: 680px; margin: 0 auto; padding: 32px 20px;">
+        <!-- Breadcrumb -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 22px; font-size: 0.85rem; color: var(--text-muted);">
+          <a href="#homepage-flow" style="color: var(--primary-600); text-decoration: none; font-weight: 600;">Alur Pendaftaran</a>
+          <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
+          <span style="color: var(--text-heading); font-weight: 700;">${isEdit ? 'Edit Langkah' : 'Tambah Langkah Baru'}</span>
+        </div>
+
+        <h1 style="font-size: 1.45rem; font-weight: 800; color: var(--text-heading); margin: 0 0 24px 0; display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-${isEdit ? 'pen-to-square' : 'plus'}" style="color: #0284c7;"></i>
+          ${isEdit ? 'Edit Langkah Alur' : 'Tambah Langkah Alur'}
+        </h1>
+
+        <form id="flow-step-form" onsubmit="window.submitFlowStepForm(event, '${stepId || ''}')">
+          <!-- Card: Info Langkah -->
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 24px; margin-bottom: 18px; box-shadow: 0 2px 12px rgba(0,0,0,0.04);">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-heading); margin: 0 0 18px 0; display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);">
+              <i class="fa-solid fa-circle-1" style="color: #0284c7;"></i> Informasi Langkah
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div>
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Nomor Langkah <span style="color:#ef4444;">*</span></label>
+                <input type="text" name="stepNumber" placeholder="01" maxlength="10" required
+                  value="${escapeHtml(stepData?.stepNumber || '')}"
+                  style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-body); color: var(--text-main); font-size: 0.9rem; font-weight: 700; box-sizing: border-box; outline: none; transition: border 0.2s;"
+                  onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='var(--border-subtle)'">
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Warna Badge</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <input type="color" name="badgeColor" value="${stepData?.badgeColor || '#0284c7'}"
+                    style="width: 44px; height: 44px; border: 1px solid var(--border-subtle); border-radius: 8px; cursor: pointer; padding: 2px; background: var(--bg-body);">
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Warna ikon & badge</span>
+                </div>
+              </div>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Judul Langkah <span style="color:#ef4444;">*</span></label>
+              <input type="text" name="title" placeholder="Contoh: Buat Akun PSB" maxlength="255" required
+                value="${escapeHtml(stepData?.title || '')}"
+                style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-body); color: var(--text-main); font-size: 0.9rem; box-sizing: border-box; outline: none; transition: border 0.2s;"
+                onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='var(--border-subtle)'">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Deskripsi <span style="color:#ef4444;">*</span></label>
+              <textarea name="description" rows="3" placeholder="Jelaskan langkah ini secara singkat..." required
+                style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-body); color: var(--text-main); font-size: 0.9rem; box-sizing: border-box; outline: none; resize: vertical; transition: border 0.2s;"
+                onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='var(--border-subtle)'">${escapeHtml(stepData?.description || '')}</textarea>
+            </div>
+          </div>
+
+          <!-- Card: Tampilan & Pengaturan -->
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 24px; margin-bottom: 18px; box-shadow: 0 2px 12px rgba(0,0,0,0.04);">
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-heading); margin: 0 0 18px 0; display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);">
+              <i class="fa-solid fa-circle-2" style="color: #0284c7;"></i> Tampilan & Pengaturan
+            </h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+              <div>
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Icon</label>
+                <select name="icon"
+                  style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-body); color: var(--text-main); font-size: 0.88rem; box-sizing: border-box; outline: none; cursor: pointer; transition: border 0.2s;"
+                  onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='var(--border-subtle)'">
+                  ${iconOptions}
+                </select>
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Urutan Tampil</label>
+                <input type="number" name="sortOrder" min="1" max="100" placeholder="Auto"
+                  value="${stepData?.sortOrder || ''}"
+                  style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-body); color: var(--text-main); font-size: 0.9rem; box-sizing: border-box; outline: none; transition: border 0.2s;"
+                  onfocus="this.style.borderColor='#0284c7'" onblur="this.style.borderColor='var(--border-subtle)'">
+              </div>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Status</label>
+              <div style="display: flex; gap: 12px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 18px; border: 2px solid ${(!stepData || stepData.isActive) ? '#0284c7' : 'var(--border-subtle)'}; border-radius: 10px; background: ${(!stepData || stepData.isActive) ? 'rgba(2,132,199,0.06)' : 'var(--bg-body)'}; transition: all 0.2s;">
+                  <input type="radio" name="isActive" value="true" ${(!stepData || stepData.isActive) ? 'checked' : ''} style="accent-color: #0284c7;"> 
+                  <span style="font-weight: 700; color: var(--text-heading); font-size: 0.9rem;">Aktif</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 10px 18px; border: 2px solid ${(stepData && !stepData.isActive) ? '#94a3b8' : 'var(--border-subtle)'}; border-radius: 10px; background: ${(stepData && !stepData.isActive) ? 'rgba(148,163,184,0.06)' : 'var(--bg-body)'}; transition: all 0.2s;">
+                  <input type="radio" name="isActive" value="false" ${(stepData && !stepData.isActive) ? 'checked' : ''} style="accent-color: #94a3b8;">
+                  <span style="font-weight: 700; color: var(--text-muted); font-size: 0.9rem;">Nonaktif</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display: flex; align-items: center; gap: 12px; justify-content: flex-end; margin-top: 8px;">
+            <a href="#homepage-flow" style="padding: 10px 20px; border: 1px solid var(--border-subtle); border-radius: 10px; color: var(--text-main); font-weight: 700; font-size: 0.88rem; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background=''">
+              Batal
+            </a>
+            <button type="submit" id="flow-form-submit-btn"
+              style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 26px; background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 12px rgba(2,132,199,0.3); transition: all 0.2s;">
+              <i class="fa-solid fa-${isEdit ? 'save' : 'plus'}"></i> ${isEdit ? 'Simpan Perubahan' : 'Tambah Langkah'}
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+  }
+
+  window.renderFlowStepFormView = renderFlowStepFormView;
+
+  window.submitFlowStepForm = async function (event, stepId) {
+    event.preventDefault();
+    const form = document.getElementById('flow-step-form');
+    const btn = document.getElementById('flow-form-submit-btn');
+    if (!form || !btn) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+
+    const fd = new FormData(form);
+    const payload = {
+      stepNumber: fd.get('stepNumber'),
+      title: fd.get('title'),
+      description: fd.get('description'),
+      icon: fd.get('icon'),
+      badgeColor: fd.get('badgeColor'),
+      isActive: fd.get('isActive') === 'true',
+      sortOrder: fd.get('sortOrder') ? parseInt(fd.get('sortOrder')) : undefined,
+    };
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const isEdit = !!stepId;
+      const url = isEdit ? `/api/registration-flow/${stepId}` : '/api/registration-flow';
+      const method = isEdit ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showFlowToast(data.message || (isEdit ? 'Langkah berhasil diperbarui.' : 'Langkah berhasil ditambahkan.'), 'success');
+        window.location.hash = '#homepage-flow';
+      } else {
+        showFlowToast(data.message || 'Terjadi kesalahan.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-${isEdit ? 'save' : 'plus'}"></i> ${isEdit ? 'Simpan Perubahan' : 'Tambah Langkah'}`;
+      }
+    } catch (e) {
+      showFlowToast('Gagal: ' + e.message, 'error');
+      btn.disabled = false;
+    }
+  };
+
+  function showFlowToast(message, type = 'success') {
+    const color = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#0284c7';
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-triangle-exclamation';
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      background: var(--bg-card); border: 1px solid ${color}44; border-left: 4px solid ${color};
+      border-radius: 12px; padding: 14px 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.88rem; font-weight: 600; color: var(--text-heading);
+      animation: slideInRight 0.3s ease; max-width: 340px;
+    `;
+    toast.innerHTML = `<i class="fa-solid ${icon}" style="color: ${color}; font-size: 1.1rem;"></i>${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3500);
+  }
+
+  // ==========================================================================
+  // PUBLIC EXPORT UNTUK ROUTING #homepage-flow
+  // ==========================================================================
+  window.renderRegistrationFlowAdminView = function () {
+    renderRegistrationFlowListView();
+  };
 
 })();

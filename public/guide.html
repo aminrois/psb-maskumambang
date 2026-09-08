@@ -1,98 +1,362 @@
 <!DOCTYPE html>
 <html lang="id" data-theme="light">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Panduan Pendaftaran Santri Baru - Pondok Pesantren Maskumambang</title>
+  <title>Panduan Pendaftaran Santri Baru - PSB Pondok Pesantren Maskumambang</title>
   <link rel="icon" type="image/webp" id="app-favicon" href="/static/img/favicon_87007b6344.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/dashboard.css">
   <style>
+    /* Public Navbar for Guide */
+    .public-navbar {
+      background: #ffffff !important;
+      border: none !important;
+      border-bottom: none !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: none !important;
+    }
+
+    .public-navbar .nav-container {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0.9rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-logo-title {
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: #0f172a !important;
+      letter-spacing: -0.01em;
+    }
+
+    .public-navbar .nav-link {
+      color: #475569;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 8px 16px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .public-navbar .nav-link:hover {
+      color: #4f46e5;
+    }
+
+    .public-navbar .nav-link.active {
+      color: #4f46e5;
+      font-weight: 700;
+      position: relative;
+    }
+
+    .public-navbar .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 16px;
+      right: 16px;
+      height: 2.5px;
+      background: #4f46e5;
+      border-radius: 9999px;
+    }
+
+    #btn-nav-login {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #0f172a !important;
+      border-radius: 9999px;
+      padding: 7px 18px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    #btn-nav-login:hover {
+      background: #e2e8f0;
+    }
+
+    #btn-nav-register {
+      background: #4f46e5;
+      border: 1px solid #4f46e5;
+      color: #ffffff !important;
+      border-radius: 9999px;
+      padding: 7px 20px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+      transition: all 0.2s;
+    }
+
+    #btn-nav-register:hover {
+      background: #4338ca;
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.5);
+    }
+
+    /* Hero Section */
     .guide-hero {
-      background: linear-gradient(135deg, #0f766e 0%, #115e59 50%, #134e4a 100%);
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%);
       color: #fff;
-      padding: 60px 24px 70px;
+      padding: 70px 24px 80px;
       text-align: center;
       position: relative;
       overflow: hidden;
     }
+
     .guide-hero::before {
       content: '';
       position: absolute;
-      width: 400px;
-      height: 400px;
-      top: -100px;
+      width: 450px;
+      height: 450px;
+      top: -120px;
       right: -100px;
-      background: radial-gradient(circle, rgba(45, 212, 191, 0.2) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
       border-radius: 50%;
       pointer-events: none;
     }
-    .guide-step-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: var(--shadow-sm);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    .guide-hero::after {
+      content: '';
+      position: absolute;
+      width: 350px;
+      height: 350px;
+      bottom: -80px;
+      left: -80px;
+      background: radial-gradient(circle, rgba(129, 140, 248, 0.18) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* Flow Steps Grid */
+    .flow-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-top: 28px;
+    }
+
+    @media (max-width: 900px) {
+      .flow-steps-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .flow-steps-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .flow-step-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 26px 22px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       flex-direction: column;
+      position: relative;
     }
-    .guide-step-card:hover {
+
+    .flow-step-card:hover {
       transform: translateY(-4px);
-      box-shadow: var(--shadow-md);
-      border-color: var(--primary-400);
+      box-shadow: 0 14px 30px rgba(79, 70, 229, 0.08);
+      border-color: #818cf8;
     }
-    .step-number-badge {
-      width: 44px;
-      height: 44px;
+
+    .flow-step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .flow-step-number {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #ffffff;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      letter-spacing: 0.5px;
+    }
+
+    .flow-step-icon-wrap {
+      width: 42px;
+      height: 42px;
       border-radius: 12px;
-      background: rgba(15, 118, 110, 0.12);
-      color: #0f766e;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
-      font-weight: 800;
-      margin-bottom: 14px;
+      font-size: 1.15rem;
     }
+
+    .flow-step-title {
+      font-size: 1.12rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 8px 0;
+      line-height: 1.35;
+    }
+
+    .flow-step-desc {
+      font-size: 0.88rem;
+      color: #64748b;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    /* Requirement Item */
     .req-item {
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      padding: 14px 16px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
+      gap: 14px;
+      padding: 16px 18px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      transition: all 0.2s ease;
     }
+
+    .req-item:hover {
+      border-color: #c7d2fe;
+      background: #fafbff;
+    }
+
     .req-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
-      background: rgba(15, 118, 110, 0.1);
-      color: var(--primary-600);
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: #eef2ff;
+      color: #4f46e5;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      font-size: 1rem;
+      font-size: 1.05rem;
+    }
+
+    /* Bank Account Card */
+    .account-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .account-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px rgba(79, 70, 229, 0.08);
+      border-color: #818cf8;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .public-navbar .nav-container {
+        padding: 0.875rem 1.25rem;
+      }
+
+      .btn-toggle-public-menu {
+        display: inline-flex;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        color: #0f172a;
+        width: 38px;
+        height: 38px;
+        border-radius: 8px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .public-navbar .nav-menu {
+        display: none !important;
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 12px;
+        right: 12px;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 16px;
+        padding: 16px;
+        flex-direction: column;
+        gap: 6px;
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.14) !important;
+      }
+
+      .public-navbar .nav-menu.open,
+      .public-navbar .nav-menu.show {
+        display: flex !important;
+      }
+
+      .public-navbar .nav-menu li {
+        width: 100%;
+      }
+
+      .public-navbar .nav-menu .nav-link {
+        display: block;
+        padding: 10px 14px;
+        border-radius: 8px;
+        color: #334155 !important;
+      }
+
+      .public-navbar .nav-menu .nav-link.active {
+        color: #4f46e5 !important;
+        background: #eef2ff !important;
+        font-weight: 700;
+      }
+
+      .public-navbar .nav-menu .nav-link.active::after {
+        display: none;
+      }
+
+      .public-navbar .nav-menu #auth-buttons-nav {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+        margin-top: 6px;
+        padding-top: 10px;
+        border-top: 1px solid #f1f5f9;
+      }
+
+      .public-navbar .nav-menu #auth-buttons-nav a {
+        width: 100%;
+        justify-content: center;
+        box-sizing: border-box;
+      }
     }
   </style>
 </head>
+
 <body class="public-layout">
 
   <!-- Public Header Navbar -->
   <header class="public-navbar">
     <div class="nav-container">
       <a href="/" class="brand-logo" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
-        <img id="nav-logo" src="/static/img/logo_e7a8b6a95d.webp" alt="Logo" style="height: 38px; width: auto; border-radius: 6px;" onerror="this.style.display='none'">
-        <span class="brand-logo-title" id="nav-title" style="font-weight: 800; font-size: 1.15rem; color: var(--text-heading);">PSB Maskumambang</span>
+        <img id="nav-logo" src="/static/img/logo_e7a8b6a95d.webp" alt="Logo"
+          style="height: 38px; width: auto; border-radius: 6px;" onerror="this.style.display='none'">
+        <span class="brand-logo-title" id="nav-title">PSB MASKUMAMBANG</span>
       </a>
 
-      <button type="button" class="btn-toggle-public-menu" id="btn-toggle-public-menu" onclick="togglePublicMenu(event)" aria-label="Menu Navigasi" style="cursor: pointer;">
+      <button type="button" class="btn-toggle-public-menu" id="btn-toggle-public-menu" onclick="togglePublicMenu(event)"
+        aria-label="Menu Navigasi" style="cursor: pointer;">
         <i class="fa-solid fa-bars"></i>
       </button>
 
@@ -102,11 +366,13 @@
           <li><a href="/guide.html" class="nav-link active">Panduan</a></li>
           <li><a href="/kontak.html" class="nav-link">Kontak</a></li>
           <li id="auth-buttons-nav" style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <a href="/login.html" class="btn btn-sm btn-secondary">Masuk</a>
-            <a href="/register.html" class="btn btn-sm btn-primary">Daftar Akun</a>
+            <a href="/login.html" id="btn-nav-login"><i class="fa-regular fa-user"></i> Login</a>
+            <a href="/register.html" id="btn-nav-register"><i class="fa-solid fa-pen-to-square"></i> Daftar</a>
           </li>
           <li id="user-logged-nav" style="display: none;">
-            <a href="/dashboard.html" class="btn btn-sm btn-primary"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+            <a href="/dashboard.html" class="btn btn-sm btn-primary"
+              style="border-radius: 9999px; padding: 8px 20px; font-weight: 700;"><i
+                class="fa-solid fa-gauge-high"></i> Dashboard</a>
           </li>
         </ul>
       </nav>
@@ -116,175 +382,150 @@
   <!-- Hero Section -->
   <div class="guide-hero">
     <div style="max-width: 800px; margin: 0 auto; position: relative; z-index: 2;">
-      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #ccfbf1; padding: 6px 16px; border-radius: 9999px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
+      <div
+        style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #e0e7ff; padding: 6px 18px; border-radius: 9999px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 18px;">
         <i class="fa-solid fa-book-open"></i> Panduan Resmi Calon Santri Baru
       </div>
-      <h1 style="font-size: clamp(1.8rem, 4vw, 2.5rem); font-weight: 800; margin-bottom: 12px; line-height: 1.25;">
-        Panduan Pendaftaran Santri Baru
+      <h1 style="font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; margin-bottom: 14px; line-height: 1.25;">
+        Panduan Lengkap Pendaftaran PSB
       </h1>
-      <p style="font-size: 1rem; color: rgba(255, 255, 255, 0.9); line-height: 1.6; max-width: 650px; margin: 0 auto;">
-        Pelajari tata cara pendaftaran, alur seleksi, berkas persyaratan yang harus disiapkan, serta informasi rekening pembayaran resmi panitia.
+      <p style="font-size: 1.02rem; color: rgba(255, 255, 255, 0.9); line-height: 1.7; max-width: 680px; margin: 0 auto;">
+        Pelajari tata cara pendaftaran, alur seleksi 6 langkah, berkas persyaratan yang harus disiapkan, serta informasi rekening pembayaran resmi panitia.
       </p>
     </div>
   </div>
 
   <!-- Main Content -->
-  <main class="main-wrapper" style="flex: 1; padding: 48px 24px;">
-    <div class="container" style="max-width: 1150px; margin: 0 auto;">
+  <main class="main-wrapper" style="flex: 1; padding: 56px 24px;">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
 
-      <!-- 1. ALUR PENDAFTARAN -->
-      <div style="margin-bottom: 56px;">
+      <!-- 1. ALUR PENDAFTARAN LENGKAP -->
+      <div style="margin-bottom: 64px;">
         <div style="text-align: center; margin-bottom: 36px;">
-          <span style="color: var(--primary-600); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">
-            <i class="fa-solid fa-diagram-project"></i> Alur Pendaftaran
-          </span>
-          <h2 style="font-size: 1.8rem; color: var(--text-heading); font-weight: 800; margin: 6px 0 8px;">
-            5 Langkah Mudah Pendaftaran Santri Baru
+          <div
+            style="display: inline-block; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 6px 18px; border-radius: 9999px; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
+            <i class="fa-solid fa-route"></i> Alur Pendaftaran
+          </div>
+          <h2 style="font-size: 2rem; color: #0f172a; font-weight: 800; margin: 0 0 10px;">
+            6 Langkah Mudah Pendaftaran Santri Baru
           </h2>
-          <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 650px; margin: 0 auto;">
-            Ikuti tahapan proses penerimaan santri baru Pondok Pesantren Maskumambang secara online:
+          <p style="color: #64748b; font-size: 1rem; max-width: 650px; margin: 0 auto;">
+            Ikuti tahapan proses penerimaan santri baru Pondok Pesantren Maskumambang secara online mulai dari registrasi hingga pengumuman & daftar ulang:
           </p>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px;">
-          <div class="guide-step-card">
-            <div class="step-number-badge">01</div>
-            <h3 style="font-size: 1.1rem; color: var(--text-heading); font-weight: 700; margin-bottom: 6px;">Daftar Akun PSB</h3>
-            <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin: 0;">
-              Buat akun dengan mengisi nama lengkap, email, nomor WhatsApp aktif, dan kata sandi yang aman.
-            </p>
-          </div>
-
-          <div class="guide-step-card">
-            <div class="step-number-badge" style="background: rgba(2, 132, 199, 0.12); color: var(--color-secondary);">02</div>
-            <h3 style="font-size: 1.1rem; color: var(--text-heading); font-weight: 700; margin-bottom: 6px;">Pilih Jenjang & Program</h3>
-            <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin: 0;">
-              Pilih jenjang sekolah (MI, MTs, SMP, MA, SMA), peminatan jurusan, dan program kelas yang diminati.
-            </p>
-          </div>
-
-          <div class="guide-step-card">
-            <div class="step-number-badge" style="background: rgba(245, 158, 11, 0.12); color: #d97706;">03</div>
-            <h3 style="font-size: 1.1rem; color: var(--text-heading); font-weight: 700; margin-bottom: 6px;">Bayar Biaya Formulir</h3>
-            <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin: 0;">
-              Transfer biaya pendaftaran ke rekening resmi panitia dan unggah bukti transfer di dashboard Anda.
-            </p>
-          </div>
-
-          <div class="guide-step-card">
-            <div class="step-number-badge" style="background: rgba(139, 92, 246, 0.12); color: #7c3aed;">04</div>
-            <h3 style="font-size: 1.1rem; color: var(--text-heading); font-weight: 700; margin-bottom: 6px;">Lengkapi Biodata & Berkas</h3>
-            <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin: 0;">
-              Setelah pembayaran diverifikasi bendahara, isi data santri & orang tua/wali serta unggah dokumen persyaratan.
-            </p>
-          </div>
-
-          <div class="guide-step-card">
-            <div class="step-number-badge" style="background: rgba(16, 185, 129, 0.12); color: #059669;">05</div>
-            <h3 style="font-size: 1.1rem; color: var(--text-heading); font-weight: 700; margin-bottom: 6px;">Ujian CBT & Wawancara</h3>
-            <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin: 0;">
-              Cetak Kartu Ujian ber-QR Code, ikuti tes CBT online dan wawancara sesuai jadwal, lalu pantau pengumuman kelulusan.
-            </p>
+        <div class="flow-steps-grid" id="flow-steps-grid">
+          <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.8rem; color: #4f46e5; margin-bottom: 10px;"></i>
+            <p>Memuat tahapan alur pendaftaran...</p>
           </div>
         </div>
       </div>
 
       <!-- 2. PERSYARATAN BERKAS -->
-      <div style="margin-bottom: 56px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 20px; padding: 36px; box-shadow: var(--shadow-sm);">
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-          <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(15, 118, 110, 0.12); color: var(--primary-600); display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+      <div
+        style="margin-bottom: 64px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 24px; padding: 38px 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+        <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px;">
+          <div
+            style="width: 48px; height: 48px; border-radius: 14px; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0;">
             <i class="fa-solid fa-file-circle-check"></i>
           </div>
           <div>
-            <h2 style="font-size: 1.5rem; color: var(--text-heading); font-weight: 800; margin: 0;">Persyaratan Dokumen & Berkas</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin: 2px 0 0;">Siapkan pindaian (scan) / foto dokumen dalam format JPG/PNG/PDF yang jelas dan terbaca:</p>
+            <h2 style="font-size: 1.55rem; color: #0f172a; font-weight: 800; margin: 0;">Persyaratan Dokumen & Berkas</h2>
+            <p style="color: #64748b; font-size: 0.92rem; margin: 3px 0 0;">Siapkan pindaian (scan) / foto dokumen dalam format JPG/PNG/PDF yang jelas dan terbaca:</p>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 24px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
           <div class="req-item">
             <div class="req-icon"><i class="fa-solid fa-id-card"></i></div>
             <div>
-              <strong style="color: var(--text-heading); font-size: 0.95rem;">Kartu Keluarga (KK)</strong>
-              <div style="color: var(--text-muted); font-size: 0.825rem; margin-top: 2px;">Scan KK asli yang memuat data calon santri dan NIK keluarga.</div>
+              <strong style="color: #0f172a; font-size: 0.95rem;">Kartu Keluarga (KK)</strong>
+              <div style="color: #64748b; font-size: 0.825rem; margin-top: 3px;">Scan KK asli yang memuat data calon santri dan NIK keluarga.</div>
             </div>
           </div>
 
           <div class="req-item">
             <div class="req-icon"><i class="fa-solid fa-certificate"></i></div>
             <div>
-              <strong style="color: var(--text-heading); font-size: 0.95rem;">Akta Kelahiran</strong>
-              <div style="color: var(--text-muted); font-size: 0.825rem; margin-top: 2px;">Scan Akta Kelahiran resmi calon santri untuk verifikasi usia & tempat lahir.</div>
+              <strong style="color: #0f172a; font-size: 0.95rem;">Akta Kelahiran</strong>
+              <div style="color: #64748b; font-size: 0.825rem; margin-top: 3px;">Scan Akta Kelahiran resmi calon santri untuk verifikasi data kependudukan.</div>
             </div>
           </div>
 
           <div class="req-item">
             <div class="req-icon"><i class="fa-solid fa-address-card"></i></div>
             <div>
-              <strong style="color: var(--text-heading); font-size: 0.95rem;">KTP Orang Tua / Wali</strong>
-              <div style="color: var(--text-muted); font-size: 0.825rem; margin-top: 2px;">Scan KTP Ayah dan Ibu / Wali santri yang masih berlaku.</div>
+              <strong style="color: #0f172a; font-size: 0.95rem;">KTP Orang Tua / Wali</strong>
+              <div style="color: #64748b; font-size: 0.825rem; margin-top: 3px;">Scan KTP Ayah dan Ibu / Wali santri yang masih aktif dan berlaku.</div>
             </div>
           </div>
 
           <div class="req-item">
             <div class="req-icon"><i class="fa-solid fa-graduation-cap"></i></div>
             <div>
-              <strong style="color: var(--text-heading); font-size: 0.95rem;">Ijazah / SKL / Surat Keterangan</strong>
-              <div style="color: var(--text-muted); font-size: 0.825rem; margin-top: 2px;">Ijazah/SKL atau Surat Keterangan Aktif dari sekolah/madrasah asal.</div>
+              <strong style="color: #0f172a; font-size: 0.95rem;">Ijazah / SKL / Rapor</strong>
+              <div style="color: #64748b; font-size: 0.825rem; margin-top: 3px;">Ijazah/SKL atau Surat Keterangan Aktif dan fotokopi rapor sekolah/madrasah asal.</div>
             </div>
           </div>
 
           <div class="req-item">
             <div class="req-icon"><i class="fa-solid fa-image"></i></div>
             <div>
-              <strong style="color: var(--text-heading); font-size: 0.95rem;">Pas Foto Berwarna Terbaru</strong>
-              <div style="color: var(--text-muted); font-size: 0.825rem; margin-top: 2px;">Pas foto formal berpakaian rapi (putra berpeci, putri berbusana muslimah).</div>
+              <strong style="color: #0f172a; font-size: 0.95rem;">Pas Foto Berwarna Terbaru</strong>
+              <div style="color: #64748b; font-size: 0.825rem; margin-top: 3px;">Pas foto formal latar belakang biru/merah (putra berpeci, putri berbusana muslimah).</div>
             </div>
           </div>
 
           <div class="req-item">
             <div class="req-icon"><i class="fa-solid fa-trophy"></i></div>
             <div>
-              <strong style="color: var(--text-heading); font-size: 0.95rem;">Sertifikat Prestasi (Opsional)</strong>
-              <div style="color: var(--text-muted); font-size: 0.825rem; margin-top: 2px;">Sertifikat tahfidz, piagam juara akademik / non-akademik (jika ada).</div>
+              <strong style="color: #0f172a; font-size: 0.95rem;">Sertifikat Prestasi (Opsional)</strong>
+              <div style="color: #64748b; font-size: 0.825rem; margin-top: 3px;">Sertifikat tahfidz Al-Qur'an, piagam juara akademik / non-akademik (jika ada).</div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 3. REKENING PEMBAYARAN RESMI -->
-      <div style="margin-bottom: 56px;">
-        <div style="text-align: center; margin-bottom: 28px;">
-          <span style="color: var(--primary-600); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">
+      <div style="margin-bottom: 64px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <div
+            style="display: inline-block; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 6px 18px; border-radius: 9999px; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;">
             <i class="fa-solid fa-building-columns"></i> Keuangan & Pembayaran
-          </span>
-          <h2 style="font-size: 1.8rem; color: var(--text-heading); font-weight: 800; margin: 6px 0 8px;">
+          </div>
+          <h2 style="font-size: 2rem; color: #0f172a; font-weight: 800; margin: 0 0 10px;">
             Rekening Resmi Pembayaran PSB
           </h2>
-          <p style="color: var(--text-muted); font-size: 0.95rem; max-width: 650px; margin: 0 auto;">
-            Pastikan hanya melakukan transfer pembayaran biaya pendaftaran PSB ke rekening bank resmi berikut:
+          <p style="color: #64748b; font-size: 1rem; max-width: 650px; margin: 0 auto;">
+            Pastikan hanya melakukan transfer pembayaran biaya formulir pendaftaran ke rekening bank resmi panitia PSB Maskumambang:
           </p>
         </div>
 
-        <div id="accounts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-          <div style="text-align: center; padding: 30px; color: var(--text-muted); grid-column: 1 / -1;">
-            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; color: var(--primary-600);"></i>
-            <p style="margin-top: 8px;">Memuat data rekening resmi panitia...</p>
+        <div id="accounts-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
+          <div style="text-align: center; padding: 40px; color: #64748b; grid-column: 1 / -1;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.8rem; color: #4f46e5; margin-bottom: 10px;"></i>
+            <p>Memuat data rekening resmi panitia...</p>
           </div>
         </div>
       </div>
 
       <!-- 4. CTA DAFTAR AKUN -->
-      <div style="background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); border-radius: 20px; padding: 40px 30px; text-align: center; color: #ffffff; box-shadow: var(--shadow-md);">
-        <h2 style="font-size: 1.7rem; font-weight: 800; margin-bottom: 10px;">Siap Bergabung dengan Pondok Pesantren Maskumambang?</h2>
-        <p style="font-size: 0.95rem; opacity: 0.92; max-width: 600px; margin: 0 auto 24px;">
-          Daftarkan akun sekarang dan mulai langkah awal pendidikan terbaik bagi putra/putri Anda.
+      <div
+        style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); border-radius: 24px; padding: 48px 32px; text-align: center; color: #ffffff; box-shadow: 0 12px 36px rgba(79, 70, 229, 0.25);">
+        <h2 style="font-size: clamp(1.5rem, 3.5vw, 2rem); font-weight: 800; margin-bottom: 12px;">
+          Siap Bergabung dengan Pondok Pesantren Maskumambang?
+        </h2>
+        <p style="font-size: 1rem; opacity: 0.92; max-width: 640px; margin: 0 auto 28px; line-height: 1.6;">
+          Daftarkan akun sekarang dan mulai langkah awal pendidikan islami berkualitas terbaik bagi putra/putri Anda.
         </p>
         <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
-          <a href="/register.html" class="btn btn-secondary" style="padding: 12px 28px; font-weight: 700; font-size: 1rem; color: #0f766e; background: #ffffff;">
+          <a href="/register.html" class="btn"
+            style="padding: 13px 30px; font-weight: 700; font-size: 0.98rem; color: #4f46e5; background: #ffffff; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 16px rgba(0,0,0,0.15);">
             <i class="fa-solid fa-user-plus"></i> Daftar Akun Sekarang
           </a>
-          <a href="/kontak.html" class="btn" style="padding: 12px 28px; font-weight: 700; font-size: 1rem; border: 1.5px solid rgba(255,255,255,0.7); color: #ffffff; background: transparent;">
+          <a href="/kontak.html" class="btn"
+            style="padding: 13px 30px; font-weight: 700; font-size: 0.98rem; border: 1.5px solid rgba(255,255,255,0.7); color: #ffffff; background: transparent; border-radius: 9999px; text-decoration: none;">
             <i class="fa-brands fa-whatsapp"></i> Hubungi Panitia
           </a>
         </div>
@@ -294,15 +535,17 @@
   </main>
 
   <!-- Footer -->
-  <footer class="footer" style="background: var(--bg-card); border-top: 1px solid var(--border-subtle); padding: 30px 20px; text-align: center;">
+  <footer class="footer"
+    style="background: #ffffff; border-top: 1px solid #e2e8f0; padding: 32px 20px; text-align: center;">
     <div class="container" style="max-width: 1100px; margin: 0 auto;">
-      <div style="font-weight: 700; color: var(--text-heading); font-size: 1rem; margin-bottom: 0.35rem;" id="footer-title">
-        PSB Maskumambang
+      <div style="font-weight: 800; color: #0f172a; font-size: 1.05rem; margin-bottom: 0.35rem;"
+        id="footer-title">
+        PSB MASKUMAMBANG
       </div>
-      <p style="color: var(--text-muted); font-size: 0.875rem;" id="footer-desc">
+      <p style="color: #64748b; font-size: 0.875rem;" id="footer-desc">
         Penerimaan Santri Baru (PSB) Pondok Pesantren Maskumambang.
       </p>
-      <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-dim);">
+      <div style="margin-top: 1rem; font-size: 0.8rem; color: #94a3b8;">
         &copy; 2026 PSB Maskumambang. Hak Cipta Dilindungi.
       </div>
     </div>
@@ -313,6 +556,8 @@
     document.addEventListener('DOMContentLoaded', async () => {
       initTheme();
       loadBrandingInfo();
+      initFlowSteps();
+      initBankAccounts();
 
       if (state.token && state.user) {
         const authNav = document.getElementById('auth-buttons-nav');
@@ -320,46 +565,110 @@
         if (authNav) authNav.style.display = 'none';
         if (userNav) userNav.style.display = 'block';
       }
+    });
 
-      // Load official bank accounts
+    // ============================================================
+    // ALUR PENDAFTARAN - Dynamic Loader
+    // ============================================================
+    async function initFlowSteps() {
+      const grid = document.getElementById('flow-steps-grid');
+      if (!grid) return;
+
+      try {
+        const res = await apiRequest('/api/registration-flow/active');
+        if (!res || !res.success || !Array.isArray(res.data) || res.data.length === 0) {
+          grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#94a3b8;">Informasi alur pendaftaran belum tersedia.</div>`;
+          return;
+        }
+
+        const steps = res.data;
+        grid.innerHTML = steps.map((step) => {
+          const color = step.badgeColor || '#4f46e5';
+          const icon = step.icon || 'fa-diagram-project';
+          return `
+            <div class="flow-step-card">
+              <div class="flow-step-header">
+                <div class="flow-step-number" style="background: ${color};">
+                  ${escapeHtml(step.stepNumber)}
+                </div>
+                <div class="flow-step-icon-wrap" style="background: ${color}15; color: ${color};">
+                  <i class="fa-solid ${escapeHtml(icon)}"></i>
+                </div>
+              </div>
+              <h3 class="flow-step-title">${escapeHtml(step.title)}</h3>
+              <p class="flow-step-desc">${escapeHtml(step.description)}</p>
+            </div>
+          `;
+        }).join('');
+
+      } catch (e) {
+        console.error('Failed to load flow steps:', e);
+        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Gagal memuat data alur pendaftaran.</div>`;
+      }
+    }
+
+    // ============================================================
+    // REKENING BANK RESMI - Loader
+    // ============================================================
+    async function initBankAccounts() {
+      const container = document.getElementById('accounts-grid');
+      if (!container) return;
+
       try {
         const res = await apiRequest('/api/payments/accounts');
-        const container = document.getElementById('accounts-grid');
         if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
           container.innerHTML = res.data.map(acc => `
-            <div class="card" style="background: var(--bg-card); border: 1.5px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
+            <div class="account-card">
               ${acc.qrisImagePath ? `
-                <div style="background: #fff; padding: 16px; text-align: center; border-bottom: 1px solid var(--border-subtle); position: relative;">
+                <div style="background: #fff; padding: 18px; text-align: center; border-bottom: 1px solid #e2e8f0; position: relative;">
                   <img src="/api/payments/accounts/qris/${acc.qrisImagePath}" alt="QRIS ${escapeHtml(acc.bankName)}" style="max-height: 180px; max-width: 100%; object-fit: contain;" onerror="this.parentElement.style.display='none'">
-                  <span style="position: absolute; top: 8px; right: 8px; background: #22c55e; color: #fff; font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 20px;">QRIS</span>
+                  <span style="position: absolute; top: 10px; right: 10px; background: #22c55e; color: #fff; font-size: 0.7rem; font-weight: 800; padding: 2px 10px; border-radius: 20px;">QRIS</span>
                 </div>
               ` : ''}
-              <div style="padding: 22px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="padding: 26px 24px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <span class="badge badge-primary" style="font-size: 0.75rem; font-weight: 700;">${escapeHtml(acc.bankName)}</span>
-                    <i class="fa-solid fa-building-columns" style="color: var(--primary-600); font-size: 1.2rem;"></i>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <span style="font-size: 0.85rem; font-weight: 800; color: #4f46e5; background: #eef2ff; border: 1px solid #c7d2fe; padding: 4px 14px; border-radius: 9999px;">
+                      ${escapeHtml(acc.bankName)}
+                    </span>
+                    <i class="fa-solid fa-building-columns" style="color: #4f46e5; font-size: 1.3rem;"></i>
                   </div>
-                  <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Nomor Rekening:</div>
-                  <div style="display: flex; align-items: center; justify-content: space-between; margin: 4px 0 10px; background: var(--bg-body); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
-                    <span style="font-size: 1.2rem; font-weight: 800; color: var(--primary-600); font-family: monospace; letter-spacing: 0.05em;">${escapeHtml(acc.accountNumber)}</span>
-                    <button type="button" class="btn btn-sm btn-ghost" onclick="navigator.clipboard.writeText('${acc.accountNumber}'); showToast('Nomor rekening disalin!', 'success');" title="Salin" style="padding: 4px 8px; font-size: 0.8rem;">
-                      <i class="fa-regular fa-copy"></i>
+                  <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Nomor Rekening:</div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin: 6px 0 14px; background: #f8fafc; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <span style="font-size: 1.25rem; font-weight: 800; color: #0f172a; font-family: monospace; letter-spacing: 0.05em;">${escapeHtml(acc.accountNumber)}</span>
+                    <button type="button" class="btn btn-sm" onclick="copyAccountNumber('${acc.accountNumber}', this)" title="Salin Nomor Rekening" style="padding: 6px 12px; font-size: 0.82rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; color: #4f46e5; cursor: pointer; font-weight: 700;">
+                      <i class="fa-regular fa-copy"></i> Salin
                     </button>
                   </div>
-                  <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Atas Nama:</div>
-                  <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-heading); margin-top: 2px;">${escapeHtml(acc.accountHolder)}</div>
+                  <div style="font-size: 0.75rem; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Atas Nama:</div>
+                  <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-top: 4px;">${escapeHtml(acc.accountHolder)}</div>
                 </div>
               </div>
             </div>
           `).join('');
         } else {
-          container.innerHTML = '<div style="text-align: center; padding: 24px; color: var(--text-muted); background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-subtle); grid-column: 1 / -1;">Belum ada rekening resmi yang terdaftar. Hubungi panitia via kontak untuk informasi pembayaran.</div>';
+          container.innerHTML = '<div style="text-align: center; padding: 32px; color: #64748b; background: #f8fafc; border-radius: 16px; border: 1px dashed #cbd5e1; grid-column: 1 / -1;">Belum ada rekening resmi yang terdaftar. Hubungi panitia via kontak untuk informasi pembayaran.</div>';
         }
       } catch (err) {
         console.error('Failed to load accounts', err);
+        container.innerHTML = '<div style="text-align: center; padding: 32px; color: #ef4444; background: #fef2f2; border-radius: 16px; border: 1px solid #fecaca; grid-column: 1 / -1;"><i class="fa-solid fa-triangle-exclamation"></i> Gagal memuat data rekening resmi. Silakan segarkan halaman.</div>';
       }
-    });
+    }
+
+    function copyAccountNumber(text, btn) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          const origText = btn.innerHTML;
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> Tersalin';
+          btn.style.color = '#16a34a';
+          setTimeout(() => {
+            btn.innerHTML = origText;
+            btn.style.color = '#4f46e5';
+          }, 2000);
+        });
+      }
+    }
   </script>
 </body>
+
 </html>

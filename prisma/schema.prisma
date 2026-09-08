@@ -1034,3 +1034,20 @@ model HeroSlider {
   @@map("hero_sliders")
 }
 
+model RegistrationFlowStep {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  stepNumber  String   @map("step_number") @db.VarChar(10)
+  title       String   @db.VarChar(255)
+  description String   @db.Text
+  icon        String?  @default("fa-diagram-project") @db.VarChar(100)
+  badgeColor  String?  @default("#0284c7") @map("badge_color") @db.VarChar(50)
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(1) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("registration_flow_steps")
+}
+
