@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <title>Daftar Akun Baru - PSB Maskumambang</title>
+  <link rel="icon" type="image/webp" id="app-favicon" href="/static/img/favicon_87007b6344.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    .auth-page-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-xl);
+      padding: 36px;
+    }
+    .theme-toggle-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 9999px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body class="public-layout">
+
+  <div class="auth-page-wrapper">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <a href="/" style="display: inline-flex; align-items: center; gap: 10px; text-decoration: none;">
+        <img id="nav-logo" src="/static/img/logo_e7a8b6a95d.webp" alt="Logo" style="height: 44px; width: auto; border-radius: 8px;" onerror="this.style.display='none'">
+        <h2 id="auth-app-title" style="font-size: 1.4rem; color: var(--text-heading); font-weight: 800; margin: 0;">PSB Maskumambang</h2>
+      </a>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 6px;">Pendaftaran Akun Calon Santri Baru</p>
+    </div>
+
+    <div class="auth-card">
+      <div style="margin-bottom: 24px;">
+        <h3 style="font-size: 1.3rem; margin-bottom: 6px; color: var(--text-heading);">Buat Akun Baru</h3>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">Lengkapi data akun untuk mendaftar sebagai calon santri baru.</p>
+      </div>
+
+      <div id="register-alert" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 18px; font-size: 0.9rem;"></div>
+
+      <form id="register-form" onsubmit="handleRegisterSubmit(event)">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">1. Nama Lengkap</label>
+          <input type="text" id="reg-name" class="form-control" placeholder="Nama Lengkap Pendaftar" required style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">2. Alamat Email</label>
+          <input type="email" id="reg-email" class="form-control" placeholder="nama@email.com" required autocomplete="email" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">3. Kata Sandi (Minimal 6 Karakter)</label>
+          <input type="password" id="reg-password" class="form-control" placeholder="••••••••" required minlength="6" autocomplete="new-password" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        </div>
+        <div class="form-group" style="margin-bottom: 22px;">
+          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">4. Nomor WhatsApp Aktif</label>
+          <input type="text" id="reg-phone" class="form-control" placeholder="Contoh: 081234567890" required style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        </div>
+        <button type="submit" id="register-submit-btn" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700;">
+          <i class="fa-solid fa-check"></i> Buat Akun Calon Santri
+        </button>
+      </form>
+
+      <div style="text-align: center; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border-subtle); font-size: 0.9rem; color: var(--text-muted);">
+        Sudah memiliki akun? <a href="/login.html" style="color: var(--primary-600); font-weight: 700; text-decoration: none;">Masuk ke Akun</a>
+      </div>
+      <div style="text-align: center; margin-top: 10px; font-size: 0.85rem;">
+        <a href="/" style="color: var(--text-dim); text-decoration: none;"><i class="fa-solid fa-arrow-left"></i> Kembali ke Beranda</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js?v=20260905_cardphoto_v4"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      loadBrandingInfo();
+
+      const form = document.getElementById('register-form');
+      if (form) {
+        form.addEventListener('submit', handleRegisterSubmit);
+      }
+    });
+
+    async function handleRegisterSubmit(e) {
+      if (e) e.preventDefault();
+      const btn = document.getElementById('register-submit-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+      }
+
+      try {
+        const name = document.getElementById('reg-name').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const phoneNumber = document.getElementById('reg-phone').value.trim();
+
+        const res = await apiRequest('/api/auth/register', {
+          method: 'POST',
+          body: { name, email, password, phoneNumber },
+        });
+
+        if (res.success || res.id || res.email) {
+          if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyiapkan formulir pendaftaran...';
+          try {
+            const loginRes = await apiRequest('/api/auth/login', {
+              method: 'POST',
+              body: { email, password },
+            });
+            if (loginRes.success && loginRes.data) {
+              if (typeof saveSession === 'function') {
+                saveSession(loginRes.data.user, loginRes.data.accessToken);
+              } else if (typeof setSession === 'function') {
+                setSession(loginRes.data.accessToken, loginRes.data.user);
+              } else {
+                localStorage.setItem('currentUser', JSON.stringify(loginRes.data.user));
+                localStorage.setItem('accessToken', loginRes.data.accessToken);
+              }
+              showBannerAlert('register-alert', 'Akun berhasil dibuat! Mengarahkan ke formulir pendaftaran awal...', 'success');
+              setTimeout(() => {
+                window.location.href = '/dashboard.html#daftar';
+              }, 800);
+              return;
+            }
+          } catch (loginErr) {
+            console.warn('Auto-login fallback:', loginErr);
+          }
+
+          showBannerAlert('register-alert', 'Akun berhasil dibuat! Mengalihkan ke halaman masuk...', 'success');
+          setTimeout(() => {
+            window.location.href = '/login.html';
+          }, 1000);
+        }
+      } catch (err) {
+        showBannerAlert('register-alert', err.message || 'Gagal membuat akun.', 'danger');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> Buat Akun Peserta';
+        }
+      }
+    }
+    window.handleRegisterSubmit = handleRegisterSubmit;
+  </script>
+</body>
+</html>

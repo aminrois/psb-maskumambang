@@ -1,0 +1,269 @@
+/* Official Participant Card Stylesheet — 10cm × 14cm */
+
+.card-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+}
+
+/* On-screen preview: scale-down to fit nicely */
+.id-card-official {
+  width: 378px;  /* 10cm @ 96dpi */
+  height: 529px; /* 14cm @ 96dpi */
+  max-width: 378px;
+  max-height: 529px;
+  background: #ffffff;
+  border-radius: 1rem;
+  border: 2px solid #0f172a;
+  box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.15);
+  overflow: hidden;
+  position: relative;
+  font-family: var(--font-primary);
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  text-transform: uppercase;
+}
+
+.id-card-official * {
+  text-transform: uppercase;
+}
+
+/* Card Header Banner */
+.card-header-banner {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+  color: #ffffff;
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid #f59e0b;
+  flex-shrink: 0;
+}
+
+.event-brand h2 {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.event-brand p {
+  font-size: 0.72rem;
+  color: #cbd5e1;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.card-type-tag {
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* Card Body */
+.card-body-content {
+  padding: 1rem 1.25rem;
+  background: radial-gradient(circle at 90% 10%, rgba(224, 231, 255, 0.4), transparent 40%), #ffffff;
+  flex: 1;
+}
+
+.reg-number-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.reg-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.reg-code {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #4338ca;
+  letter-spacing: 0.05em;
+  font-family: monospace;
+}
+
+.card-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.info-item {
+  margin-bottom: 0.6rem;
+}
+
+.info-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.info-val {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.info-val.highlight {
+  font-size: 1rem;
+  color: #1e1b4b;
+}
+
+/* QR Code Box */
+.qr-frame {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 0.4rem;
+  text-align: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.qr-frame img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 0.375rem;
+}
+
+.qr-caption {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-top: 0.3rem;
+  text-transform: uppercase;
+}
+
+/* Team Members List inside Card */
+.card-members-section {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.members-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.member-chip {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.375rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Card Footer */
+.card-footer-strip {
+  background: #f8fafc;
+  padding: 0.6rem 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.65rem;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.verified-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #059669;
+  font-weight: 800;
+}
+
+/* ============================================================
+   PRINT RULES — satu kartu per halaman, ukuran 10cm × 14cm
+   ============================================================ */
+@media print {
+  @page {
+    size: 10cm 14cm portrait;
+    margin: 0;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 10cm !important;
+    height: 14cm !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide all dashboard layout elements */
+  body * {
+    visibility: hidden;
+  }
+
+  .app-sidebar, .app-topbar, .footer, .btn, .no-print,
+  .flash-messages, .theme-toggle-btn, .sidebar-backdrop, .modal-backdrop,
+  header, nav, aside {
+    display: none !important;
+  }
+
+  /* Ensure card container and card itself are visible */
+  #official-card-print,
+  #official-card-print *,
+  .id-card-official,
+  .id-card-official *,
+  .card-preview-container,
+  .card-preview-container * {
+    visibility: visible !important;
+  }
+
+  #official-card-print,
+  .id-card-official {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 10cm !important;
+    height: 14cm !important;
+    max-width: 10cm !important;
+    min-height: 14cm !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    transform: none !important;
+    background: #ffffff !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+}
+
+

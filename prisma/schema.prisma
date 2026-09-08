@@ -1,0 +1,1036 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  BENDAHARA
+  ADMIN_BARCODE
+  PEWAWANCARA
+  PESERTA
+}
+
+enum ParticipantType {
+  INDIVIDUAL
+  TEAM
+}
+
+enum Gender {
+  L
+  P
+}
+
+enum RegistrationStatus {
+  WAITING_VERIFICATION
+  PAYMENT_REJECTED
+  APPROVED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  WAITING_VERIFICATION
+  APPROVED
+  REJECTED
+}
+
+enum VerificationAction {
+  APPROVED
+  REJECTED
+}
+
+enum CheckInMethod {
+  QR_SCAN
+  MANUAL_CODE
+}
+
+enum BoardingStatus {
+  MUKIM
+  NON_MUKIM
+}
+
+enum FormStatus {
+  LOCKED
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  REVISION_REQUIRED
+  VERIFIED
+}
+
+enum FinalAdmissionStatus {
+  UNDECIDED
+  ACCEPTED
+  REJECTED
+  WAITLISTED
+}
+
+enum ChildStatus {
+  KANDUNG
+  TIRI
+  ANGKAT
+}
+
+enum PreviousSchoolLevel {
+  TK
+  SD_MI
+  SMP_MTS
+  SMA_MA_SMK
+}
+
+enum ParentStatus {
+  MASIH_HIDUP
+  SUDAH_MENINGGAL
+}
+
+enum EducationLevel {
+  TIDAK_SEKOLAH
+  SD_MI
+  SMP_MTS
+  SMA_MA_SMK
+  DIPLOMA
+  S1
+  S2
+  S3
+}
+
+enum IncomeRange {
+  TIDAK_BERPENGHASILAN
+  KURANG_DARI_1JT
+  SATU_SAMPAI_3JT
+  TIGA_SAMPAI_5JT
+  LIMA_SAMPAI_10JT
+  LEBIH_DARI_10JT
+}
+
+enum DocumentType {
+  FAMILY_CARD
+  BIRTH_CERTIFICATE
+  FATHER_ID_CARD
+  MOTHER_ID_CARD
+  GUARDIAN_ID_CARD
+  DIPLOMA_OR_SKL
+  REPORT_CARD
+  PHOTO
+  ACHIEVEMENT_CERTIFICATE
+}
+
+model User {
+  id             String    @id @default(uuid()) @db.VarChar(36)
+  name           String    @db.VarChar(150)
+  email          String    @unique @db.VarChar(150)
+  phoneNumber    String    @map("phone_number") @db.VarChar(30)
+  passwordHash   String    @map("password_hash") @db.VarChar(255)
+  role           Role      @default(PESERTA)
+  isActive             Boolean   @default(true) @map("is_active")
+  sessionVersion       Int       @default(1) @map("session_version")
+  resetPasswordToken   String?   @map("reset_password_token") @db.VarChar(255)
+  resetPasswordExpires DateTime? @map("reset_password_expires")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  registrations          Registration[]
+  verifiedRegistrations  Registration[]           @relation("VerifiedRegistrations")
+  verificationsPerformed PaymentVerificationLog[]
+  checkInsPerformed      CheckIn[]                @relation("CheckInStaff1")
+  checkIns2Performed     CheckIn[]                @relation("CheckInStaff2")
+  auditLogs              AuditLog[]
+  gradedCbtAttempts      CBTAttempt[]             @relation("GradedCbtAttempts")
+  verifiedCbtAttempts    CBTAttempt[]             @relation("VerifiedCbtAttempts")
+  interviewerSchedules   InterviewScheduleInterviewer[] @relation("InterviewerSchedules")
+  assignedInterviews     Interview[]              @relation("AssignedInterviewer")
+  checkedInInterviews    Interview[]              @relation("CheckedInByInterviews")
+  finalVerifiedRegistrations Registration[]      @relation("FinalVerifiedRegistrations")
+
+  @@map("users")
+}
+
+model AcademicPeriod {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  name      String   @unique @db.VarChar(50) // e.g. "2026/2027"
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  admissionWaves     AdmissionWave[]
+  registrations      Registration[]
+  interviewQuestions InterviewQuestion[]
+  interviewPackages  InterviewPackage[]
+  interviewSchedules InterviewSchedule[]
+  interviewAspectConfigs InterviewAspectConfig[]
+
+  @@map("academic_periods")
+}
+
+model AdmissionWave {
+  id               String   @id @default(uuid()) @db.VarChar(36)
+  academicPeriodId String   @map("academic_period_id") @db.VarChar(36)
+  name             String   @db.VarChar(100) // e.g. "Gelombang 1"
+  waveNumber       Int?     @map("wave_number")
+  startDate        DateTime @map("start_date")
+  endDate          DateTime @map("end_date")
+  registrationFee  Decimal  @default(500000.00) @map("registration_fee") @db.Decimal(12, 2)
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  academicPeriod     AcademicPeriod      @relation(fields: [academicPeriodId], references: [id], onDelete: Cascade)
+  registrations      Registration[]
+  interviewSchedules InterviewSchedule[]
+
+  @@map("admission_waves")
+}
+
+model School {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  initial     String?  @db.VarChar(20)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  majors                 Major[]
+  interviewQuestions     InterviewQuestion[]
+  interviewPackages      InterviewPackage[]
+  interviewSchedules     InterviewSchedule[]
+  interviewAspectConfigs InterviewAspectConfig[]
+
+  @@map("schools")
+}
+
+model Major {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  schoolId  String   @map("school_id") @db.VarChar(36)
+  name      String   @db.VarChar(100)
+  slug      String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  school                 School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classPrograms          ClassProgram[]
+  interviewQuestions     InterviewQuestion[]
+  interviewPackages      InterviewPackage[]
+  interviewSchedules     InterviewSchedule[]
+  interviewAspectConfigs InterviewAspectConfig[]
+
+  @@unique([schoolId, name])
+  @@map("majors")
+}
+
+model ClassProgram {
+  id              String          @id @default(uuid()) @db.VarChar(36)
+  majorId         String          @map("major_id") @db.VarChar(36)
+  name            String          @db.VarChar(150)
+  participantType ParticipantType @default(INDIVIDUAL) @map("participant_type")
+  registrationFee Decimal         @default(150000.00) @map("registration_fee") @db.Decimal(12, 2)
+  minTeamMembers  Int?            @map("min_team_members")
+  maxTeamMembers  Int?            @map("max_team_members")
+  description     String?         @db.Text
+  juknisUrl       String?         @map("juknis_url") @db.VarChar(500)
+  maxRegistrants  Int?            @map("max_registrants")
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  major                  Major                   @relation(fields: [majorId], references: [id], onDelete: Cascade)
+  registrations          Registration[]
+  cbtExam                CBTExam?
+  interviewQuestions     InterviewQuestion[]
+  interviewPackages      InterviewPackage[]
+  interviewSchedules     InterviewSchedule[]
+  interviewAspectConfigs InterviewAspectConfig[]
+
+  @@unique([majorId, name])
+  @@map("class_programs")
+}
+
+model PaymentAccount {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  bankName       String   @map("bank_name") @db.VarChar(100)
+  accountNumber  String   @map("account_number") @db.VarChar(50)
+  accountHolder  String   @map("account_holder") @db.VarChar(150)
+  qrisImagePath  String?  @map("qris_image_path") @db.VarChar(500)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  payments Payment[]
+
+  @@map("payment_accounts")
+}
+
+model Registration {
+  id                 String               @id @default(uuid()) @db.VarChar(36)
+  registrationNumber String               @unique @map("registration_number") @db.VarChar(50)
+  userId             String               @map("user_id") @db.VarChar(36)
+  classProgramId     String               @map("class_program_id") @db.VarChar(36)
+  academicPeriodId   String?              @map("academic_period_id") @db.VarChar(36)
+  admissionWaveId    String?              @map("admission_wave_id") @db.VarChar(36)
+  boardingStatus     BoardingStatus       @default(MUKIM) @map("boarding_status")
+  status             RegistrationStatus   @default(WAITING_VERIFICATION)
+  isFormUnlocked     Boolean              @default(false) @map("is_form_unlocked")
+  formStatus         FormStatus           @default(LOCKED) @map("form_status")
+  revisionNotes      String?              @map("revision_notes") @db.Text
+  submittedAt        DateTime?            @map("submitted_at")
+  verifiedAt         DateTime?            @map("verified_at")
+  verifiedByUserId   String?              @map("verified_by_user_id") @db.VarChar(36)
+  finalStatus        FinalAdmissionStatus @default(UNDECIDED) @map("final_status")
+  finalNotes         String?              @map("final_notes") @db.Text
+  finalVerifiedAt    DateTime?            @map("final_verified_at")
+  finalVerifiedByUserId String?           @map("final_verified_by_user_id") @db.VarChar(36)
+  qrCodeToken        String               @unique @map("qr_code_token") @db.VarChar(255)
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  classProgram          ClassProgram           @relation(fields: [classProgramId], references: [id], onDelete: Restrict)
+  academicPeriod        AcademicPeriod?        @relation(fields: [academicPeriodId], references: [id], onDelete: SetNull)
+  admissionWave         AdmissionWave?         @relation(fields: [admissionWaveId], references: [id], onDelete: SetNull)
+  verifiedBy            User?                  @relation("VerifiedRegistrations", fields: [verifiedByUserId], references: [id], onDelete: SetNull)
+  finalVerifiedBy       User?                  @relation("FinalVerifiedRegistrations", fields: [finalVerifiedByUserId], references: [id], onDelete: SetNull)
+  individualParticipant IndividualParticipant?
+  team                  Team?
+  studentDetail         StudentDetail?
+  achievements          StudentAchievement[]
+  documents             RegistrationDocument[]
+  payments              Payment[]
+  checkIn               CheckIn?
+  cbtAttempt            CBTAttempt?
+  interview             Interview?
+
+  @@index([userId])
+  @@index([classProgramId])
+  @@index([academicPeriodId])
+  @@index([admissionWaveId])
+  @@index([status])
+  @@index([formStatus])
+  @@index([finalStatus])
+  @@index([qrCodeToken])
+  @@map("registrations")
+}
+
+model StudentDetail {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  registrationId String   @unique @map("registration_id") @db.VarChar(36)
+
+  // Section A: Identitas
+  fullName                String?      @map("full_name") @db.VarChar(150)
+  nik                     String?      @db.VarChar(20)
+  familyCardNumber        String?      @map("family_card_number") @db.VarChar(20)
+  nisn                    String?      @db.VarChar(20)
+  birthCertificateNumber  String?      @map("birth_certificate_number") @db.VarChar(50)
+  gender                  Gender?      @default(L)
+  birthPlace              String?      @map("birth_place") @db.VarChar(100)
+  birthDate               DateTime?    @map("birth_date") @db.Date
+  religion                String?      @default("Islam") @db.VarChar(30)
+  bloodType               String?      @map("blood_type") @db.VarChar(5)
+  childOrder              Int?         @map("child_order")
+  siblingsCount           Int?         @map("siblings_count")
+  childStatus             ChildStatus? @default(KANDUNG) @map("child_status")
+
+  // Section B: Alamat
+  country                 String?      @default("Indonesia") @db.VarChar(100)
+  province                String?      @db.VarChar(100)
+  provinceCode            String?      @map("province_code") @db.VarChar(10)
+  cityDistrict            String?      @map("city_district") @db.VarChar(100)
+  regencyCode             String?      @map("regency_code") @db.VarChar(15)
+  subDistrict             String?      @map("sub_district") @db.VarChar(100)
+  districtCode            String?      @map("district_code") @db.VarChar(15)
+  village                 String?      @db.VarChar(100)
+  villageCode             String?      @map("village_code") @db.VarChar(20)
+  rt                      String?      @db.VarChar(10)
+  rw                      String?      @db.VarChar(10)
+  fullAddress             String?      @map("full_address") @db.Text
+  postalCode              String?      @map("postal_code") @db.VarChar(10)
+
+  // Section C: Data Asal Sekolah
+  previousSchoolName      String?      @map("previous_school_name") @db.VarChar(200)
+  previousSchoolNpsn      String?      @map("previous_school_npsn") @db.VarChar(20)
+  previousSchoolLevel     PreviousSchoolLevel? @map("previous_school_level")
+  previousSchoolAddress   String?      @map("previous_school_address") @db.Text
+  graduationYear          String?      @map("graduation_year") @db.VarChar(10)
+  diplomaNumber           String?      @map("diploma_number") @db.VarChar(50)
+
+  // Section D: Data Ayah
+  fatherName              String?      @map("father_name") @db.VarChar(150)
+  fatherNik               String?      @map("father_nik") @db.VarChar(20)
+  fatherBirthPlace        String?      @map("father_birth_place") @db.VarChar(100)
+  fatherBirthDate         DateTime?    @map("father_birth_date") @db.Date
+  fatherStatus            ParentStatus? @default(MASIH_HIDUP) @map("father_status")
+  fatherEducation         EducationLevel? @map("father_education")
+  fatherOccupation        String?      @map("father_occupation") @db.VarChar(100)
+  fatherMonthlyIncome     IncomeRange? @map("father_monthly_income")
+  fatherWhatsapp          String?      @map("father_whatsapp") @db.VarChar(30)
+
+  // Section E: Data Ibu
+  motherName              String?      @map("mother_name") @db.VarChar(150)
+  motherNik               String?      @map("mother_nik") @db.VarChar(20)
+  motherBirthPlace        String?      @map("mother_birth_place") @db.VarChar(100)
+  motherBirthDate         DateTime?    @map("mother_birth_date") @db.Date
+  motherStatus            ParentStatus? @default(MASIH_HIDUP) @map("mother_status")
+  motherEducation         EducationLevel? @map("mother_education")
+  motherOccupation        String?      @map("mother_occupation") @db.VarChar(100)
+  motherMonthlyIncome     IncomeRange? @map("mother_monthly_income")
+  motherWhatsapp          String?      @map("mother_whatsapp") @db.VarChar(30)
+
+  // Section F: Data Wali
+  hasGuardian             Boolean      @default(false) @map("has_guardian")
+  guardianRelation        String?      @map("guardian_relation") @db.VarChar(50)
+  guardianName            String?      @map("guardian_name") @db.VarChar(150)
+  guardianNik             String?      @map("guardian_nik") @db.VarChar(20)
+  guardianBirthPlace      String?      @map("guardian_birth_place") @db.VarChar(100)
+  guardianBirthDate       DateTime?    @map("guardian_birth_date") @db.Date
+  guardianEducation       EducationLevel? @map("guardian_education")
+  guardianOccupation      String?      @map("guardian_occupation") @db.VarChar(100)
+  guardianMonthlyIncome   IncomeRange? @map("guardian_monthly_income")
+  guardianWhatsapp        String?      @map("guardian_whatsapp") @db.VarChar(30)
+  guardianAddress         String?      @map("guardian_address") @db.Text
+
+  // Section G: Kontak Utama
+  primaryContactName      String?      @map("primary_contact_name") @db.VarChar(150)
+  primaryContactRelation  String?      @map("primary_contact_relation") @db.VarChar(50)
+  primaryContactWhatsapp  String?      @map("primary_contact_whatsapp") @db.VarChar(30)
+  primaryContactEmail     String?      @map("primary_contact_email") @db.VarChar(150)
+
+  // Section H: Data Tambahan
+  heightCm                Int?         @map("height_cm")
+  weightKg                Int?         @map("weight_kg")
+  hasSpecialNeeds         Boolean      @default(false) @map("has_special_needs")
+  specialNeedsDescription String?      @map("special_needs_description") @db.Text
+  hasAchievements         Boolean      @default(false) @map("has_achievements")
+  createdAt               DateTime     @default(now()) @map("created_at")
+  updatedAt               DateTime     @updatedAt @map("updated_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@map("student_details")
+}
+
+model StudentAchievement {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  registrationId String   @map("registration_id") @db.VarChar(36)
+  name           String   @db.VarChar(200)
+  type           String   @db.VarChar(100)
+  level          String   @db.VarChar(100)
+  year           String   @db.VarChar(10)
+  rank           String   @db.VarChar(50)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([registrationId])
+  @@map("student_achievements")
+}
+
+model RegistrationDocument {
+  id               String       @id @default(uuid()) @db.VarChar(36)
+  registrationId   String       @map("registration_id") @db.VarChar(36)
+  documentType     DocumentType @map("document_type")
+  filePath         String       @map("file_path") @db.VarChar(255)
+  originalFileName String       @map("original_file_name") @db.VarChar(255)
+  mimeType         String       @map("mime_type") @db.VarChar(100)
+  fileSize         Int          @map("file_size")
+  uploadedAt       DateTime     @default(now()) @map("uploaded_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@index([registrationId])
+  @@map("registration_documents")
+}
+
+model IndividualParticipant {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  registrationId String   @unique @map("registration_id") @db.VarChar(36)
+  fullName       String   @map("full_name") @db.VarChar(150)
+  gender         Gender?  @default(L)
+  gradeClass     String?  @map("grade_class") @db.VarChar(50)
+  schoolName     String?  @map("school_name") @db.VarChar(200)
+  schoolAddress  String?  @map("school_address") @db.Text
+  mentorName     String?  @map("mentor_name") @db.VarChar(150)
+  whatsappNumber String?  @map("whatsapp_number") @db.VarChar(30)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@map("individual_participants")
+}
+
+model Team {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  registrationId String   @unique @map("registration_id") @db.VarChar(36)
+  teamName       String   @map("team_name") @db.VarChar(150)
+  schoolName     String   @map("school_name") @db.VarChar(200)
+  schoolAddress  String   @map("school_address") @db.Text
+  mentorName     String   @map("mentor_name") @db.VarChar(150)
+  whatsappNumber String   @map("whatsapp_number") @db.VarChar(30)
+  leaderName     String   @map("leader_name") @db.VarChar(150)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  members      TeamMember[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  teamId       String   @map("team_id") @db.VarChar(36)
+  memberName   String   @map("member_name") @db.VarChar(150)
+  gender       Gender
+  gradeClass   String   @map("grade_class") @db.VarChar(50)
+  positionRole String?  @default("Anggota") @map("position_role") @db.VarChar(100)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@map("team_members")
+}
+
+model Payment {
+  id                String        @id @default(uuid()) @db.VarChar(36)
+  registrationId    String        @map("registration_id") @db.VarChar(36)
+  paymentAccountId  String?       @map("payment_account_id") @db.VarChar(36)
+  amount            Decimal       @db.Decimal(12, 2)
+  proofImagePath    String        @map("proof_image_path") @db.VarChar(255)
+  senderBank        String?       @map("sender_bank") @db.VarChar(100)
+  senderAccountName String?       @map("sender_account_name") @db.VarChar(150)
+  paymentDate       DateTime      @map("payment_date") @db.Date
+  status            PaymentStatus @default(WAITING_VERIFICATION)
+  notes             String?       @db.Text
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  registration     Registration             @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  paymentAccount   PaymentAccount?          @relation(fields: [paymentAccountId], references: [id], onDelete: SetNull)
+  verificationLogs PaymentVerificationLog[]
+
+  @@index([registrationId])
+  @@map("payments")
+}
+
+model PaymentVerificationLog {
+  id               String             @id @default(uuid()) @db.VarChar(36)
+  paymentId        String             @map("payment_id") @db.VarChar(36)
+  verifiedByUserId String             @map("verified_by_user_id") @db.VarChar(36)
+  action           VerificationAction
+  rejectionReason  String?            @map("rejection_reason") @db.Text
+  verifiedAt       DateTime           @default(now()) @map("verified_at")
+
+  payment    Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  verifiedBy User    @relation(fields: [verifiedByUserId], references: [id], onDelete: Restrict)
+
+  @@map("payment_verification_logs")
+}
+
+model CheckIn {
+  id                String         @id @default(uuid()) @db.VarChar(36)
+  registrationId    String         @unique @map("registration_id") @db.VarChar(36)
+  checkedInByUserId String         @map("checked_in_by_user_id") @db.VarChar(36)
+  checkInMethod     CheckInMethod  @map("check_in_method")
+  checkInTime       DateTime       @default(now()) @map("check_in_time")
+  notes             String?        @db.Text
+
+  // Stage 2: masuk arena lomba (opsional)
+  checkIn2Time       DateTime?     @map("check_in_2_time")
+  checkIn2ByUserId   String?       @map("check_in_2_by_user_id") @db.VarChar(36)
+  checkIn2Method     CheckInMethod? @map("check_in_2_method")
+  notes2             String?        @db.Text @map("notes_2")
+
+  registration  Registration @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  checkedInBy   User         @relation("CheckInStaff1", fields: [checkedInByUserId], references: [id], onDelete: Restrict)
+  checkedInBy2  User?        @relation("CheckInStaff2", fields: [checkIn2ByUserId], references: [id], onDelete: Restrict)
+
+  @@map("check_ins")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  userId      String?  @map("user_id") @db.VarChar(36)
+  action      String   @db.VarChar(100)
+  targetTable String   @map("target_table") @db.VarChar(50)
+  targetId    String?  @map("target_id") @db.VarChar(36)
+  details     String?  @db.Text
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model AppSetting {
+  key       String   @id @db.VarChar(100)
+  value     String?  @db.Text
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
+
+enum CBTQuestionType {
+  MULTIPLE_CHOICE
+  ESSAY
+}
+
+enum CBTAttemptStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+enum CBTGradingStatus {
+  UNGRADED
+  NEEDS_ESSAY_GRADING
+  GRADED
+}
+
+enum CBTVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model CBTExam {
+  id              String         @id @default(uuid()) @db.VarChar(36)
+  classProgramId  String         @unique @map("class_program_id") @db.VarChar(36)
+  title           String?        @db.VarChar(200)
+  description     String?        @db.Text
+  durationMinutes Int            @default(60) @map("duration_minutes")
+  isActive        Boolean        @default(true) @map("is_active")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  classProgram    ClassProgram   @relation(fields: [classProgramId], references: [id], onDelete: Cascade)
+  questions       CBTQuestion[]
+  attempts        CBTAttempt[]
+
+  @@map("cbt_exams")
+}
+
+model CBTQuestion {
+  id          String            @id @default(uuid()) @db.VarChar(36)
+  examId      String            @map("exam_id") @db.VarChar(36)
+  type        CBTQuestionType   @default(MULTIPLE_CHOICE)
+  question    String            @db.Text
+  score       Decimal           @default(5.00) @db.Decimal(5, 2)
+  orderNumber Int               @default(0) @map("order_number")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  exam             CBTExam              @relation(fields: [examId], references: [id], onDelete: Cascade)
+  options          CBTQuestionOption[]
+  attemptQuestions CBTAttemptQuestion[]
+  answers          CBTAnswer[]
+
+  @@index([examId])
+  @@map("cbt_questions")
+}
+
+model CBTQuestionOption {
+  id          String      @id @default(uuid()) @db.VarChar(36)
+  questionId  String      @map("question_id") @db.VarChar(36)
+  content     String      @db.Text
+  isCorrect   Boolean     @default(false) @map("is_correct")
+  orderNumber Int         @default(0) @map("order_number")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  question CBTQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  CBTAnswer[]
+
+  @@index([questionId])
+  @@map("cbt_question_options")
+}
+
+model CBTAttempt {
+  id                  String                @id @default(uuid()) @db.VarChar(36)
+  examId              String                @map("exam_id") @db.VarChar(36)
+  registrationId      String                @unique @map("registration_id") @db.VarChar(36)
+  status              CBTAttemptStatus      @default(NOT_STARTED)
+  startedAt           DateTime?             @map("started_at")
+  expiresAt           DateTime?             @map("expires_at")
+  completedAt         DateTime?             @map("completed_at")
+  multipleChoiceScore Decimal               @default(0.00) @map("multiple_choice_score") @db.Decimal(6, 2)
+  essayScore          Decimal               @default(0.00) @map("essay_score") @db.Decimal(6, 2)
+  totalScore          Decimal               @default(0.00) @map("total_score") @db.Decimal(6, 2)
+  gradingStatus       CBTGradingStatus      @default(UNGRADED) @map("grading_status")
+  gradedByUserId      String?               @map("graded_by_user_id") @db.VarChar(36)
+  gradedAt            DateTime?             @map("graded_at")
+  verificationStatus  CBTVerificationStatus @default(PENDING) @map("verification_status")
+  verificationNotes   String?               @map("verification_notes") @db.Text
+  verifiedAt          DateTime?             @map("verified_at")
+  verifiedByUserId    String?               @map("verified_by_user_id") @db.VarChar(36)
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+
+  exam             CBTExam              @relation(fields: [examId], references: [id], onDelete: Restrict)
+  registration     Registration         @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  gradedBy         User?                @relation("GradedCbtAttempts", fields: [gradedByUserId], references: [id], onDelete: SetNull)
+  verifiedBy       User?                @relation("VerifiedCbtAttempts", fields: [verifiedByUserId], references: [id], onDelete: SetNull)
+  attemptQuestions CBTAttemptQuestion[]
+  answers          CBTAnswer[]
+
+  @@index([examId])
+  @@index([verificationStatus])
+  @@map("cbt_attempts")
+}
+
+model CBTAttemptQuestion {
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  attemptId       String   @map("attempt_id") @db.VarChar(36)
+  questionId      String   @map("question_id") @db.VarChar(36)
+  questionOrder   Int      @map("question_order")
+  optionOrderJson String?  @map("option_order_json") @db.Text
+  isFlagged       Boolean  @default(false) @map("is_flagged")
+
+  attempt  CBTAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question CBTQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@unique([attemptId, questionOrder])
+  @@map("cbt_attempt_questions")
+}
+
+model CBTAnswer {
+  id               String   @id @default(uuid()) @db.VarChar(36)
+  attemptId        String   @map("attempt_id") @db.VarChar(36)
+  questionId       String   @map("question_id") @db.VarChar(36)
+  selectedOptionId String?  @map("selected_option_id") @db.VarChar(36)
+  essayAnswer      String?  @map("essay_answer") @db.Text
+  isCorrect        Boolean? @map("is_correct")
+  score            Decimal  @default(0.00) @db.Decimal(5, 2)
+  essayFeedback    String?  @map("essay_feedback") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  attempt        CBTAttempt         @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       CBTQuestion        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption CBTQuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, questionId])
+  @@map("cbt_answers")
+}
+
+// ==========================================
+// INTERVIEW MODULE (MODUL WAWANCARA)
+// ==========================================
+
+enum InterviewScheduleStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum InterviewPackageStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum InterviewStatus {
+  NOT_SCHEDULED
+  SCHEDULED
+  CHECKED_IN
+  IN_PROGRESS
+  COMPLETED
+  ABSENT
+}
+
+enum AnswerNoteMode {
+  NONE
+  OPTIONAL
+  REQUIRED
+}
+
+enum InterviewRecommendation {
+  HIGHLY_RECOMMENDED
+  RECOMMENDED
+  CONSIDERED
+  NOT_RECOMMENDED
+}
+
+model InterviewQuestionCategory {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  questions InterviewQuestion[]
+
+  @@map("interview_question_categories")
+}
+
+model InterviewQuestion {
+  id                 String   @id @default(uuid()) @db.VarChar(36)
+  categoryId         String   @map("category_id") @db.VarChar(36)
+  question           String   @db.Text
+  interviewerGuidance String? @map("interviewer_guidance") @db.Text
+  academicPeriodId   String?  @map("academic_period_id") @db.VarChar(36)
+  schoolId           String?  @map("school_id") @db.VarChar(36)
+  majorId            String?  @map("major_id") @db.VarChar(36)
+  classProgramId     String?  @map("class_program_id") @db.VarChar(36)
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  category           InterviewQuestionCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  academicPeriod     AcademicPeriod?           @relation(fields: [academicPeriodId], references: [id], onDelete: SetNull)
+  school             School?                   @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  major              Major?                    @relation(fields: [majorId], references: [id], onDelete: SetNull)
+  classProgram       ClassProgram?             @relation(fields: [classProgramId], references: [id], onDelete: SetNull)
+  packageQuestions   InterviewPackageQuestion[]
+
+  @@index([categoryId])
+  @@index([academicPeriodId])
+  @@index([schoolId])
+  @@index([majorId])
+  @@index([classProgramId])
+  @@map("interview_questions")
+}
+
+model InterviewPackage {
+  id               String                 @id @default(uuid()) @db.VarChar(36)
+  code             String                 @unique @db.VarChar(50)
+  name             String                 @db.VarChar(150)
+  description      String?                @db.Text
+  academicPeriodId String?                @map("academic_period_id") @db.VarChar(36)
+  schoolId         String?                @map("school_id") @db.VarChar(36)
+  majorId          String?                @map("major_id") @db.VarChar(36)
+  classProgramId   String?                @map("class_program_id") @db.VarChar(36)
+  status           InterviewPackageStatus @default(DRAFT)
+  createdByUserId  String?                @map("created_by_user_id") @db.VarChar(36)
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  academicPeriod   AcademicPeriod?            @relation(fields: [academicPeriodId], references: [id], onDelete: SetNull)
+  school           School?                    @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  major            Major?                     @relation(fields: [majorId], references: [id], onDelete: SetNull)
+  classProgram     ClassProgram?              @relation(fields: [classProgramId], references: [id], onDelete: SetNull)
+  packageQuestions InterviewPackageQuestion[]
+  schedules        InterviewSchedule[]
+  interviews       Interview[]
+
+  @@index([academicPeriodId])
+  @@index([schoolId])
+  @@index([majorId])
+  @@index([classProgramId])
+  @@map("interview_packages")
+}
+
+model InterviewPackageQuestion {
+  id             String         @id @default(uuid()) @db.VarChar(36)
+  packageId      String         @map("package_id") @db.VarChar(36)
+  questionId     String         @map("question_id") @db.VarChar(36)
+  sortOrder      Int            @default(0) @map("sort_order")
+  isRequired     Boolean        @default(true) @map("is_required")
+  answerNoteMode AnswerNoteMode @default(OPTIONAL) @map("answer_note_mode")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  package        InterviewPackage  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  question       InterviewQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, questionId])
+  @@index([packageId, sortOrder])
+  @@map("interview_package_questions")
+}
+
+model InterviewAspect {
+  id            String   @id @default(uuid()) @db.VarChar(36)
+  name          String   @db.VarChar(100)
+  description   String?  @db.Text
+  minScore      Decimal  @default(1.00) @map("min_score") @db.Decimal(5, 2)
+  maxScore      Decimal  @default(10.00) @map("max_score") @db.Decimal(5, 2)
+  defaultWeight Decimal  @default(20.00) @map("default_weight") @db.Decimal(5, 2)
+  sortOrder     Int      @default(0) @map("sort_order")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  configs       InterviewAspectConfig[]
+
+  @@map("interview_aspects")
+}
+
+model InterviewAspectConfig {
+  id               String   @id @default(uuid()) @db.VarChar(36)
+  aspectId         String   @map("aspect_id") @db.VarChar(36)
+  academicPeriodId String?  @map("academic_period_id") @db.VarChar(36)
+  schoolId         String?  @map("school_id") @db.VarChar(36)
+  majorId          String?  @map("major_id") @db.VarChar(36)
+  classProgramId   String?  @map("class_program_id") @db.VarChar(36)
+  weight           Decimal  @default(20.00) @db.Decimal(5, 2)
+  minScore         Decimal  @default(1.00) @map("min_score") @db.Decimal(5, 2)
+  maxScore         Decimal  @default(10.00) @map("max_score") @db.Decimal(5, 2)
+  sortOrder        Int      @default(0) @map("sort_order")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  aspect           InterviewAspect @relation(fields: [aspectId], references: [id], onDelete: Cascade)
+  academicPeriod   AcademicPeriod? @relation(fields: [academicPeriodId], references: [id], onDelete: SetNull)
+  school           School?         @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  major            Major?          @relation(fields: [majorId], references: [id], onDelete: SetNull)
+  classProgram     ClassProgram?   @relation(fields: [classProgramId], references: [id], onDelete: SetNull)
+
+  @@index([aspectId])
+  @@index([academicPeriodId])
+  @@index([schoolId])
+  @@index([majorId])
+  @@index([classProgramId])
+  @@map("interview_aspect_configs")
+}
+
+model InterviewSchedule {
+  id               String                  @id @default(uuid()) @db.VarChar(36)
+  name             String?                 @map("name") @db.VarChar(150)
+  academicPeriodId String?                 @map("academic_period_id") @db.VarChar(36)
+  admissionWaveId  String?                 @map("admission_wave_id") @db.VarChar(36)
+  schoolId         String?                 @map("school_id") @db.VarChar(36)
+  majorId          String?                 @map("major_id") @db.VarChar(36)
+  classProgramId   String?                 @map("class_program_id") @db.VarChar(36)
+  packageId        String?                 @map("package_id") @db.VarChar(36)
+  scheduleDate     DateTime                @map("schedule_date") @db.Date
+  startTime        String                  @map("start_time") @db.VarChar(10)
+  endTime          String                  @map("end_time") @db.VarChar(10)
+  roomLocation     String                  @map("room_location") @db.VarChar(100)
+  quota            Int                     @default(10)
+  notes            String?                 @db.Text
+  questionsJson    String?                 @map("questions_json") @db.Text
+  status           InterviewScheduleStatus @default(ACTIVE)
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  academicPeriod   AcademicPeriod?                @relation(fields: [academicPeriodId], references: [id], onDelete: SetNull)
+  admissionWave    AdmissionWave?                 @relation(fields: [admissionWaveId], references: [id], onDelete: SetNull)
+  school           School?                        @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  major            Major?                         @relation(fields: [majorId], references: [id], onDelete: SetNull)
+  classProgram     ClassProgram?                  @relation(fields: [classProgramId], references: [id], onDelete: SetNull)
+  package          InterviewPackage?              @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  interviewers     InterviewScheduleInterviewer[]
+  interviews       Interview[]
+
+  @@index([academicPeriodId])
+  @@index([admissionWaveId])
+  @@index([schoolId])
+  @@index([majorId])
+  @@index([classProgramId])
+  @@index([packageId])
+  @@map("interview_schedules")
+}
+
+model InterviewScheduleInterviewer {
+  id                String   @id @default(uuid()) @db.VarChar(36)
+  scheduleId        String   @map("schedule_id") @db.VarChar(36)
+  interviewerUserId String   @map("interviewer_user_id") @db.VarChar(36)
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  schedule          InterviewSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  interviewer       User              @relation("InterviewerSchedules", fields: [interviewerUserId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, interviewerUserId])
+  @@map("interview_schedule_interviewers")
+}
+
+model Interview {
+  id                    String                   @id @default(uuid()) @db.VarChar(36)
+  registrationId        String                   @unique @map("registration_id") @db.VarChar(36)
+  scheduleId            String?                  @map("schedule_id") @db.VarChar(36)
+  interviewerId         String?                  @map("interviewer_id") @db.VarChar(36)
+  packageId             String?                  @map("package_id") @db.VarChar(36)
+  status                InterviewStatus          @default(NOT_SCHEDULED)
+  checkedInAt           DateTime?                @map("checked_in_at")
+  checkedInByUserId     String?                  @map("checked_in_by_user_id") @db.VarChar(36)
+  startedAt             DateTime?                @map("started_at")
+  completedAt           DateTime?                @map("completed_at")
+  generalNotes          String?                  @map("general_notes") @db.Text
+  recommendation        InterviewRecommendation?
+  totalScore            Decimal                  @default(0.00) @map("total_score") @db.Decimal(6, 2)
+  percentageScore       Decimal                  @default(0.00) @map("percentage_score") @db.Decimal(6, 2)
+  snapshotQuestionsJson String?                  @map("snapshot_questions_json") @db.Text
+  snapshotAspectsJson   String?                  @map("snapshot_aspects_json") @db.Text
+  createdAt             DateTime                 @default(now()) @map("created_at")
+  updatedAt             DateTime                 @updatedAt @map("updated_at")
+
+  registration          Registration             @relation(fields: [registrationId], references: [id], onDelete: Restrict)
+  schedule              InterviewSchedule?       @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  interviewer           User?                    @relation("AssignedInterviewer", fields: [interviewerId], references: [id], onDelete: SetNull)
+  checkedInBy           User?                    @relation("CheckedInByInterviews", fields: [checkedInByUserId], references: [id], onDelete: SetNull)
+  package               InterviewPackage?        @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  scores                InterviewScore[]
+  questionNotes         InterviewQuestionNote[]
+
+  @@index([scheduleId])
+  @@index([interviewerId])
+  @@index([packageId])
+  @@index([status])
+  @@map("interviews")
+}
+
+model InterviewScore {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  interviewId String   @map("interview_id") @db.VarChar(36)
+  aspectId    String?  @map("aspect_id") @db.VarChar(36)
+  aspectName  String   @map("aspect_name") @db.VarChar(100)
+  score       Decimal  @default(0.00) @db.Decimal(5, 2)
+  weight      Decimal  @default(0.00) @db.Decimal(5, 2)
+  maxScore    Decimal  @default(10.00) @map("max_score") @db.Decimal(5, 2)
+  finalScore  Decimal  @default(0.00) @map("final_score") @db.Decimal(6, 2)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([interviewId])
+  @@map("interview_scores")
+}
+
+model InterviewQuestionNote {
+  id               String   @id @default(uuid()) @db.VarChar(36)
+  interviewId      String   @map("interview_id") @db.VarChar(36)
+  questionId       String?  @map("question_id") @db.VarChar(36)
+  questionText     String   @map("question_text") @db.Text
+  categoryName     String?  @map("category_name") @db.VarChar(100)
+  notes            String?  @db.Text
+  isCustomQuestion Boolean  @default(false) @map("is_custom_question")
+  sortOrder        Int      @default(1) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  interview        Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@index([interviewId])
+  @@map("interview_question_notes")
+}
+
+model HeroSlider {
+  id                  String   @id @default(uuid()) @db.VarChar(36)
+  badge               String?  @db.VarChar(100)
+  title               String   @db.VarChar(255)
+  description         String   @db.Text
+  primaryButtonText   String?  @map("primary_button_text") @db.VarChar(100)
+  primaryButtonUrl    String?  @map("primary_button_url") @db.VarChar(255)
+  secondaryButtonText String?  @map("secondary_button_text") @db.VarChar(100)
+  secondaryButtonUrl  String?  @map("secondary_button_url") @db.VarChar(255)
+  desktopImage        String   @map("desktop_image") @db.VarChar(255)
+  mobileImage         String?  @map("mobile_image") @db.VarChar(255)
+  isActive            Boolean  @default(true) @map("is_active")
+  sortOrder           Int      @default(1) @map("sort_order")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("hero_sliders")
+}
+

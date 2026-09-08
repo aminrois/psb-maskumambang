@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lomba-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lomba_user
+      POSTGRES_PASSWORD: lomba_dev_password_2026
+      POSTGRES_DB: lomba_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - lomba-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  lomba-postgres-data:
+    external: true

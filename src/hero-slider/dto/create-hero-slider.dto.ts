@@ -1,0 +1,55 @@
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsBoolean,
+  IsInt,
+  MaxLength,
+} from 'class-validator';
+import { Transform } from 'class-transformer';
+
+export class CreateHeroSliderDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  badge?: string;
+
+  @IsNotEmpty({ message: 'Judul utama wajib diisi' })
+  @IsString()
+  @MaxLength(255)
+  title!: string;
+
+  @IsNotEmpty({ message: 'Deskripsi wajib diisi' })
+  @IsString()
+  description!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  primaryButtonText?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  primaryButtonUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  secondaryButtonText?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  secondaryButtonUrl?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true || value === 1 || value === '1')
+  @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? parseInt(value, 10) : undefined))
+  @IsInt()
+  sortOrder?: number;
+}
