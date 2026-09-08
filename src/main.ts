@@ -4,6 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
+import * as compression from 'compression';
 import * as path from 'path';
 import * as fs from 'fs';
 import { AppModule } from './app.module';
@@ -62,6 +63,12 @@ async function bootstrap() {
   // Cookie Parser
   app.use(cookieParser());
 
+  // Gzip Compression (dramatically reduces JS/CSS/HTML transfer size)
+  app.use(compression({
+    level: 6,           // balanced speed vs compression ratio
+    threshold: 1024,    // only compress responses > 1KB
+  }));
+
   // CORS Configuration
   app.enableCors({
     origin: true,
@@ -75,7 +82,16 @@ async function bootstrap() {
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
   }
-  app.useStaticAssets(publicDir);
+  // Cache static assets (JS/CSS/images) for 7 days in browser
+  app.useStaticAssets(publicDir, {
+    maxAge: '7d',
+    setHeaders: (res, filePath) => {
+      // HTML files should NOT be cached (always fresh)
+      if (filePath.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      }
+    },
+  });
 
   // Global Prefix: /api (excluding /health)
   const apiPrefix = configService.get<string>('apiPrefix') || '/api';
