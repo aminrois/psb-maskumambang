@@ -15,9 +15,9 @@ async function main() {
   const defaultUsers = [
     {
       name: 'Super Administrator',
-      email: 'admin@lomba.id',
+      email: 'rois@maskumambang.ac.id',
       phoneNumber: '081234567890',
-      password: 'admin123',
+      password: 'rois123',
       role: Role.SUPER_ADMIN,
     },
     {
