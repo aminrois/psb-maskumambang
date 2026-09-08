@@ -1159,7 +1159,8 @@ function handleDashboardRoute() {
     }
     // ---- END WAWANCARA ROUTES ----
     else if (mainRoute === 'homepage-hero-slider' || mainRoute === 'hero-slider') {
-      if (typeof renderHeroSliderAdminView === 'function') renderHeroSliderAdminView(param);
+      const sliderParam = parts.slice(1).join('/') || null;
+      if (typeof renderHeroSliderAdminView === 'function') renderHeroSliderAdminView(sliderParam);
     }
     else if (mainRoute === 'homepage-flow') {
       if (typeof renderRegistrationFlowAdminView === 'function') renderRegistrationFlowAdminView();
