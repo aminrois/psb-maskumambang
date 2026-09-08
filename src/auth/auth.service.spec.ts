@@ -7,6 +7,8 @@ import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import { HashUtil } from '../common/utils/hash.util';
 import { Role } from '@prisma/client';
 
+import { MailService } from '../mail/mail.service';
+
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: PrismaService;
@@ -26,6 +28,10 @@ describe('AuthService', () => {
     log: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockMail = {
+    sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -33,6 +39,7 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
         { provide: AuditService, useValue: mockAudit },
+        { provide: MailService, useValue: mockMail },
       ],
     }).compile();
 
@@ -58,7 +65,7 @@ describe('AuthService', () => {
       ).rejects.toThrow(ConflictException);
     });
 
-    it('should create new user and return safe user object', async () => {
+    it('should create new user and return safe user object and token', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.user.create.mockResolvedValue({
         id: 'new-uuid',
@@ -78,8 +85,9 @@ describe('AuthService', () => {
       });
 
       expect(res).toBeDefined();
-      expect(res.email).toBe('ahmad@lomba.id');
-      expect((res as any).passwordHash).toBeUndefined();
+      expect(res.user.email).toBe('ahmad@lomba.id');
+      expect(res.accessToken).toBe('mock_jwt_token');
+      expect((res.user as any).passwordHash).toBeUndefined();
     });
   });
 

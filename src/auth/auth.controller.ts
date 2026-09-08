@@ -15,12 +15,28 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  async register(@Body() dto: RegisterDto) {
-    const user = await this.authService.register(dto);
+  async register(
+    @Body() dto: RegisterDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const ip = req.ip || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    const result = await this.authService.register(dto, ip, userAgent);
+
+    // Set HttpOnly cookie — session cookie
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    res.cookie(COOKIE_NAME, result.accessToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isHttps,
+      path: '/',
+    });
+
     return {
       success: true,
-      message: 'Pendaftaran akun berhasil! Silakan login untuk melanjutkan.',
-      data: user,
+      message: 'Pendaftaran akun berhasil!',
+      data: result,
     };
   }
 

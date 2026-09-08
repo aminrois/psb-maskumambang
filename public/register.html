@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/dashboard.css">
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <style>
     .auth-page-wrapper {
       min-height: 100vh;
@@ -109,6 +110,10 @@
           <input type="text" id="reg-phone" class="form-control" placeholder="Contoh: 081234567890" required
             style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
         </div>
+        <div class="form-group" style="margin-bottom: 20px; display: flex; justify-content: center;">
+          <div class="g-recaptcha" data-sitekey="6LfPxLAtAAAAAMaeu-yp0yoozI6IiQkshQaKJgAd"></div>
+        </div>
+
         <button type="submit" id="register-submit-btn" class="btn btn-primary"
           style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700;">
           <i class="fa-solid fa-check"></i> Buat Akun Calon Santri
@@ -141,6 +146,17 @@
 
     async function handleRegisterSubmit(e) {
       if (e) e.preventDefault();
+
+      let captchaToken = '';
+      if (typeof grecaptcha !== 'undefined') {
+        captchaToken = grecaptcha.getResponse();
+      }
+
+      if (!captchaToken) {
+        showBannerAlert('register-alert', 'Silakan centang verifikasi Google reCAPTCHA terlebih dahulu.', 'warning');
+        return;
+      }
+
       const btn = document.getElementById('register-submit-btn');
       if (btn) {
         btn.disabled = true;
@@ -155,46 +171,45 @@
 
         const res = await apiRequest('/api/auth/register', {
           method: 'POST',
-          body: { name, email, password, phoneNumber },
+          body: { name, email, password, phoneNumber, captchaToken },
         });
 
-        if (res.success || res.id || res.email) {
-          if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyiapkan formulir pendaftaran...';
-          try {
-            const loginRes = await apiRequest('/api/auth/login', {
-              method: 'POST',
-              body: { email, password },
-            });
-            if (loginRes.success && loginRes.data) {
-              if (typeof saveSession === 'function') {
-                saveSession(loginRes.data.user, loginRes.data.accessToken);
-              } else if (typeof setSession === 'function') {
-                setSession(loginRes.data.accessToken, loginRes.data.user);
-              } else {
-                localStorage.setItem('currentUser', JSON.stringify(loginRes.data.user));
-                localStorage.setItem('accessToken', loginRes.data.accessToken);
-              }
-              showBannerAlert('register-alert', 'Akun berhasil dibuat! Mengarahkan ke formulir pendaftaran awal...', 'success');
-              setTimeout(() => {
-                window.location.href = '/dashboard.html#daftar';
-              }, 800);
-              return;
+        if (res.success && res.data) {
+          const authData = res.data;
+          const user = authData.user || authData;
+          const token = authData.accessToken;
+
+          if (token && user) {
+            if (typeof saveSession === 'function') {
+              saveSession(user, token);
+            } else if (typeof setSession === 'function') {
+              setSession(token, user);
+            } else {
+              localStorage.setItem('currentUser', JSON.stringify(user));
+              localStorage.setItem('accessToken', token);
             }
-          } catch (loginErr) {
-            console.warn('Auto-login fallback:', loginErr);
+            showBannerAlert('register-alert', 'Akun berhasil dibuat! Mengarahkan ke formulir pendaftaran awal...', 'success');
+            setTimeout(() => {
+              window.location.href = '/dashboard.html#daftar';
+            }, 800);
+            return;
           }
 
           showBannerAlert('register-alert', 'Akun berhasil dibuat! Mengalihkan ke halaman masuk...', 'success');
           setTimeout(() => {
             window.location.href = '/login.html';
           }, 1000);
+        } else {
+          showBannerAlert('register-alert', res.message || 'Gagal membuat akun.', 'danger');
+          if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
         }
       } catch (err) {
         showBannerAlert('register-alert', err.message || 'Gagal membuat akun.', 'danger');
+        if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
       } finally {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-check"></i> Buat Akun Peserta';
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> Buat Akun Calon Santri';
         }
       }
     }

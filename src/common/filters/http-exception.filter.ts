@@ -7,6 +7,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -32,6 +34,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } else if (exception instanceof Error) {
       this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);
+    }
+
+    if (status === HttpStatus.NOT_FOUND && !request.url.startsWith('/api')) {
+      const acceptsHtml = request.accepts && request.accepts('html');
+      if (acceptsHtml) {
+        const notFoundPath = path.resolve(process.cwd(), 'public', '404.html');
+        if (fs.existsSync(notFoundPath)) {
+          return response.status(HttpStatus.NOT_FOUND).sendFile(notFoundPath);
+        }
+      }
     }
 
     const isProduction = process.env.NODE_ENV === 'production';

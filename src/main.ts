@@ -35,6 +35,10 @@ async function bootstrap() {
             'https://cdnjs.cloudflare.com',
             'https://unpkg.com',
             'https://cdn.jsdelivr.net',
+            'https://www.google.com',
+            'https://www.gstatic.com',
+            'https://www.google.com/recaptcha/',
+            'https://www.gstatic.com/recaptcha/',
           ],
           scriptSrcAttr: ["'unsafe-inline'"],
           styleSrc: [
@@ -49,8 +53,14 @@ async function bootstrap() {
             'https://fonts.gstatic.com',
             'https://cdnjs.cloudflare.com',
           ],
-          imgSrc: ["'self'", 'data:', 'blob:'],
-          connectSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https://www.google.com', 'https://www.gstatic.com'],
+          connectSrc: ["'self'", 'https://www.google.com', 'https://www.gstatic.com'],
+          frameSrc: [
+            "'self'",
+            'https://www.google.com',
+            'https://recaptcha.google.com',
+            'https://www.google.com/recaptcha/',
+          ],
           mediaSrc: ["'self'", 'blob:'],
           // Do NOT upgrade insecure requests on HTTP servers - breaks Safari navigation
           upgradeInsecureRequests: null,

@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/dashboard.css">
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
   <style>
     .auth-page-wrapper {
       min-height: 100vh;
@@ -106,6 +107,11 @@
             </button>
           </div>
         </div>
+
+        <div class="form-group" style="margin-bottom: 20px; display: flex; justify-content: center;">
+          <div class="g-recaptcha" data-sitekey="6LfPxLAtAAAAAMaeu-yp0yoozI6IiQkshQaKJgAd"></div>
+        </div>
+
         <button type="submit" id="login-submit-btn" class="btn btn-primary"
           style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700;">
           <i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk Sekarang
@@ -138,6 +144,17 @@
 
     async function handleLoginSubmit(e) {
       if (e) e.preventDefault();
+
+      let captchaToken = '';
+      if (typeof grecaptcha !== 'undefined') {
+        captchaToken = grecaptcha.getResponse();
+      }
+
+      if (!captchaToken) {
+        showBannerAlert('login-alert', 'Silakan centang verifikasi Google reCAPTCHA terlebih dahulu.', 'warning');
+        return;
+      }
+
       const btn = document.getElementById('login-submit-btn');
       if (btn) {
         btn.disabled = true;
@@ -150,7 +167,7 @@
 
         const res = await apiRequest('/api/auth/login', {
           method: 'POST',
-          body: { email, password },
+          body: { email, password, captchaToken },
         });
 
         if (res.success && res.data) {
@@ -158,9 +175,11 @@
           window.location.href = '/dashboard.html';
         } else {
           showBannerAlert('login-alert', res.message || 'Login gagal, periksa email dan kata sandi Anda.', 'danger');
+          if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
         }
       } catch (err) {
         showBannerAlert('login-alert', err.message || 'Terjadi kesalahan saat masuk.', 'danger');
+        if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
       } finally {
         if (btn) {
           btn.disabled = false;

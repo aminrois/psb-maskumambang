@@ -20,7 +20,47 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
-  async register(dto: RegisterDto) {
+  async verifyRecaptcha(token?: string, ipAddress?: string): Promise<boolean> {
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY || '6LfPxLAtAAAAAB4u3g-Y0BY8hFVgs63N3ynNpuqU';
+
+    if (process.env.NODE_ENV === 'test' || process.env.SKIP_RECAPTCHA === 'true') {
+      return true;
+    }
+
+    if (!token) {
+      throw new BadRequestException('Verifikasi Google reCAPTCHA wajib dicentang.');
+    }
+
+    try {
+      const params = new URLSearchParams();
+      params.append('secret', secretKey);
+      params.append('response', token);
+      if (ipAddress) {
+        params.append('remoteip', ipAddress);
+      }
+
+      const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
+
+      const data = (await res.json()) as { success: boolean; 'error-codes'?: string[] };
+      if (!data.success) {
+        throw new BadRequestException('Verifikasi reCAPTCHA gagal atau kadaluarsa. Silakan centang ulang.');
+      }
+      return true;
+    } catch (err: any) {
+      if (err instanceof BadRequestException) throw err;
+      throw new BadRequestException('Gagal memverifikasi reCAPTCHA: ' + (err.message || 'Error'));
+    }
+  }
+
+  async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
+    await this.verifyRecaptcha(dto.captchaToken, ipAddress);
+
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email.trim().toLowerCase() },
     });
@@ -48,13 +88,28 @@ export class AuthService {
       targetTable: 'users',
       targetId: newUser.id,
       details: `Pendaftaran akun peserta baru: ${newUser.email}`,
+      ipAddress,
+      userAgent,
     });
 
+    const payload = {
+      sub: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+      sessionVersion: newUser.sessionVersion,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
     const { passwordHash: _, ...safeUser } = newUser;
-    return safeUser;
+    return {
+      user: safeUser,
+      accessToken,
+    };
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
+    await this.verifyRecaptcha(dto.captchaToken, ipAddress);
+
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.trim().toLowerCase() },
     });
