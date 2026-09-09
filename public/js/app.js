@@ -777,7 +777,7 @@ async function initDashboardApp() {
   const topbarCta = document.getElementById('topbar-cta-container');
   if (topbarCta) {
     if (user.role === 'PESERTA') {
-      topbarCta.innerHTML = '<a href="#formulir" class="btn btn-sm btn-primary"><i class="fa-solid fa-file-signature"></i> Formulir Pendaftaran</a>';
+      topbarCta.innerHTML = '';
     } else if (user.role === 'BENDAHARA' || user.role === 'SUPER_ADMIN') {
       topbarCta.innerHTML = '<a href="#checkin-scanner" class="btn btn-sm btn-secondary"><i class="fa-solid fa-qrcode"></i> Scanner QR</a>';
     } else if (user.role === 'ADMIN_BARCODE') {
@@ -6926,40 +6926,80 @@ async function initHomepageQuotaInfo() {
       return;
     }
 
-    const activeWave = availableWaves[0];
-    const schoolQuotas = activeWave.schoolQuotas || [];
+    // Collect all unique schools across available waves
+    const schoolMap = new Map();
+    for (const wave of availableWaves) {
+      for (const sq of wave.schoolQuotas || []) {
+        if (!schoolMap.has(sq.schoolId)) {
+          schoolMap.set(sq.schoolId, {
+            schoolId: sq.schoolId,
+            schoolName: sq.schoolName || sq.school?.name || 'Sekolah',
+            schoolInitial: sq.schoolInitial || sq.school?.initial || '',
+          });
+        }
+      }
+    }
 
-    if (schoolQuotas.length === 0) {
+    if (schoolMap.size === 0) {
       section.style.display = 'none';
       return;
     }
 
-    if (waveNameEl) {
-      waveNameEl.innerHTML = `Gelombang Aktif: <strong>${activeWave.name}</strong>`;
+    // Sort order: MI -> MTs -> MA -> SMK
+    function getSchoolSortOrder(schoolName, initial) {
+      const s = ((initial || '') + ' ' + (schoolName || '')).toLowerCase();
+      if (s.includes('mi') || s.includes('ibtidaiyah')) return 1;
+      if (s.includes('mts') || s.includes('tsanawiyah')) return 2;
+      if (s.includes('ma') || s.includes('aliyah') || s.includes('sma')) return 3;
+      if (s.includes('smk') || s.includes('kejuruan')) return 4;
+      return 5;
     }
 
-    cardsContainer.innerHTML = schoolQuotas.map(sq => {
-      const remaining = sq.remainingQuota !== undefined ? sq.remainingQuota : Math.max(0, (sq.quota || 0) - (sq.verifiedCount || 0));
-      const isFull = sq.isFull || remaining <= 0;
-      const schoolName = sq.schoolName || sq.school?.name || 'Sekolah';
-      const initial = sq.schoolInitial || sq.school?.initial || schoolName.substring(0, 3).toUpperCase();
+    const schoolsList = Array.from(schoolMap.values()).sort((a, b) => {
+      return getSchoolSortOrder(a.schoolName, a.schoolInitial) - getSchoolSortOrder(b.schoolName, b.schoolInitial);
+    });
+
+    if (waveNameEl) {
+      waveNameEl.innerHTML = `Tahun Pelajaran <strong>${activePeriod.name}</strong>`;
+    }
+
+    cardsContainer.innerHTML = schoolsList.map(school => {
+      let targetWaveName = '';
+      let remaining = 0;
+      let isAvailable = false;
+
+      // Find first wave with available quota for this school (Kuota 1 -> Kuota 2 -> ...)
+      for (const wave of availableWaves) {
+        const sq = (wave.schoolQuotas || []).find(s => s.schoolId === school.schoolId);
+        if (sq && sq.quota > 0) {
+          const rem = sq.remainingQuota !== undefined ? sq.remainingQuota : Math.max(0, (sq.quota || 0) - (sq.verifiedCount || 0));
+          if (!sq.isFull && rem > 0) {
+            targetWaveName = wave.name;
+            remaining = rem;
+            isAvailable = true;
+            break;
+          }
+        }
+      }
+
+      const initial = school.schoolInitial || school.schoolName.substring(0, 3).toUpperCase();
 
       return `
-        <div style="flex: 1 1 calc(25% - 14px); min-width: 180px; max-width: 240px; background: #ffffff; border: 1px solid ${isFull ? '#fecaca' : '#e2e8f0'}; border-radius: 12px; padding: 16px 14px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-          <div style="display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 10px; background: ${isFull ? '#fee2e2' : '#eff6ff'}; color: ${isFull ? '#dc2626' : '#2563eb'}; font-weight: 800; font-size: 0.95rem; margin-bottom: 8px;">
+        <div style="flex: 1 1 calc(25% - 14px); min-width: 180px; max-width: 240px; background: #ffffff; border: 1px solid ${!isAvailable ? '#fecaca' : '#e2e8f0'}; border-radius: 12px; padding: 18px 14px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+          <div style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; background: ${!isAvailable ? '#fee2e2' : '#eff6ff'}; color: ${!isAvailable ? '#dc2626' : '#2563eb'}; font-weight: 800; font-size: 1rem; margin-bottom: 10px;">
             ${initial}
           </div>
-          <div style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 8px; line-height: 1.3;">
-            ${schoolName}
+          <div style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 10px; line-height: 1.3; min-height: 2.6em; display: flex; align-items: center; justify-content: center;">
+            ${school.schoolName}
           </div>
-          ${isFull ? `
-            <div style="display: inline-block; padding: 4px 10px; background: #fee2e2; color: #dc2626; border-radius: 6px; font-size: 0.8rem; font-weight: 700;">
+          ${!isAvailable ? `
+            <div style="display: inline-block; padding: 5px 12px; background: #fee2e2; color: #dc2626; border-radius: 6px; font-size: 0.8rem; font-weight: 700;">
               <i class="fa-solid fa-circle-xmark"></i> Kuota Penuh
             </div>
           ` : `
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-              <span style="font-size: 1.5rem; font-weight: 800; color: #059669; line-height: 1;">${remaining}</span>
-              <span style="font-size: 0.78rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Sisa Kuota Kursi</span>
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+              <span style="font-size: 1.6rem; font-weight: 800; color: #059669; line-height: 1;">${remaining}</span>
+              <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Sisa ${targetWaveName}</span>
             </div>
           `}
         </div>
