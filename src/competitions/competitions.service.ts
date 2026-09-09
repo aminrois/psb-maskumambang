@@ -500,24 +500,13 @@ export class CompetitionsService {
   async getActivePeriod() {
     const period = await this.prisma.academicPeriod.findFirst({
       where: { isActive: true },
-      include: {
-        admissionWaves: {
-          where: { isActive: true },
-          orderBy: { startDate: 'asc' },
-        },
-      },
     });
 
     if (!period) {
       return null;
     }
 
-    const now = new Date();
-    const activeWaves = period.admissionWaves.filter(w => {
-      const start = new Date(w.startDate);
-      const end = new Date(w.endDate);
-      return w.isActive && now >= start && now <= end;
-    });
+    const activeWaves = await this.getActiveWaves();
 
     return {
       ...period,
@@ -648,48 +637,121 @@ export class CompetitionsService {
   // =========================================================================
   // ADMISSION WAVES (GELOMBANG / KUOTA PENDAFTARAN)
   // =========================================================================
-  async getAllWaves() {
-    const waves = await this.prisma.admissionWave.findMany({
-      include: {
-        academicPeriod: true,
-        _count: {
-          select: { registrations: true },
-        },
-      },
-      orderBy: [{ academicPeriod: { name: 'desc' } }, { startDate: 'asc' }],
-    });
-
+  private async formatWavesWithQuotas(waves: any[]) {
+    if (!waves || waves.length === 0) return [];
     const waveIds = waves.map((w) => w.id);
-    const verifiedCounts = await this.prisma.registration.groupBy({
-      by: ['admissionWaveId'],
+
+    const verifiedRegs = await this.prisma.registration.findMany({
       where: {
         admissionWaveId: { in: waveIds },
         payments: {
           some: { status: PaymentStatus.APPROVED },
         },
       },
-      _count: { id: true },
+      select: {
+        admissionWaveId: true,
+        classProgram: {
+          select: {
+            major: {
+              select: {
+                schoolId: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    const verifiedMap = new Map<string, number>();
-    verifiedCounts.forEach((c) => {
-      if (c.admissionWaveId) verifiedMap.set(c.admissionWaveId, c._count.id);
+    const totalRegs = await this.prisma.registration.findMany({
+      where: {
+        admissionWaveId: { in: waveIds },
+      },
+      select: {
+        admissionWaveId: true,
+        classProgram: {
+          select: {
+            major: {
+              select: {
+                schoolId: true,
+              },
+            },
+          },
+        },
+      },
     });
+
+    const verifiedWaveMap = new Map<string, number>();
+    const totalWaveMap = new Map<string, number>();
+    const verifiedSchoolMap = new Map<string, number>();
+    const totalSchoolMap = new Map<string, number>();
+
+    for (const r of verifiedRegs) {
+      if (r.admissionWaveId) {
+        verifiedWaveMap.set(r.admissionWaveId, (verifiedWaveMap.get(r.admissionWaveId) || 0) + 1);
+        const sId = r.classProgram?.major?.schoolId;
+        if (sId) {
+          const key = `${r.admissionWaveId}_${sId}`;
+          verifiedSchoolMap.set(key, (verifiedSchoolMap.get(key) || 0) + 1);
+        }
+      }
+    }
+
+    for (const r of totalRegs) {
+      if (r.admissionWaveId) {
+        totalWaveMap.set(r.admissionWaveId, (totalWaveMap.get(r.admissionWaveId) || 0) + 1);
+        const sId = r.classProgram?.major?.schoolId;
+        if (sId) {
+          const key = `${r.admissionWaveId}_${sId}`;
+          totalSchoolMap.set(key, (totalSchoolMap.get(key) || 0) + 1);
+        }
+      }
+    }
 
     return waves.map((w) => {
-      const verifiedCount = verifiedMap.get(w.id) || 0;
-      const totalCount = w._count.registrations || 0;
+      const verifiedCount = verifiedWaveMap.get(w.id) || 0;
+      const totalCount = totalWaveMap.get(w.id) || (w._count?.registrations || 0);
+
+      const schoolQuotasFormatted = (w.schoolQuotas || []).map((sq: any) => {
+        const vCount = verifiedSchoolMap.get(`${w.id}_${sq.schoolId}`) || 0;
+        const tCount = totalSchoolMap.get(`${w.id}_${sq.schoolId}`) || 0;
+        const qVal = sq.quota || 0;
+        const remaining = Math.max(0, qVal - vCount);
+        const isFull = qVal > 0 && vCount >= qVal;
+        return {
+          id: sq.id,
+          schoolId: sq.schoolId,
+          schoolName: sq.school?.name || '',
+          schoolInitial: sq.school?.initial || '',
+          quota: qVal,
+          verifiedCount: vCount,
+          totalCount: tCount,
+          remainingQuota: remaining,
+          isFull,
+        };
+      });
+
+      let totalSchoolQuotaSum = 0;
+      if (schoolQuotasFormatted.length > 0) {
+        totalSchoolQuotaSum = schoolQuotasFormatted.reduce(
+          (acc: number, curr: any) => acc + (curr.quota || 0),
+          0,
+        );
+      }
+      const effectiveQuota = totalSchoolQuotaSum > 0 ? totalSchoolQuotaSum : w.quota;
+
       const remainingQuota =
-        w.quota !== null && w.quota !== undefined
-          ? Math.max(0, w.quota - verifiedCount)
+        effectiveQuota !== null && effectiveQuota !== undefined
+          ? Math.max(0, effectiveQuota - verifiedCount)
           : null;
       const isFull =
-        w.quota !== null && w.quota !== undefined && w.quota > 0
-          ? verifiedCount >= w.quota
+        effectiveQuota !== null && effectiveQuota !== undefined && effectiveQuota > 0
+          ? verifiedCount >= effectiveQuota
           : false;
 
       return {
         ...w,
+        quota: effectiveQuota,
+        schoolQuotas: schoolQuotasFormatted,
         verifiedCount,
         totalCount,
         remainingQuota,
@@ -698,11 +760,35 @@ export class CompetitionsService {
     });
   }
 
+  async getAllWaves() {
+    const waves = await this.prisma.admissionWave.findMany({
+      include: {
+        academicPeriod: true,
+        schoolQuotas: {
+          include: {
+            school: true,
+          },
+        },
+        _count: {
+          select: { registrations: true },
+        },
+      },
+      orderBy: [{ academicPeriod: { name: 'desc' } }, { startDate: 'asc' }],
+    });
+
+    return this.formatWavesWithQuotas(waves);
+  }
+
   async getWavesByPeriod(academicPeriodId: string) {
     const waves = await this.prisma.admissionWave.findMany({
       where: { academicPeriodId },
       include: {
         academicPeriod: true,
+        schoolQuotas: {
+          include: {
+            school: true,
+          },
+        },
         _count: {
           select: { registrations: true },
         },
@@ -710,43 +796,7 @@ export class CompetitionsService {
       orderBy: { startDate: 'asc' },
     });
 
-    const waveIds = waves.map((w) => w.id);
-    const verifiedCounts = await this.prisma.registration.groupBy({
-      by: ['admissionWaveId'],
-      where: {
-        admissionWaveId: { in: waveIds },
-        payments: {
-          some: { status: PaymentStatus.APPROVED },
-        },
-      },
-      _count: { id: true },
-    });
-
-    const verifiedMap = new Map<string, number>();
-    verifiedCounts.forEach((c) => {
-      if (c.admissionWaveId) verifiedMap.set(c.admissionWaveId, c._count.id);
-    });
-
-    return waves.map((w) => {
-      const verifiedCount = verifiedMap.get(w.id) || 0;
-      const totalCount = w._count.registrations || 0;
-      const remainingQuota =
-        w.quota !== null && w.quota !== undefined
-          ? Math.max(0, w.quota - verifiedCount)
-          : null;
-      const isFull =
-        w.quota !== null && w.quota !== undefined && w.quota > 0
-          ? verifiedCount >= w.quota
-          : false;
-
-      return {
-        ...w,
-        verifiedCount,
-        totalCount,
-        remainingQuota,
-        isFull,
-      };
-    });
+    return this.formatWavesWithQuotas(waves);
   }
 
   async getActiveWaves() {
@@ -765,6 +815,11 @@ export class CompetitionsService {
       },
       include: {
         academicPeriod: true,
+        schoolQuotas: {
+          include: {
+            school: true,
+          },
+        },
         _count: {
           select: { registrations: true },
         },
@@ -772,43 +827,7 @@ export class CompetitionsService {
       orderBy: { startDate: 'asc' },
     });
 
-    const waveIds = waves.map((w) => w.id);
-    const verifiedCounts = await this.prisma.registration.groupBy({
-      by: ['admissionWaveId'],
-      where: {
-        admissionWaveId: { in: waveIds },
-        payments: {
-          some: { status: PaymentStatus.APPROVED },
-        },
-      },
-      _count: { id: true },
-    });
-
-    const verifiedMap = new Map<string, number>();
-    verifiedCounts.forEach((c) => {
-      if (c.admissionWaveId) verifiedMap.set(c.admissionWaveId, c._count.id);
-    });
-
-    return waves.map((w) => {
-      const verifiedCount = verifiedMap.get(w.id) || 0;
-      const totalCount = w._count.registrations || 0;
-      const remainingQuota =
-        w.quota !== null && w.quota !== undefined
-          ? Math.max(0, w.quota - verifiedCount)
-          : null;
-      const isFull =
-        w.quota !== null && w.quota !== undefined && w.quota > 0
-          ? verifiedCount >= w.quota
-          : false;
-
-      return {
-        ...w,
-        verifiedCount,
-        totalCount,
-        remainingQuota,
-        isFull,
-      };
-    });
+    return this.formatWavesWithQuotas(waves);
   }
 
   async createWave(dto: any) {
@@ -846,7 +865,7 @@ export class CompetitionsService {
       quotaVal = q;
     }
 
-    return this.prisma.admissionWave.create({
+    const created = await this.prisma.admissionWave.create({
       data: {
         academicPeriodId: dto.academicPeriodId,
         name: dto.name.trim(),
@@ -859,6 +878,33 @@ export class CompetitionsService {
       },
       include: {
         academicPeriod: true,
+        schoolQuotas: true,
+      },
+    });
+
+    // Save school quotas if provided
+    if (Array.isArray(dto.schoolQuotas) && dto.schoolQuotas.length > 0) {
+      for (const sq of dto.schoolQuotas) {
+        if (sq.schoolId && sq.quota !== undefined && sq.quota !== null && sq.quota !== '') {
+          const q = Number(sq.quota);
+          if (!isNaN(q) && q >= 0) {
+            await this.prisma.admissionWaveSchoolQuota.create({
+              data: {
+                admissionWaveId: created.id,
+                schoolId: sq.schoolId,
+                quota: q,
+              },
+            });
+          }
+        }
+      }
+    }
+
+    return this.prisma.admissionWave.findUnique({
+      where: { id: created.id },
+      include: {
+        academicPeriod: true,
+        schoolQuotas: { include: { school: true } },
       },
     });
   }
@@ -905,7 +951,7 @@ export class CompetitionsService {
       }
     }
 
-    return this.prisma.admissionWave.update({
+    await this.prisma.admissionWave.update({
       where: { id },
       data: {
         academicPeriodId: dto.academicPeriodId || wave.academicPeriodId,
@@ -917,8 +963,34 @@ export class CompetitionsService {
         quota: quotaVal,
         isActive: dto.isActive !== undefined ? Boolean(dto.isActive) : wave.isActive,
       },
+    });
+
+    // Update school quotas if provided
+    if (Array.isArray(dto.schoolQuotas)) {
+      await this.prisma.admissionWaveSchoolQuota.deleteMany({
+        where: { admissionWaveId: id },
+      });
+      for (const sq of dto.schoolQuotas) {
+        if (sq.schoolId && sq.quota !== undefined && sq.quota !== null && sq.quota !== '') {
+          const q = Number(sq.quota);
+          if (!isNaN(q) && q >= 0) {
+            await this.prisma.admissionWaveSchoolQuota.create({
+              data: {
+                admissionWaveId: id,
+                schoolId: sq.schoolId,
+                quota: q,
+              },
+            });
+          }
+        }
+      }
+    }
+
+    return this.prisma.admissionWave.findUnique({
+      where: { id },
       include: {
         academicPeriod: true,
+        schoolQuotas: { include: { school: true } },
       },
     });
   }

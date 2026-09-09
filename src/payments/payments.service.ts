@@ -432,7 +432,22 @@ export class PaymentsService {
       where: { id: paymentId },
       include: {
         registration: {
-          include: { admissionWave: true },
+          include: {
+            admissionWave: {
+              include: {
+                schoolQuotas: {
+                  include: { school: true },
+                },
+              },
+            },
+            classProgram: {
+              include: {
+                major: {
+                  include: { school: true },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -442,21 +457,53 @@ export class PaymentsService {
     }
 
     const wave = payment.registration.admissionWave;
-    if (wave && wave.quota !== null && wave.quota !== undefined && wave.quota > 0) {
-      const verifiedCount = await this.prisma.registration.count({
-        where: {
-          admissionWaveId: wave.id,
-          id: { not: payment.registrationId },
-          payments: {
-            some: { status: PaymentStatus.APPROVED },
-          },
-        },
-      });
+    const school = payment.registration.classProgram?.major?.school;
 
-      if (verifiedCount >= wave.quota) {
-        throw new BadRequestException(
-          `Kuota pendaftaran untuk ${wave.name} telah terpenuhi (Maksimal ${wave.quota} santri telah terverifikasi). Pembayaran tidak dapat disetujui.`,
-        );
+    if (wave) {
+      // 1. Check School-specific Quota if defined
+      if (school) {
+        const schoolQuota = (wave.schoolQuotas || []).find((sq) => sq.schoolId === school.id);
+        if (schoolQuota && schoolQuota.quota > 0) {
+          const verifiedSchoolCount = await this.prisma.registration.count({
+            where: {
+              admissionWaveId: wave.id,
+              id: { not: payment.registrationId },
+              classProgram: {
+                major: {
+                  schoolId: school.id,
+                },
+              },
+              payments: {
+                some: { status: PaymentStatus.APPROVED },
+              },
+            },
+          });
+
+          if (verifiedSchoolCount >= schoolQuota.quota) {
+            throw new BadRequestException(
+              `Kuota pendaftaran untuk ${school.name} pada ${wave.name} telah terpenuhi (Maksimal ${schoolQuota.quota} santri telah terverifikasi). Pembayaran tidak dapat disetujui.`,
+            );
+          }
+        }
+      }
+
+      // 2. Check Overall Wave Quota if defined
+      if (wave.quota !== null && wave.quota !== undefined && wave.quota > 0) {
+        const verifiedCount = await this.prisma.registration.count({
+          where: {
+            admissionWaveId: wave.id,
+            id: { not: payment.registrationId },
+            payments: {
+              some: { status: PaymentStatus.APPROVED },
+            },
+          },
+        });
+
+        if (verifiedCount >= wave.quota) {
+          throw new BadRequestException(
+            `Kuota pendaftaran untuk ${wave.name} telah terpenuhi (Maksimal ${wave.quota} santri telah terverifikasi). Pembayaran tidak dapat disetujui.`,
+          );
+        }
       }
     }
 

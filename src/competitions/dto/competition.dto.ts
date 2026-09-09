@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, IsEnum, IsNumber, IsInt, Min, Max } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsEnum, IsNumber, IsInt, Min, Max, IsArray, ValidateNested } from 'class-validator';
 import { ParticipantType } from '@prisma/client';
 import { Type } from 'class-transformer';
 
@@ -183,7 +183,18 @@ export class UpdateAcademicPeriodDto {
   isActive?: boolean;
 }
 
-// --- ADMISSION WAVE (GELOMBANG PENDAFTARAN) DTO ---
+// --- ADMISSION WAVE (GELOMBANG / KUOTA PENDAFTARAN) DTO ---
+export class SchoolQuotaDto {
+  @IsString()
+  @IsNotEmpty({ message: 'ID sekolah wajib diisi.' })
+  schoolId!: string;
+
+  @Type(() => Number)
+  @IsInt({ message: 'Kuota sekolah harus berupa angka bulat.' })
+  @Min(0, { message: 'Kuota sekolah tidak boleh negatif.' })
+  quota!: number;
+}
+
 export class CreateAdmissionWaveDto {
   @IsString()
   @IsNotEmpty({ message: 'Periode tahun pelajaran wajib dipilih.' })
@@ -214,6 +225,12 @@ export class CreateAdmissionWaveDto {
   @IsInt({ message: 'Kuota pendaftaran harus berupa angka bulat.' })
   @Min(0, { message: 'Kuota pendaftaran tidak boleh negatif.' })
   quota?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SchoolQuotaDto)
+  schoolQuotas?: SchoolQuotaDto[];
 
   @IsOptional()
   isActive?: boolean;
@@ -250,6 +267,12 @@ export class UpdateAdmissionWaveDto {
   @IsInt({ message: 'Kuota pendaftaran harus berupa angka bulat.' })
   @Min(0, { message: 'Kuota pendaftaran tidak boleh negatif.' })
   quota?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SchoolQuotaDto)
+  schoolQuotas?: SchoolQuotaDto[];
 
   @IsOptional()
   isActive?: boolean;

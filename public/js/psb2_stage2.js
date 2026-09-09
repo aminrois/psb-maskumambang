@@ -323,12 +323,12 @@ async function renderAdminWavesView() {
       <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
           <h2 style="font-size: 1.6rem; color: var(--text-heading); margin-bottom: 4px;">Kuota & Gelombang Pendaftaran</h2>
-          <p style="color: var(--text-muted); font-size: 0.95rem;">Kelola kuota pendaftaran santri baru, batas kuota terverifikasi, jadwal pembukaan/penutupan, dan biaya formulir.</p>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">Kelola kuota pendaftaran santri baru per sekolah, batas kuota terverifikasi, jadwal, dan biaya formulir.</p>
         </div>
         <button class="btn btn-primary" onclick="openCreateWaveModal()"><i class="fa-solid fa-plus"></i> Tambah Kuota Pendaftaran</button>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px;">
         ${waves.length === 0 ? '<div class="alert alert-info">Belum ada data kuota pendaftaran.</div>' : waves.map(w => {
       const now = new Date();
       const start = new Date(w.startDate);
@@ -340,6 +340,7 @@ async function renderAdminWavesView() {
       const hasQuota = quota !== null && quota !== undefined && quota > 0;
       const percent = hasQuota ? Math.min(100, Math.round((verified / quota) * 100)) : 0;
       const isFull = hasQuota && verified >= quota;
+      const schoolQuotas = w.schoolQuotas || [];
 
       return `
             <div class="card" style="background: var(--bg-card); border: 1px solid ${isFull ? 'var(--danger-300, #fca5a5)' : 'var(--border-subtle)'}; border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
@@ -360,12 +361,12 @@ async function renderAdminWavesView() {
                 <!-- Kuota & Status Keterisian Box -->
                 <div style="background: var(--bg-body); border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border-subtle);">
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-solid fa-users" style="color: var(--primary-600); margin-right: 4px;"></i> Kuota Pendaftar:</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-solid fa-users" style="color: var(--primary-600); margin-right: 4px;"></i> Total Kuota:</span>
                     <strong style="font-size: 0.95rem; color: var(--text-heading);">${hasQuota ? `${quota} Santri` : '<span class="badge badge-secondary" style="font-size: 0.75rem;">Tanpa Batas</span>'}</strong>
                   </div>
                   
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-solid fa-circle-check" style="color: var(--success-600); margin-right: 4px;"></i> Terverifikasi (Masuk Kuota):</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-solid fa-circle-check" style="color: var(--success-600); margin-right: 4px;"></i> Terverifikasi:</span>
                     <strong style="font-size: 0.95rem; color: ${isFull ? 'var(--danger-600)' : 'var(--success-600)'};">${verified} ${hasQuota ? `/ ${quota}` : 'Santri'}</strong>
                   </div>
 
@@ -379,7 +380,34 @@ async function renderAdminWavesView() {
                     </div>
                   ` : ''}
 
-                  <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-subtle); display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+                  <!-- Rincian Kuota per Sekolah -->
+                  ${schoolQuotas.length > 0 ? `
+                    <div style="margin-top: 10px; border-top: 1px dashed var(--border-subtle); padding-top: 8px;">
+                      <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-heading); margin-bottom: 6px; display: flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-school" style="color: var(--primary-600);"></i> Kuota per Sekolah:
+                      </div>
+                      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px;">
+                        ${schoolQuotas.map(sq => {
+                          const sqPercent = sq.quota > 0 ? Math.min(100, Math.round((sq.verifiedCount / sq.quota) * 100)) : 0;
+                          return `
+                            <div style="background: var(--bg-card); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-subtle); font-size: 0.75rem;">
+                              <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700;">
+                                <span>${sq.schoolName || sq.schoolInitial || 'Sekolah'}</span>
+                                <span style="color: ${sq.isFull ? 'var(--danger-600)' : 'var(--primary-600)'};">
+                                  ${sq.verifiedCount}/${sq.quota}
+                                </span>
+                              </div>
+                              <div style="width: 100%; background: var(--border-subtle); border-radius: 999px; height: 4px; overflow: hidden; margin-top: 4px;">
+                                <div style="width: ${sqPercent}%; height: 100%; background: ${sq.isFull ? 'var(--danger-500)' : 'var(--primary-600)'};"></div>
+                              </div>
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
+                    </div>
+                  ` : ''}
+
+                  <div style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-subtle); display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
                     <span>Total Pendaftar (Semua Status):</span>
                     <strong>${total} Pendaftar</strong>
                   </div>
@@ -419,8 +447,12 @@ async function renderAdminWavesView() {
 }
 
 async function openCreateWaveModal() {
-  const pRes = await apiRequest('/api/competitions/periods');
+  const [pRes, sRes] = await Promise.all([
+    apiRequest('/api/competitions/periods'),
+    apiRequest('/api/competitions/schools'),
+  ]);
   const periods = pRes.success ? pRes.data : [];
+  const schools = sRes.success ? sRes.data : [];
 
   openModal('Tambah Kuota / Gelombang Pendaftaran', `
     <form id="create-wave-form" onsubmit="submitCreateWave(event)">
@@ -445,18 +477,32 @@ async function openCreateWaveModal() {
           <input type="date" id="m-wave-end" class="form-control" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-        <div class="form-group">
-          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Maksimal Kuota (Santri)</label>
-          <input type="number" id="m-wave-quota" class="form-control" placeholder="Contoh: 100 (Opsional)" min="1" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+
+      <!-- SECTION: KUOTA PER SEKOLAH -->
+      <div style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 8px; color: var(--text-heading);">
+          <i class="fa-solid fa-school" style="color: var(--primary-600); margin-right: 4px;"></i> Kuota Pendaftar per Sekolah (Santri)
+        </label>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+          ${schools.map(s => `
+            <div style="background: var(--bg-card); padding: 10px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+              <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; color: var(--text-heading);">${s.name}</label>
+              <input type="number" class="form-control m-create-school-quota-input" data-school-id="${s.id}" placeholder="Contoh: 30" min="0" style="width: 100%; padding: 8px 10px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: 4px;">
+            </div>
+          `).join('')}
         </div>
-        <div class="form-group">
-          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Biaya Pendaftaran (Rp)</label>
-          <input type="number" id="m-wave-fee" class="form-control" placeholder="500000" min="0" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-        </div>
+        <small style="color: var(--text-muted); font-size: 0.775rem; margin-top: 8px; display: block;">
+          * Isi kuota untuk masing-masing sekolah (contoh: SMK 30, MA 40, dst).
+        </small>
       </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Biaya Pendaftaran (Rp)</label>
+        <input type="number" id="m-wave-fee" class="form-control" placeholder="500000" min="0" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+      </div>
+
       <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px; background: var(--bg-body); padding: 8px 12px; border-radius: 6px;">
-        <i class="fa-solid fa-circle-info" style="color: var(--primary-600);"></i> <em>Catatan: Pemenuhan kuota dihitung dari santri yang pembayarannya telah terverifikasi/disetujui (Approved). Kosongkan kuota jika tidak dibatasi.</em>
+        <i class="fa-solid fa-circle-info" style="color: var(--primary-600);"></i> <em>Catatan: Pemenuhan kuota dihitung dari santri yang pembayarannya telah terverifikasi/disetujui (Approved).</em>
       </p>
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
@@ -472,9 +518,21 @@ async function submitCreateWave(e) {
   const name = document.getElementById('m-wave-name').value;
   const startDate = document.getElementById('m-wave-start').value;
   const endDate = document.getElementById('m-wave-end').value;
-  const quotaVal = document.getElementById('m-wave-quota').value;
-  const quota = quotaVal ? Number(quotaVal) : null;
   const registrationFee = Number(document.getElementById('m-wave-fee').value);
+
+  const schoolQuotaInputs = document.querySelectorAll('.m-create-school-quota-input');
+  const schoolQuotas = [];
+  let totalQuotaSum = 0;
+  schoolQuotaInputs.forEach(input => {
+    const sId = input.getAttribute('data-school-id');
+    const qVal = input.value;
+    if (sId && qVal !== '') {
+      const qNum = Number(qVal);
+      schoolQuotas.push({ schoolId: sId, quota: qNum });
+      totalQuotaSum += qNum;
+    }
+  });
+
   const btn = document.getElementById('btn-save-wave');
 
   if (new Date(startDate) >= new Date(endDate)) {
@@ -488,7 +546,16 @@ async function submitCreateWave(e) {
   try {
     const res = await apiRequest('/api/competitions/waves', {
       method: 'POST',
-      body: { academicPeriodId, name, startDate, endDate, registrationFee, quota, isActive: true },
+      body: {
+        academicPeriodId,
+        name,
+        startDate,
+        endDate,
+        registrationFee,
+        quota: totalQuotaSum > 0 ? totalQuotaSum : null,
+        schoolQuotas,
+        isActive: true,
+      },
     });
     if (res.success) {
       showToast('Kuota pendaftaran berhasil dibuat.', 'success');
@@ -506,16 +573,19 @@ async function submitCreateWave(e) {
 }
 
 async function openEditWaveModal(waveId) {
-  const [wRes, pRes] = await Promise.all([
+  const [wRes, pRes, sRes] = await Promise.all([
     apiRequest('/api/competitions/waves'),
     apiRequest('/api/competitions/periods'),
+    apiRequest('/api/competitions/schools'),
   ]);
   const wave = (wRes.data || []).find(w => w.id === waveId);
   const periods = pRes.data || [];
+  const schools = sRes.data || [];
   if (!wave) return;
 
   const startVal = new Date(wave.startDate).toISOString().split('T')[0];
   const endVal = new Date(wave.endDate).toISOString().split('T')[0];
+  const existingSchoolQuotas = wave.schoolQuotas || [];
 
   openModal('Edit Kuota / Gelombang Pendaftaran', `
     <form id="edit-wave-form" onsubmit="submitEditWave(event, '${waveId}')">
@@ -539,18 +609,36 @@ async function openEditWaveModal(waveId) {
           <input type="date" id="m-edit-wave-end" class="form-control" value="${endVal}" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
         </div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-        <div class="form-group">
-          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Maksimal Kuota (Santri)</label>
-          <input type="number" id="m-edit-wave-quota" class="form-control" value="${wave.quota !== null && wave.quota !== undefined ? wave.quota : ''}" placeholder="Contoh: 100 (Opsional)" min="1" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+
+      <!-- SECTION: KUOTA PER SEKOLAH -->
+      <div style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px; margin-bottom: 16px;">
+        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 8px; color: var(--text-heading);">
+          <i class="fa-solid fa-school" style="color: var(--primary-600); margin-right: 4px;"></i> Kuota Pendaftar per Sekolah (Santri)
+        </label>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+          ${schools.map(s => {
+            const match = existingSchoolQuotas.find(sq => sq.schoolId === s.id);
+            const val = match ? match.quota : '';
+            return `
+              <div style="background: var(--bg-card); padding: 10px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; color: var(--text-heading);">${s.name}</label>
+                <input type="number" class="form-control m-edit-school-quota-input" data-school-id="${s.id}" value="${val !== undefined ? val : ''}" placeholder="Contoh: 30" min="0" style="width: 100%; padding: 8px 10px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: 4px;">
+              </div>
+            `;
+          }).join('')}
         </div>
-        <div class="form-group">
-          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Biaya Pendaftaran (Rp)</label>
-          <input type="number" id="m-edit-wave-fee" class="form-control" value="${Number(wave.registrationFee)}" min="0" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-        </div>
+        <small style="color: var(--text-muted); font-size: 0.775rem; margin-top: 8px; display: block;">
+          * Isi kuota untuk masing-masing sekolah (contoh: SMK 30, MA 40, dst).
+        </small>
       </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Biaya Pendaftaran (Rp)</label>
+        <input type="number" id="m-edit-wave-fee" class="form-control" value="${Number(wave.registrationFee)}" min="0" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+      </div>
+
       <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px; background: var(--bg-body); padding: 8px 12px; border-radius: 6px;">
-        <i class="fa-solid fa-circle-info" style="color: var(--primary-600);"></i> <em>Catatan: Pemenuhan kuota dihitung dari santri yang pembayarannya telah terverifikasi/disetujui (Approved). Kosongkan kuota jika tidak dibatasi.</em>
+        <i class="fa-solid fa-circle-info" style="color: var(--primary-600);"></i> <em>Catatan: Pemenuhan kuota dihitung dari santri yang pembayarannya telah terverifikasi/disetujui (Approved).</em>
       </p>
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
@@ -566,9 +654,21 @@ async function submitEditWave(e, id) {
   const name = document.getElementById('m-edit-wave-name').value;
   const startDate = document.getElementById('m-edit-wave-start').value;
   const endDate = document.getElementById('m-edit-wave-end').value;
-  const quotaVal = document.getElementById('m-edit-wave-quota').value;
-  const quota = quotaVal ? Number(quotaVal) : null;
   const registrationFee = Number(document.getElementById('m-edit-wave-fee').value);
+
+  const schoolQuotaInputs = document.querySelectorAll('.m-edit-school-quota-input');
+  const schoolQuotas = [];
+  let totalQuotaSum = 0;
+  schoolQuotaInputs.forEach(input => {
+    const sId = input.getAttribute('data-school-id');
+    const qVal = input.value;
+    if (sId && qVal !== '') {
+      const qNum = Number(qVal);
+      schoolQuotas.push({ schoolId: sId, quota: qNum });
+      totalQuotaSum += qNum;
+    }
+  });
+
   const btn = document.getElementById('btn-update-wave');
 
   if (new Date(startDate) >= new Date(endDate)) {
@@ -582,7 +682,15 @@ async function submitEditWave(e, id) {
   try {
     const res = await apiRequest(`/api/competitions/waves/${id}`, {
       method: 'PATCH',
-      body: { academicPeriodId, name, startDate, endDate, registrationFee, quota },
+      body: {
+        academicPeriodId,
+        name,
+        startDate,
+        endDate,
+        registrationFee,
+        quota: totalQuotaSum > 0 ? totalQuotaSum : null,
+        schoolQuotas,
+      },
     });
     if (res.success) {
       showToast('Kuota pendaftaran berhasil diperbarui.', 'success');

@@ -180,11 +180,27 @@ model AdmissionWave {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  academicPeriod     AcademicPeriod      @relation(fields: [academicPeriodId], references: [id], onDelete: Cascade)
+  academicPeriod     AcademicPeriod               @relation(fields: [academicPeriodId], references: [id], onDelete: Cascade)
   registrations      Registration[]
   interviewSchedules InterviewSchedule[]
+  schoolQuotas       AdmissionWaveSchoolQuota[]
 
   @@map("admission_waves")
+}
+
+model AdmissionWaveSchoolQuota {
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  admissionWaveId String   @map("admission_wave_id") @db.VarChar(36)
+  schoolId        String   @map("school_id") @db.VarChar(36)
+  quota           Int      @default(0)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  admissionWave AdmissionWave @relation(fields: [admissionWaveId], references: [id], onDelete: Cascade)
+  school        School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([admissionWaveId, schoolId])
+  @@map("admission_wave_school_quotas")
 }
 
 model School {
@@ -201,6 +217,7 @@ model School {
   interviewPackages      InterviewPackage[]
   interviewSchedules     InterviewSchedule[]
   interviewAspectConfigs InterviewAspectConfig[]
+  admissionWaveQuotas    AdmissionWaveSchoolQuota[]
 
   @@map("schools")
 }

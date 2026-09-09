@@ -2309,6 +2309,7 @@ async function renderPesertaRegistrationWizard() {
               <option value="">-- Pilih Sekolah Tujuan --</option>
               ${state.competitionTree.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
             </select>
+            <div id="wiz-school-quota-info" style="display: none; margin-top: 8px;"></div>
           </div>
 
           <div class="form-group" style="margin-bottom: 16px;">
@@ -2448,6 +2449,71 @@ async function renderPesertaRegistrationWizard() {
   `;
 }
 
+function checkWizardQuota() {
+  const waveSelect = document.getElementById('wiz-wave-id');
+  const catSelect = document.getElementById('wiz-cat');
+  const quotaInfo = document.getElementById('wiz-school-quota-info');
+  const submitBtn = document.getElementById('wiz-submit-btn');
+  if (!waveSelect || !catSelect || !quotaInfo) return true;
+
+  const waveId = waveSelect.value;
+  const schoolId = catSelect.value;
+  const availableWaves = state.activePeriod?.availableWaves || [];
+  const selectedWave = availableWaves.find(w => w.id === waveId);
+
+  if (!selectedWave) {
+    quotaInfo.style.display = 'none';
+    return true;
+  }
+
+  // Check overall wave quota
+  if (selectedWave.isQuotaFull) {
+    quotaInfo.style.display = 'block';
+    quotaInfo.innerHTML = `
+      <div style="padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger-500); border-radius: var(--radius-md); color: var(--danger-500); font-weight: 600;">
+        <i class="fa-solid fa-triangle-exclamation"></i> Kuota pendaftaran untuk gelombang "${selectedWave.name}" sudah penuh (${selectedWave.verifiedCount || 0}/${selectedWave.quota}).
+      </div>
+    `;
+    if (submitBtn) submitBtn.disabled = true;
+    return false;
+  }
+
+  if (!schoolId) {
+    quotaInfo.style.display = 'none';
+    return true;
+  }
+
+  const schoolQuota = selectedWave.schoolQuotas?.find(sq => sq.schoolId === schoolId);
+  if (schoolQuota && schoolQuota.quota > 0) {
+    const verified = schoolQuota.verifiedCount || 0;
+    const remaining = schoolQuota.remainingQuota !== undefined ? schoolQuota.remainingQuota : Math.max(0, schoolQuota.quota - verified);
+    const schoolObj = state.competitionTree?.find(s => s.id === schoolId);
+    const schoolName = schoolObj?.name || 'Sekolah';
+
+    if (schoolQuota.isFull || remaining <= 0) {
+      quotaInfo.style.display = 'block';
+      quotaInfo.innerHTML = `
+        <div style="padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger-500); border-radius: var(--radius-md); color: var(--danger-500); font-weight: 600;">
+          <i class="fa-solid fa-circle-xmark"></i> Kuota pendaftaran untuk <strong>${schoolName}</strong> pada ${selectedWave.name} sudah <strong>PENUH</strong> (${verified}/${schoolQuota.quota} santri terverifikasi). Silakan pilih sekolah lain atau hubungi panitia.
+        </div>
+      `;
+      if (submitBtn) submitBtn.disabled = true;
+      return false;
+    } else {
+      quotaInfo.style.display = 'block';
+      quotaInfo.innerHTML = `
+        <div style="padding: 8px 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success-500); border-radius: var(--radius-md); color: var(--success-600); font-size: 0.85rem; font-weight: 600;">
+          <i class="fa-solid fa-circle-check"></i> Kuota Tersedia untuk <strong>${schoolName}</strong>: sisa <strong>${remaining}</strong> dari total ${schoolQuota.quota} kursi santri baru.
+        </div>
+      `;
+      return true;
+    }
+  } else {
+    quotaInfo.style.display = 'none';
+    return true;
+  }
+}
+
 function onWizardWaveChange() {
   const waveSelect = document.getElementById('wiz-wave-id');
   const selectedOpt = waveSelect?.options[waveSelect.selectedIndex];
@@ -2456,6 +2522,7 @@ function onWizardWaveChange() {
   if (payFeeLabel) {
     payFeeLabel.textContent = formatCurrency(fee);
   }
+  checkWizardQuota();
 }
 
 function onWizardCatSelect() {
@@ -2475,7 +2542,14 @@ function onWizardCatSelect() {
   infoBanner.style.display = 'none';
   submitBtn.disabled = true;
 
+  const quotaOk = checkWizardQuota();
+
   if (!catId) {
+    lvlSelect.disabled = true;
+    return;
+  }
+
+  if (!quotaOk) {
     lvlSelect.disabled = true;
     return;
   }
