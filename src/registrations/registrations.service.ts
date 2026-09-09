@@ -180,24 +180,19 @@ export class RegistrationsService {
       if (!w || !w.isActive) {
         throw new BadRequestException('Gelombang pendaftaran yang dipilih sedang tidak aktif.');
       }
-      if (now < new Date(w.startDate) || now > new Date(w.endDate)) {
-        throw new BadRequestException('Pendaftaran pada gelombang ini belum dibuka atau sudah ditutup.');
-      }
 
       const isAvailable = await checkWaveAvailability(w);
 
       if (!isAvailable) {
-        // Auto-advance: find the next active wave in the same period that has quota
+        // Auto-advance: find the next active wave in the same period that has quota (even if startDate is upcoming)
         const allActiveWaves = await this.prisma.admissionWave.findMany({
           where: {
             academicPeriodId: w.academicPeriodId,
             isActive: true,
-            startDate: { lte: now },
-            endDate: { gte: now },
             id: { not: waveId },
           },
           include: { schoolQuotas: true },
-          orderBy: { startDate: 'asc' },
+          orderBy: [{ waveNumber: 'asc' }, { startDate: 'asc' }],
         });
 
         let nextWave: any = null;
@@ -210,7 +205,7 @@ export class RegistrationsService {
 
         if (!nextWave) {
           throw new BadRequestException(
-            `Kuota pendaftaran untuk ${schoolName} sudah penuh di semua gelombang yang aktif. Silakan hubungi panitia.`,
+            `Kuota pendaftaran untuk ${schoolName} sudah terpenuhi di semua kuota/gelombang yang aktif. Silakan hubungi panitia.`,
           );
         }
         waveId = nextWave.id;
@@ -225,11 +220,9 @@ export class RegistrationsService {
         where: {
           academicPeriodId: periodId,
           isActive: true,
-          startDate: { lte: now },
-          endDate: { gte: now },
         },
         include: { schoolQuotas: true },
-        orderBy: { startDate: 'asc' },
+        orderBy: [{ waveNumber: 'asc' }, { startDate: 'asc' }],
       });
 
       for (const candidate of allActiveWaves) {

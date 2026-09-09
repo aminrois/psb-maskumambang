@@ -2293,10 +2293,8 @@ async function renderPesertaRegistrationWizard() {
               ${availableWaves.map(w => {
                 const verified = w.verifiedCount || 0;
                 const quota = w.quota;
-                const hasQuota = quota !== null && quota !== undefined && quota > 0;
-                const isFull = hasQuota && verified >= quota;
                 const schoolQuotasJson = JSON.stringify(w.schoolQuotas || []).replace(/'/g, '&#39;');
-                return `<option value="${w.id}" data-fee="${w.registrationFee}" data-quotas='${schoolQuotasJson}' data-verified="${verified}" data-quota="${quota || ''}" ${isFull ? 'disabled style="color: var(--danger-500);"' : ''}>${w.name}${isFull ? ' (Kuota Penuh)' : ''}</option>`;
+                return `<option value="${w.id}" data-fee="${w.registrationFee}" data-quotas='${schoolQuotasJson}' data-verified="${verified}" data-quota="${quota || ''}">${w.name}</option>`;
               }).join('')}
             </select>
           </div>
@@ -2447,6 +2445,28 @@ async function renderPesertaRegistrationWizard() {
   `;
 }
 
+function isWaveAvailableForSchool(optionEl, schoolId) {
+  if (!optionEl || !optionEl.value) return false;
+  const totalQuota = optionEl.getAttribute('data-quota');
+  const totalVerified = Number(optionEl.getAttribute('data-verified') || 0);
+  if (totalQuota && Number(totalQuota) > 0 && totalVerified >= Number(totalQuota)) {
+    return false;
+  }
+  if (!schoolId) return true;
+  let schoolQuotas = [];
+  try {
+    const raw = optionEl.getAttribute('data-quotas');
+    if (raw) schoolQuotas = JSON.parse(raw);
+  } catch(e) { schoolQuotas = []; }
+  const sq = schoolQuotas.find(s => s.schoolId === schoolId);
+  if (sq && sq.quota > 0) {
+    const verified = sq.verifiedCount || 0;
+    const remaining = sq.remainingQuota !== undefined ? sq.remainingQuota : Math.max(0, sq.quota - verified);
+    if (sq.isFull || remaining <= 0) return false;
+  }
+  return true;
+}
+
 function checkWizardQuota() {
   const waveSelect = document.getElementById('wiz-wave-id');
   const catSelect = document.getElementById('wiz-cat');
@@ -2462,63 +2482,76 @@ function checkWizardQuota() {
     return true;
   }
 
-  // Read from data attributes stored in the option element
-  const totalQuota = selectedOpt.getAttribute('data-quota');
-  const totalVerified = Number(selectedOpt.getAttribute('data-verified') || 0);
-  const waveName = selectedOpt.textContent?.replace(' (Kuota Penuh)', '').trim() || '';
-
-  let schoolQuotas = [];
-  try {
-    const raw = selectedOpt.getAttribute('data-quotas');
-    if (raw) schoolQuotas = JSON.parse(raw);
-  } catch(e) { schoolQuotas = []; }
-
-  // Check overall wave quota
-  if (totalQuota && Number(totalQuota) > 0 && totalVerified >= Number(totalQuota)) {
-    quotaInfo.style.display = 'block';
-    quotaInfo.innerHTML = `
-      <div style="padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger-500); border-radius: var(--radius-md); color: var(--danger-500); font-weight: 600;">
-        <i class="fa-solid fa-triangle-exclamation"></i> Kuota pendaftaran untuk "${waveName}" sudah penuh (${totalVerified}/${totalQuota}).
-      </div>
-    `;
-    if (submitBtn) submitBtn.disabled = true;
-    return false;
-  }
-
   if (!schoolId) {
     quotaInfo.style.display = 'none';
+    if (submitBtn) submitBtn.disabled = false;
     return true;
   }
 
-  const schoolQuota = schoolQuotas.find(sq => sq.schoolId === schoolId);
-  if (schoolQuota && schoolQuota.quota > 0) {
-    const verified = schoolQuota.verifiedCount || 0;
-    const remaining = schoolQuota.remainingQuota !== undefined ? schoolQuota.remainingQuota : Math.max(0, schoolQuota.quota - verified);
-    const schoolObj = state.competitionTree?.find(s => s.id === schoolId);
-    const schoolName = schoolObj?.name || schoolQuota.schoolName || 'Sekolah';
+  const schoolObj = state.competitionTree?.find(s => s.id === schoolId);
+  const schoolName = schoolObj?.name || 'Sekolah Terpilih';
 
-    if (schoolQuota.isFull || remaining <= 0) {
+  // Check if current selected wave is available for this school
+  const isCurrentAvailable = isWaveAvailableForSchool(selectedOpt, schoolId);
+
+  if (!isCurrentAvailable) {
+    const oldWaveName = selectedOpt.textContent?.trim() || 'Kuota Sebelumnya';
+
+    // Find next available wave in dropdown
+    let nextAvailableOpt = null;
+    for (let i = 0; i < waveSelect.options.length; i++) {
+      const opt = waveSelect.options[i];
+      if (opt.value && opt.value !== selectedOpt.value) {
+        if (isWaveAvailableForSchool(opt, schoolId)) {
+          nextAvailableOpt = opt;
+          break;
+        }
+      }
+    }
+
+    if (nextAvailableOpt) {
+      // Auto switch to next wave
+      waveSelect.value = nextAvailableOpt.value;
+      const newWaveName = nextAvailableOpt.textContent?.trim() || 'Kuota Selanjutnya';
+      const fee = Number(nextAvailableOpt.getAttribute('data-fee') || 0);
+      const payFeeLabel = document.getElementById('wiz-pay-fee-label');
+      if (payFeeLabel) payFeeLabel.textContent = formatCurrency(fee);
+
       quotaInfo.style.display = 'block';
       quotaInfo.innerHTML = `
-        <div style="padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger-500); border-radius: var(--radius-md); color: var(--danger-500); font-weight: 600;">
-          <i class="fa-solid fa-circle-xmark"></i> Kuota pendaftaran untuk <strong>${schoolName}</strong> pada ${waveName} sudah <strong>PENUH</strong> (${verified}/${schoolQuota.quota} santri terverifikasi). Silakan pilih sekolah lain atau hubungi panitia.
+        <div style="padding: 12px 16px; background: rgba(59, 130, 246, 0.08); border: 1px solid #3b82f6; border-radius: var(--radius-md); color: #1d4ed8; font-weight: 600; font-size: 0.9rem; line-height: 1.5;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <i class="fa-solid fa-circle-info" style="font-size: 1.1rem; color: #2563eb; margin-top: 2px;"></i>
+            <div>
+              Pendaftaran <strong>${oldWaveName}</strong> di sekolah <strong>${schoolName}</strong> Terpenuhi, Anda dialihkan ke <strong>${newWaveName}</strong>.
+            </div>
+          </div>
+        </div>
+      `;
+      if (submitBtn) submitBtn.disabled = false;
+      return true;
+    } else {
+      // All waves full for this school
+      quotaInfo.style.display = 'block';
+      quotaInfo.innerHTML = `
+        <div style="padding: 12px 16px; background: rgba(239, 68, 68, 0.08); border: 1px solid #ef4444; border-radius: var(--radius-md); color: #b91c1c; font-weight: 600; font-size: 0.9rem;">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <i class="fa-solid fa-circle-xmark" style="font-size: 1.1rem; color: #dc2626; margin-top: 2px;"></i>
+            <div>
+              Kuota pendaftaran untuk <strong>${schoolName}</strong> sudah <strong>PENUH</strong> di seluruh gelombang/kuota. Silakan hubungi panitia.
+            </div>
+          </div>
         </div>
       `;
       if (submitBtn) submitBtn.disabled = true;
       return false;
-    } else {
-      quotaInfo.style.display = 'block';
-      quotaInfo.innerHTML = `
-        <div style="padding: 8px 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success-500); border-radius: var(--radius-md); color: var(--success-600); font-size: 0.85rem; font-weight: 600;">
-          <i class="fa-solid fa-circle-check"></i> Kuota Tersedia untuk <strong>${schoolName}</strong>: sisa <strong>${remaining}</strong> dari total ${schoolQuota.quota} kursi santri baru.
-        </div>
-      `;
-      return true;
     }
-  } else {
-    quotaInfo.style.display = 'none';
-    return true;
   }
+
+  // Current wave has quota
+  quotaInfo.style.display = 'none';
+  if (submitBtn) submitBtn.disabled = false;
+  return true;
 }
 
 function onWizardWaveChange() {

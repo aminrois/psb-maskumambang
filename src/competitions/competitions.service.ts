@@ -805,13 +805,10 @@ export class CompetitionsService {
     });
     if (!activePeriod) return [];
 
-    const now = new Date();
     const waves = await this.prisma.admissionWave.findMany({
       where: {
         academicPeriodId: activePeriod.id,
         isActive: true,
-        startDate: { lte: now },
-        endDate: { gte: now },
       },
       include: {
         academicPeriod: true,
@@ -824,7 +821,7 @@ export class CompetitionsService {
           select: { registrations: true },
         },
       },
-      orderBy: { startDate: 'asc' },
+      orderBy: [{ waveNumber: 'asc' }, { startDate: 'asc' }],
     });
 
     return this.formatWavesWithQuotas(waves);
