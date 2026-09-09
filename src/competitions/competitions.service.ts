@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaymentStatus } from '@prisma/client';
 import {
   CreateSchoolDto,
   UpdateSchoolDto,
@@ -645,10 +646,10 @@ export class CompetitionsService {
   }
 
   // =========================================================================
-  // ADMISSION WAVES (GELOMBANG PENDAFTARAN)
+  // ADMISSION WAVES (GELOMBANG / KUOTA PENDAFTARAN)
   // =========================================================================
   async getAllWaves() {
-    return this.prisma.admissionWave.findMany({
+    const waves = await this.prisma.admissionWave.findMany({
       include: {
         academicPeriod: true,
         _count: {
@@ -657,12 +658,94 @@ export class CompetitionsService {
       },
       orderBy: [{ academicPeriod: { name: 'desc' } }, { startDate: 'asc' }],
     });
+
+    const waveIds = waves.map((w) => w.id);
+    const verifiedCounts = await this.prisma.registration.groupBy({
+      by: ['admissionWaveId'],
+      where: {
+        admissionWaveId: { in: waveIds },
+        payments: {
+          some: { status: PaymentStatus.APPROVED },
+        },
+      },
+      _count: { id: true },
+    });
+
+    const verifiedMap = new Map<string, number>();
+    verifiedCounts.forEach((c) => {
+      if (c.admissionWaveId) verifiedMap.set(c.admissionWaveId, c._count.id);
+    });
+
+    return waves.map((w) => {
+      const verifiedCount = verifiedMap.get(w.id) || 0;
+      const totalCount = w._count.registrations || 0;
+      const remainingQuota =
+        w.quota !== null && w.quota !== undefined
+          ? Math.max(0, w.quota - verifiedCount)
+          : null;
+      const isFull =
+        w.quota !== null && w.quota !== undefined && w.quota > 0
+          ? verifiedCount >= w.quota
+          : false;
+
+      return {
+        ...w,
+        verifiedCount,
+        totalCount,
+        remainingQuota,
+        isFull,
+      };
+    });
   }
 
   async getWavesByPeriod(academicPeriodId: string) {
-    return this.prisma.admissionWave.findMany({
+    const waves = await this.prisma.admissionWave.findMany({
       where: { academicPeriodId },
+      include: {
+        academicPeriod: true,
+        _count: {
+          select: { registrations: true },
+        },
+      },
       orderBy: { startDate: 'asc' },
+    });
+
+    const waveIds = waves.map((w) => w.id);
+    const verifiedCounts = await this.prisma.registration.groupBy({
+      by: ['admissionWaveId'],
+      where: {
+        admissionWaveId: { in: waveIds },
+        payments: {
+          some: { status: PaymentStatus.APPROVED },
+        },
+      },
+      _count: { id: true },
+    });
+
+    const verifiedMap = new Map<string, number>();
+    verifiedCounts.forEach((c) => {
+      if (c.admissionWaveId) verifiedMap.set(c.admissionWaveId, c._count.id);
+    });
+
+    return waves.map((w) => {
+      const verifiedCount = verifiedMap.get(w.id) || 0;
+      const totalCount = w._count.registrations || 0;
+      const remainingQuota =
+        w.quota !== null && w.quota !== undefined
+          ? Math.max(0, w.quota - verifiedCount)
+          : null;
+      const isFull =
+        w.quota !== null && w.quota !== undefined && w.quota > 0
+          ? verifiedCount >= w.quota
+          : false;
+
+      return {
+        ...w,
+        verifiedCount,
+        totalCount,
+        remainingQuota,
+        isFull,
+      };
     });
   }
 
@@ -682,11 +765,50 @@ export class CompetitionsService {
       },
       include: {
         academicPeriod: true,
+        _count: {
+          select: { registrations: true },
+        },
       },
       orderBy: { startDate: 'asc' },
     });
 
-    return waves;
+    const waveIds = waves.map((w) => w.id);
+    const verifiedCounts = await this.prisma.registration.groupBy({
+      by: ['admissionWaveId'],
+      where: {
+        admissionWaveId: { in: waveIds },
+        payments: {
+          some: { status: PaymentStatus.APPROVED },
+        },
+      },
+      _count: { id: true },
+    });
+
+    const verifiedMap = new Map<string, number>();
+    verifiedCounts.forEach((c) => {
+      if (c.admissionWaveId) verifiedMap.set(c.admissionWaveId, c._count.id);
+    });
+
+    return waves.map((w) => {
+      const verifiedCount = verifiedMap.get(w.id) || 0;
+      const totalCount = w._count.registrations || 0;
+      const remainingQuota =
+        w.quota !== null && w.quota !== undefined
+          ? Math.max(0, w.quota - verifiedCount)
+          : null;
+      const isFull =
+        w.quota !== null && w.quota !== undefined && w.quota > 0
+          ? verifiedCount >= w.quota
+          : false;
+
+      return {
+        ...w,
+        verifiedCount,
+        totalCount,
+        remainingQuota,
+        isFull,
+      };
+    });
   }
 
   async createWave(dto: any) {
@@ -715,6 +837,15 @@ export class CompetitionsService {
       throw new BadRequestException('Biaya pendaftaran tidak boleh negatif.');
     }
 
+    let quotaVal: number | null = null;
+    if (dto.quota !== undefined && dto.quota !== null && dto.quota !== '') {
+      const q = Number(dto.quota);
+      if (isNaN(q) || q < 0) {
+        throw new BadRequestException('Kuota pendaftaran tidak boleh bernilai negatif.');
+      }
+      quotaVal = q;
+    }
+
     return this.prisma.admissionWave.create({
       data: {
         academicPeriodId: dto.academicPeriodId,
@@ -723,6 +854,7 @@ export class CompetitionsService {
         startDate: start,
         endDate: end,
         registrationFee: fee,
+        quota: quotaVal,
         isActive: dto.isActive !== undefined ? Boolean(dto.isActive) : true,
       },
       include: {
@@ -760,6 +892,19 @@ export class CompetitionsService {
       fee = f as any;
     }
 
+    let quotaVal = wave.quota;
+    if (dto.quota !== undefined) {
+      if (dto.quota === null || dto.quota === '') {
+        quotaVal = null;
+      } else {
+        const q = Number(dto.quota);
+        if (isNaN(q) || q < 0) {
+          throw new BadRequestException('Kuota pendaftaran tidak boleh bernilai negatif.');
+        }
+        quotaVal = q;
+      }
+    }
+
     return this.prisma.admissionWave.update({
       where: { id },
       data: {
@@ -769,6 +914,7 @@ export class CompetitionsService {
         startDate: start,
         endDate: end,
         registrationFee: fee,
+        quota: quotaVal,
         isActive: dto.isActive !== undefined ? Boolean(dto.isActive) : wave.isActive,
       },
       include: {

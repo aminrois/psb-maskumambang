@@ -430,11 +430,34 @@ export class PaymentsService {
   async approvePayment(paymentId: string, staffId: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: paymentId },
-      include: { registration: true },
+      include: {
+        registration: {
+          include: { admissionWave: true },
+        },
+      },
     });
 
     if (!payment) {
       throw new NotFoundException('Data pembayaran tidak ditemukan.');
+    }
+
+    const wave = payment.registration.admissionWave;
+    if (wave && wave.quota !== null && wave.quota !== undefined && wave.quota > 0) {
+      const verifiedCount = await this.prisma.registration.count({
+        where: {
+          admissionWaveId: wave.id,
+          id: { not: payment.registrationId },
+          payments: {
+            some: { status: PaymentStatus.APPROVED },
+          },
+        },
+      });
+
+      if (verifiedCount >= wave.quota) {
+        throw new BadRequestException(
+          `Kuota pendaftaran untuk ${wave.name} telah terpenuhi (Maksimal ${wave.quota} santri telah terverifikasi). Pembayaran tidak dapat disetujui.`,
+        );
+      }
     }
 
     const updated = await this.prisma.$transaction(async (tx) => {

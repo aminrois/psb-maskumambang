@@ -313,7 +313,7 @@ async function executeDeletePeriod(id, name) {
 
 async function renderAdminWavesView() {
   const container = document.getElementById('main-view-slot');
-  container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat master gelombang pendaftaran...</div>';
+  container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat master kuota pendaftaran...</div>';
 
   try {
     const res = await apiRequest('/api/competitions/waves');
@@ -322,21 +322,27 @@ async function renderAdminWavesView() {
     container.innerHTML = `
       <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h2 style="font-size: 1.6rem; color: var(--text-heading); margin-bottom: 4px;">Gelombang Pendaftaran</h2>
-          <p style="color: var(--text-muted); font-size: 0.95rem;">Kelola gelombang pendaftaran, jadwal pembukaan/penutupan, dan biaya formulir pendaftaran.</p>
+          <h2 style="font-size: 1.6rem; color: var(--text-heading); margin-bottom: 4px;">Kuota & Gelombang Pendaftaran</h2>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">Kelola kuota pendaftaran santri baru, batas kuota terverifikasi, jadwal pembukaan/penutupan, dan biaya formulir.</p>
         </div>
-        <button class="btn btn-primary" onclick="openCreateWaveModal()"><i class="fa-solid fa-plus"></i> Tambah Gelombang</button>
+        <button class="btn btn-primary" onclick="openCreateWaveModal()"><i class="fa-solid fa-plus"></i> Tambah Kuota Pendaftaran</button>
       </div>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px;">
-        ${waves.length === 0 ? '<div class="alert alert-info">Belum ada gelombang pendaftaran.</div>' : waves.map(w => {
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+        ${waves.length === 0 ? '<div class="alert alert-info">Belum ada data kuota pendaftaran.</div>' : waves.map(w => {
       const now = new Date();
       const start = new Date(w.startDate);
       const end = new Date(w.endDate);
       const isDateActive = now >= start && now <= end;
+      const verified = w.verifiedCount || 0;
+      const total = w.totalCount || w._count?.registrations || 0;
+      const quota = w.quota;
+      const hasQuota = quota !== null && quota !== undefined && quota > 0;
+      const percent = hasQuota ? Math.min(100, Math.round((verified / quota) * 100)) : 0;
+      const isFull = hasQuota && verified >= quota;
 
       return `
-            <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
+            <div class="card" style="background: var(--bg-card); border: 1px solid ${isFull ? 'var(--danger-300, #fca5a5)' : 'var(--border-subtle)'}; border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
               <div>
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
                   <div>
@@ -345,9 +351,37 @@ async function renderAdminWavesView() {
                   </div>
                   <div style="text-align: right;">
                     <span class="badge ${w.isActive ? 'badge-success' : 'badge-danger'}">${w.isActive ? 'AKTIF' : 'NONAKTIF'}</span>
-                    <div style="font-size: 0.75rem; margin-top: 4px; color: ${isDateActive ? 'var(--success-600)' : 'var(--text-dim)'};">
+                    <div style="font-size: 0.75rem; margin-top: 4px; color: ${isDateActive ? 'var(--success-600)' : 'var(--text-dim)'}; font-weight: 600;">
                       ${isDateActive ? '● Sedang Berlangsung' : (now < start ? '○ Belum Dibuka' : '✕ Sudah Berakhir')}
                     </div>
+                  </div>
+                </div>
+
+                <!-- Kuota & Status Keterisian Box -->
+                <div style="background: var(--bg-body); border-radius: 8px; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border-subtle);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-solid fa-users" style="color: var(--primary-600); margin-right: 4px;"></i> Kuota Pendaftar:</span>
+                    <strong style="font-size: 0.95rem; color: var(--text-heading);">${hasQuota ? `${quota} Santri` : '<span class="badge badge-secondary" style="font-size: 0.75rem;">Tanpa Batas</span>'}</strong>
+                  </div>
+                  
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-solid fa-circle-check" style="color: var(--success-600); margin-right: 4px;"></i> Terverifikasi (Masuk Kuota):</span>
+                    <strong style="font-size: 0.95rem; color: ${isFull ? 'var(--danger-600)' : 'var(--success-600)'};">${verified} ${hasQuota ? `/ ${quota}` : 'Santri'}</strong>
+                  </div>
+
+                  ${hasQuota ? `
+                    <div style="width: 100%; background: var(--border-subtle); border-radius: 999px; height: 7px; overflow: hidden; margin: 8px 0 6px 0;">
+                      <div style="width: ${percent}%; height: 100%; background: ${isFull ? 'var(--danger-500, #ef4444)' : percent > 75 ? 'var(--warning-500, #f59e0b)' : 'var(--primary-600)'}; border-radius: 999px; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim);">
+                      <span>${percent}% Terisi</span>
+                      <span>Sisa Kuota: <strong>${Math.max(0, quota - verified)}</strong></span>
+                    </div>
+                  ` : ''}
+
+                  <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-subtle); display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+                    <span>Total Pendaftar (Semua Status):</span>
+                    <strong>${total} Pendaftar</strong>
                   </div>
                 </div>
 
@@ -372,7 +406,7 @@ async function renderAdminWavesView() {
                 <button class="btn btn-sm ${w.isActive ? 'btn-outline-danger' : 'btn-outline-success'}" onclick="toggleWaveStatus('${w.id}')">
                   ${w.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                 </button>
-                <button class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Hapus Gelombang" onclick="executeDeleteWave('${w.id}', '${w.name}')"><i class="fa-solid fa-trash-can"></i></button>
+                <button class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Hapus Kuota Pendaftaran" onclick="executeDeleteWave('${w.id}', '${w.name}')"><i class="fa-solid fa-trash-can"></i></button>
               </div>
             </div>
           `;
@@ -388,7 +422,7 @@ async function openCreateWaveModal() {
   const pRes = await apiRequest('/api/competitions/periods');
   const periods = pRes.success ? pRes.data : [];
 
-  openModal('Tambah Gelombang Pendaftaran', `
+  openModal('Tambah Kuota / Gelombang Pendaftaran', `
     <form id="create-wave-form" onsubmit="submitCreateWave(event)">
       <div class="form-group" style="margin-bottom: 14px;">
         <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Pilih Periode Tahun Pelajaran</label>
@@ -398,8 +432,8 @@ async function openCreateWaveModal() {
         </select>
       </div>
       <div class="form-group" style="margin-bottom: 14px;">
-        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Nama Gelombang</label>
-        <input type="text" id="m-wave-name" class="form-control" placeholder="Contoh: Gelombang 1" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Nama Kuota / Gelombang</label>
+        <input type="text" id="m-wave-name" class="form-control" placeholder="Contoh: Gelombang 1 / Kuota Reguler" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
         <div class="form-group">
@@ -411,13 +445,22 @@ async function openCreateWaveModal() {
           <input type="date" id="m-wave-end" class="form-control" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
         </div>
       </div>
-      <div class="form-group" style="margin-bottom: 20px;">
-        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Biaya Pendaftaran (Rp)</label>
-        <input type="number" id="m-wave-fee" class="form-control" placeholder="500000" min="0" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div class="form-group">
+          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Maksimal Kuota (Santri)</label>
+          <input type="number" id="m-wave-quota" class="form-control" placeholder="Contoh: 100 (Opsional)" min="1" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Biaya Pendaftaran (Rp)</label>
+          <input type="number" id="m-wave-fee" class="form-control" placeholder="500000" min="0" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        </div>
       </div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px; background: var(--bg-body); padding: 8px 12px; border-radius: 6px;">
+        <i class="fa-solid fa-circle-info" style="color: var(--primary-600);"></i> <em>Catatan: Pemenuhan kuota dihitung dari santri yang pembayarannya telah terverifikasi/disetujui (Approved). Kosongkan kuota jika tidak dibatasi.</em>
+      </p>
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-        <button type="submit" id="btn-save-wave" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Gelombang</button>
+        <button type="submit" id="btn-save-wave" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Kuota Pendaftaran</button>
       </div>
     </form>
   `);
@@ -429,6 +472,8 @@ async function submitCreateWave(e) {
   const name = document.getElementById('m-wave-name').value;
   const startDate = document.getElementById('m-wave-start').value;
   const endDate = document.getElementById('m-wave-end').value;
+  const quotaVal = document.getElementById('m-wave-quota').value;
+  const quota = quotaVal ? Number(quotaVal) : null;
   const registrationFee = Number(document.getElementById('m-wave-fee').value);
   const btn = document.getElementById('btn-save-wave');
 
@@ -443,20 +488,20 @@ async function submitCreateWave(e) {
   try {
     const res = await apiRequest('/api/competitions/waves', {
       method: 'POST',
-      body: { academicPeriodId, name, startDate, endDate, registrationFee, isActive: true },
+      body: { academicPeriodId, name, startDate, endDate, registrationFee, quota, isActive: true },
     });
     if (res.success) {
-      showToast('Gelombang berhasil dibuat.', 'success');
+      showToast('Kuota pendaftaran berhasil dibuat.', 'success');
       closeModal();
       renderAdminWavesView();
     } else {
-      alert(res.message || 'Gagal membuat gelombang.');
+      alert(res.message || 'Gagal membuat kuota pendaftaran.');
     }
   } catch (err) {
     alert(err.message);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Gelombang';
+    btn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Kuota Pendaftaran';
   }
 }
 
@@ -472,7 +517,7 @@ async function openEditWaveModal(waveId) {
   const startVal = new Date(wave.startDate).toISOString().split('T')[0];
   const endVal = new Date(wave.endDate).toISOString().split('T')[0];
 
-  openModal('Edit Gelombang Pendaftaran', `
+  openModal('Edit Kuota / Gelombang Pendaftaran', `
     <form id="edit-wave-form" onsubmit="submitEditWave(event, '${waveId}')">
       <div class="form-group" style="margin-bottom: 14px;">
         <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Pilih Periode</label>
@@ -481,7 +526,7 @@ async function openEditWaveModal(waveId) {
         </select>
       </div>
       <div class="form-group" style="margin-bottom: 14px;">
-        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Nama Gelombang</label>
+        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Nama Kuota / Gelombang</label>
         <input type="text" id="m-edit-wave-name" class="form-control" value="${wave.name}" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
@@ -494,13 +539,22 @@ async function openEditWaveModal(waveId) {
           <input type="date" id="m-edit-wave-end" class="form-control" value="${endVal}" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
         </div>
       </div>
-      <div class="form-group" style="margin-bottom: 20px;">
-        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Biaya Pendaftaran (Rp)</label>
-        <input type="number" id="m-edit-wave-fee" class="form-control" value="${Number(wave.registrationFee)}" min="0" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div class="form-group">
+          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Maksimal Kuota (Santri)</label>
+          <input type="number" id="m-edit-wave-quota" class="form-control" value="${wave.quota !== null && wave.quota !== undefined ? wave.quota : ''}" placeholder="Contoh: 100 (Opsional)" min="1" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Biaya Pendaftaran (Rp)</label>
+          <input type="number" id="m-edit-wave-fee" class="form-control" value="${Number(wave.registrationFee)}" min="0" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        </div>
       </div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px; background: var(--bg-body); padding: 8px 12px; border-radius: 6px;">
+        <i class="fa-solid fa-circle-info" style="color: var(--primary-600);"></i> <em>Catatan: Pemenuhan kuota dihitung dari santri yang pembayarannya telah terverifikasi/disetujui (Approved). Kosongkan kuota jika tidak dibatasi.</em>
+      </p>
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
-        <button type="submit" id="btn-update-wave" class="btn btn-primary"><i class="fa-solid fa-save"></i> Perbarui</button>
+        <button type="submit" id="btn-update-wave" class="btn btn-primary"><i class="fa-solid fa-save"></i> Perbarui Kuota</button>
       </div>
     </form>
   `);
@@ -512,6 +566,8 @@ async function submitEditWave(e, id) {
   const name = document.getElementById('m-edit-wave-name').value;
   const startDate = document.getElementById('m-edit-wave-start').value;
   const endDate = document.getElementById('m-edit-wave-end').value;
+  const quotaVal = document.getElementById('m-edit-wave-quota').value;
+  const quota = quotaVal ? Number(quotaVal) : null;
   const registrationFee = Number(document.getElementById('m-edit-wave-fee').value);
   const btn = document.getElementById('btn-update-wave');
 
@@ -526,14 +582,14 @@ async function submitEditWave(e, id) {
   try {
     const res = await apiRequest(`/api/competitions/waves/${id}`, {
       method: 'PATCH',
-      body: { academicPeriodId, name, startDate, endDate, registrationFee },
+      body: { academicPeriodId, name, startDate, endDate, registrationFee, quota },
     });
     if (res.success) {
-      showToast('Gelombang berhasil diperbarui.', 'success');
+      showToast('Kuota pendaftaran berhasil diperbarui.', 'success');
       closeModal();
       renderAdminWavesView();
     } else {
-      alert(res.message || 'Gagal memperbarui gelombang.');
+      alert(res.message || 'Gagal memperbarui kuota pendaftaran.');
     }
   } catch (err) {
     alert(err.message);

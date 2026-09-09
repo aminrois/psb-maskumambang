@@ -210,6 +210,12 @@ export class CreateAdmissionWaveDto {
   registrationFee!: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Kuota pendaftaran harus berupa angka bulat.' })
+  @Min(0, { message: 'Kuota pendaftaran tidak boleh negatif.' })
+  quota?: number;
+
+  @IsOptional()
   isActive?: boolean;
 }
 
@@ -238,6 +244,12 @@ export class UpdateAdmissionWaveDto {
   @IsNumber({}, { message: 'Biaya pendaftaran harus berupa angka.' })
   @Min(0, { message: 'Biaya pendaftaran tidak boleh negatif.' })
   registrationFee?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt({ message: 'Kuota pendaftaran harus berupa angka bulat.' })
+  @Min(0, { message: 'Kuota pendaftaran tidak boleh negatif.' })
+  quota?: number;
 
   @IsOptional()
   isActive?: boolean;

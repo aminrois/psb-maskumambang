@@ -182,6 +182,7 @@ async function main() {
       startDate: startG1,
       endDate: endG1,
       registrationFee: 500000.00,
+      quota: 100,
       isActive: true,
     },
     create: {
@@ -192,6 +193,7 @@ async function main() {
       startDate: startG1,
       endDate: endG1,
       registrationFee: 500000.00,
+      quota: 100,
       isActive: true,
     },
   });
@@ -204,6 +206,7 @@ async function main() {
       startDate: startG2,
       endDate: endG2,
       registrationFee: 600000.00,
+      quota: 150,
       isActive: true,
     },
     create: {
@@ -214,6 +217,7 @@ async function main() {
       startDate: startG2,
       endDate: endG2,
       registrationFee: 600000.00,
+      quota: 150,
       isActive: true,
     },
   });

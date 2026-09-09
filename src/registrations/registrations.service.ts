@@ -18,6 +18,7 @@ import {
   FormStatus,
   InterviewStatus,
   ParticipantType,
+  PaymentStatus,
   RegistrationStatus,
   Role,
 } from '@prisma/client';
@@ -147,6 +148,21 @@ export class RegistrationsService {
       if (now < new Date(w.startDate) || now > new Date(w.endDate)) {
         throw new BadRequestException('Pendaftaran pada gelombang ini belum dibuka atau sudah ditutup.');
       }
+      if (w.quota !== null && w.quota !== undefined && w.quota > 0) {
+        const verifiedCount = await this.prisma.registration.count({
+          where: {
+            admissionWaveId: w.id,
+            payments: {
+              some: { status: PaymentStatus.APPROVED },
+            },
+          },
+        });
+        if (verifiedCount >= w.quota) {
+          throw new BadRequestException(
+            `Kuota pendaftaran untuk ${w.name} sudah penuh (${w.quota} santri telah terverifikasi). Silakan pilih gelombang/kuota lain atau hubungi panitia.`,
+          );
+        }
+      }
       if (periodId && w.academicPeriodId !== periodId) {
         periodId = w.academicPeriodId;
       }
@@ -162,7 +178,21 @@ export class RegistrationsService {
         orderBy: { startDate: 'asc' },
       });
       if (activeWave) {
-        waveId = activeWave.id;
+        if (activeWave.quota !== null && activeWave.quota !== undefined && activeWave.quota > 0) {
+          const verifiedCount = await this.prisma.registration.count({
+            where: {
+              admissionWaveId: activeWave.id,
+              payments: {
+                some: { status: PaymentStatus.APPROVED },
+              },
+            },
+          });
+          if (verifiedCount < activeWave.quota) {
+            waveId = activeWave.id;
+          }
+        } else {
+          waveId = activeWave.id;
+        }
       }
     }
 

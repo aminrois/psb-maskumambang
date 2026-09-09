@@ -9,11 +9,13 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { SettingsService } from './settings/settings.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
+  const port = configService.get<number>('port') || 3000;
 
   const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
   const isProduction = nodeEnv === 'production';
@@ -92,6 +94,105 @@ async function bootstrap() {
   if (!fs.existsSync(publicDir)) {
     fs.mkdirSync(publicDir, { recursive: true });
   }
+
+  // Middleware for HTML requests to dynamically inject Open Graph / Social Media metadata (Logo, App Name, Description)
+  const settingsService = app.get(SettingsService);
+  app.use(async (req: any, res: any, next: any) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      return next();
+    }
+    const pathname: string = req.path || '/';
+    if (
+      pathname.startsWith('/api') ||
+      pathname.startsWith('/health') ||
+      pathname.startsWith('/static') ||
+      pathname.startsWith('/css') ||
+      pathname.startsWith('/js') ||
+      pathname.startsWith('/uploads')
+    ) {
+      return next();
+    }
+
+    let filePath: string | null = null;
+    if (pathname === '/' || pathname === '') {
+      filePath = path.join(publicDir, 'index.html');
+    } else if (pathname.endsWith('.html')) {
+      filePath = path.join(publicDir, pathname.replace(/^\//, ''));
+    } else if (!path.extname(pathname)) {
+      const candidate = path.join(publicDir, `${pathname.replace(/^\//, '')}.html`);
+      if (fs.existsSync(candidate)) {
+        filePath = candidate;
+      }
+    }
+
+    if (!filePath || !fs.existsSync(filePath)) {
+      return next();
+    }
+
+    try {
+      const settings = await settingsService.getSettings();
+      let html = fs.readFileSync(filePath, 'utf8');
+
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+      const host = req.headers['x-forwarded-host'] || req.headers.host || `localhost:${port}`;
+      const baseUrl = `${protocol}://${host}`;
+
+      const rawLogo = settings.application_logo || 'logo_e7a8b6a95d.webp';
+      const logoUrl = rawLogo.startsWith('http://') || rawLogo.startsWith('https://')
+        ? rawLogo
+        : `${baseUrl}/static/img/${rawLogo}`;
+
+      const rawFavicon = settings.application_favicon || 'favicon_87007b6344.webp';
+      const faviconUrl = rawFavicon.startsWith('http://') || rawFavicon.startsWith('https://')
+        ? rawFavicon
+        : `${baseUrl}/static/img/${rawFavicon}`;
+
+      const appName = settings.application_name || 'PSB Maskumambang';
+      const appDesc = settings.application_description || 'Portal Resmi Penerimaan Santri Baru (PSB) Pondok Pesantren Maskumambang';
+      const pageUrl = `${baseUrl}${pathname}`;
+
+      // Open Graph / Twitter Meta Tags block
+      const metaTags = `
+    <!-- Dynamic Social Media & Open Graph Meta Tags (Synced with App Settings) -->
+    <title>${appName}</title>
+    <meta name="description" content="${appDesc}">
+    <link rel="icon" type="image/webp" id="app-favicon" href="${rawFavicon.startsWith('http') ? rawFavicon : `/static/img/${rawFavicon}`}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="${appName}">
+    <meta property="og:title" content="${appName}">
+    <meta property="og:description" content="${appDesc}">
+    <meta property="og:url" content="${pageUrl}">
+    <meta property="og:image" content="${logoUrl}">
+    <meta property="og:image:secure_url" content="${logoUrl}">
+    <meta property="og:image:alt" content="${appName}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${appName}">
+    <meta name="twitter:description" content="${appDesc}">
+    <meta name="twitter:image" content="${logoUrl}">
+      `.trim();
+
+      // Clean old meta tags to prevent duplication
+      html = html.replace(/<title>[\s\S]*?<\/title>/gi, '');
+      html = html.replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, '');
+      html = html.replace(/<link\s+rel=["']icon["'][\s\S]*?>/gi, '');
+      html = html.replace(/<meta\s+property=["']og:[\s\S]*?>/gi, '');
+      html = html.replace(/<meta\s+name=["']twitter:[\s\S]*?>/gi, '');
+
+      if (html.includes('</head>')) {
+        html = html.replace('</head>', `  ${metaTags}\n</head>`);
+      }
+
+      // Replace static fallback logos in body
+      html = html.replace(/\/static\/img\/logo_[a-zA-Z0-9_]+\.webp/g, `/static/img/${rawLogo}`);
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      return res.send(html);
+    } catch (err) {
+      return next();
+    }
+  });
+
   // Cache static assets (JS/CSS/images) for 7 days in browser
   app.useStaticAssets(publicDir, {
     maxAge: '7d',
@@ -124,7 +225,6 @@ async function bootstrap() {
   // Global Exception Filter (Production error sanitization)
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  const port = configService.get<number>('port') || 3000;
   await app.listen(port);
   logger.log(`🚀 NestJS Server running at http://localhost:${port}/${apiPrefix.replace(/^\//, '')}`);
   logger.log(`🩺 Health check endpoint: http://localhost:${port}/health`);

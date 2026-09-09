@@ -873,7 +873,7 @@ function buildRoleSidebar(role) {
         </button>
         <div class="sidebar-nav-group-content ${savedGroups['master-psb'] ? 'open' : ''}" id="nav-group-content-master-psb">
           <a href="#master-periode" id="nav-master-periode" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="nav-label">Periode TP</span></a>
-          <a href="#master-gelombang" id="nav-master-gelombang" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-water"></i></span><span class="nav-label">Gelombang</span></a>
+          <a href="#master-gelombang" id="nav-master-gelombang" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-users-between-lines"></i></span><span class="nav-label">Kuota Pendaftaran</span></a>
           <a href="#master-kategori" id="nav-master-kategori" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-sitemap"></i></span><span class="nav-label">Struktur Pendidikan</span></a>
         </div>
       </div>
@@ -946,7 +946,7 @@ function buildRoleSidebar(role) {
         </button>
         <div class="sidebar-nav-group-content ${savedGroups['master-psb'] ? 'open' : ''}" id="nav-group-content-master-psb">
           <a href="#master-periode" id="nav-master-periode" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="nav-label">Periode TP</span></a>
-          <a href="#master-gelombang" id="nav-master-gelombang" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-water"></i></span><span class="nav-label">Gelombang</span></a>
+          <a href="#master-gelombang" id="nav-master-gelombang" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-users-between-lines"></i></span><span class="nav-label">Kuota Pendaftaran</span></a>
           <a href="#master-kategori" id="nav-master-kategori" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-sitemap"></i></span><span class="nav-label">Struktur Pendidikan</span></a>
         </div>
       </div>
@@ -2282,15 +2282,24 @@ async function renderPesertaRegistrationWizard() {
         <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
           <h3 style="font-size: 1.2rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
             <span style="width: 28px; height: 28px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 800;">1</span>
-            Periode, Gelombang & Pilihan Pendidikan
+            Periode, Kuota / Gelombang & Pilihan Pendidikan
           </h3>
 
           <input type="hidden" id="wiz-period-id" value="${activePeriod.id}">
 
           <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Gelombang Pendaftaran Aktif</label>
+            <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Kuota / Gelombang Pendaftaran Aktif</label>
             <select id="wiz-wave-id" class="form-select" onchange="onWizardWaveChange()" required style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-              ${availableWaves.map(w => `<option value="${w.id}" data-fee="${w.registrationFee}">${w.name} (${formatDate(w.startDate)} - ${formatDate(w.endDate)}) &bull; Biaya: ${formatCurrency(w.registrationFee)}</option>`).join('')}
+              ${availableWaves.map(w => {
+                const verified = w.verifiedCount || 0;
+                const quota = w.quota;
+                const hasQuota = quota !== null && quota !== undefined && quota > 0;
+                const isFull = hasQuota && verified >= quota;
+                const quotaBadge = hasQuota 
+                  ? (isFull ? ` [KUOTA PENUH (${verified}/${quota})]` : ` (Sisa Kuota: ${Math.max(0, quota - verified)}/${quota})`)
+                  : '';
+                return `<option value="${w.id}" data-fee="${w.registrationFee}" ${isFull ? 'disabled style="color: var(--danger-500);"' : ''}>${w.name}${quotaBadge} &bull; ${formatDate(w.startDate)} s/d ${formatDate(w.endDate)} &bull; Biaya: ${formatCurrency(w.registrationFee)}</option>`;
+              }).join('')}
             </select>
           </div>
 
@@ -4569,14 +4578,14 @@ async function renderAdminDashboard() {
           </div>
         </div>
 
-        <!-- CARD B: GELOMBANG PENDAFTARAN & TAHUN AJARAN AKTIF -->
+        <!-- CARD B: GELOMBANG / KUOTA PENDAFTARAN & TAHUN AJARAN AKTIF -->
         <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: space-between;">
           <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
               <h3 style="font-size: 1.15rem; color: var(--text-heading); margin: 0; display: flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-bullhorn" style="color: var(--primary-600);"></i> Gelombang Aktif
+                <i class="fa-solid fa-users-between-lines" style="color: var(--primary-600);"></i> Kuota & Gelombang Aktif
               </h3>
-              <a href="#master-gelombang" class="btn btn-xs btn-outline-primary" style="text-decoration: none;">Atur Gelombang</a>
+              <a href="#master-gelombang" class="btn btn-xs btn-outline-primary" style="text-decoration: none;">Atur Kuota</a>
             </div>
 
             ${activeWave ? `
@@ -4588,25 +4597,29 @@ async function renderAdminDashboard() {
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">
                   <i class="fa-solid fa-calendar-days"></i> ${formatDate(activeWave.startDate)} s/d ${formatDate(activeWave.endDate)}
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-subtle); padding-top: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-subtle); padding-top: 8px; margin-bottom: 6px;">
+                  <span style="font-size: 0.8rem; color: var(--text-dim);">Kuota Pendaftar:</span>
+                  <strong style="font-size: 0.9rem; color: var(--text-heading);">${activeWave.quota ? `${activeWave.quota} Santri` : 'Tanpa Batas'}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
                   <span style="font-size: 0.8rem; color: var(--text-dim);">Biaya Formulir:</span>
                   <strong style="font-size: 1.05rem; color: var(--primary-600);">${formatCurrency(activeWave.registrationFee || 500000)}</strong>
                 </div>
               </div>
             ` : `
               <div class="alert alert-warning" style="font-size: 0.85rem; padding: 10px;">
-                <i class="fa-solid fa-triangle-exclamation"></i> Belum ada gelombang pendaftaran aktif.
+                <i class="fa-solid fa-triangle-exclamation"></i> Belum ada kuota / gelombang pendaftaran aktif.
               </div>
             `}
 
             <div style="font-size: 0.825rem; color: var(--text-muted); line-height: 1.4;">
-              <i class="fa-solid fa-circle-info" style="color: var(--primary-600);"></i> Pendaftar baru secara otomatis akan dikenakan biaya formulir dan dicatat ke dalam gelombang yang sedang aktif saat ini.
+              <i class="fa-solid fa-circle-info" style="color: var(--primary-600);"></i> Pendaftar baru secara otomatis akan dicatat ke dalam kuota / gelombang yang sedang aktif saat ini.
             </div>
           </div>
 
           <div style="display: flex; gap: 8px; margin-top: 14px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
             <a href="#master-periode" class="btn btn-sm btn-secondary" style="flex: 1; text-align: center;"><i class="fa-solid fa-calendar"></i> Master Periode</a>
-            <a href="#master-gelombang" class="btn btn-sm btn-primary" style="flex: 1; text-align: center;"><i class="fa-solid fa-wave-square"></i> Gelombang PSB</a>
+            <a href="#master-gelombang" class="btn btn-sm btn-primary" style="flex: 1; text-align: center;"><i class="fa-solid fa-users-between-lines"></i> Kuota PSB</a>
           </div>
         </div>
       </div>
@@ -4694,11 +4707,11 @@ async function renderAdminDashboard() {
         <a href="#master-gelombang" class="card card-hover" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 18px; text-decoration: none; color: inherit; display: block;">
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
             <div style="width: 36px; height: 36px; border-radius: 8px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;">
-              <i class="fa-solid fa-wave-square"></i>
+              <i class="fa-solid fa-users-between-lines"></i>
             </div>
             <div>
-              <h4 style="font-size: 0.95rem; color: var(--text-heading); margin: 0;">Gelombang Pendaftaran</h4>
-              <span style="font-size: 0.75rem; color: var(--text-muted);">Jadwal & Biaya Gelombang</span>
+              <h4 style="font-size: 0.95rem; color: var(--text-heading); margin: 0;">Kuota Pendaftaran</h4>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Jadwal, Kuota & Biaya</span>
             </div>
           </div>
         </a>
