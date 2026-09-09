@@ -2295,10 +2295,8 @@ async function renderPesertaRegistrationWizard() {
                 const quota = w.quota;
                 const hasQuota = quota !== null && quota !== undefined && quota > 0;
                 const isFull = hasQuota && verified >= quota;
-                const quotaBadge = hasQuota 
-                  ? (isFull ? ` [KUOTA PENUH (${verified}/${quota})]` : ` (Sisa Kuota: ${Math.max(0, quota - verified)}/${quota})`)
-                  : '';
-                return `<option value="${w.id}" data-fee="${w.registrationFee}" ${isFull ? 'disabled style="color: var(--danger-500);"' : ''}>${w.name}${quotaBadge} &bull; ${formatDate(w.startDate)} s/d ${formatDate(w.endDate)} &bull; Biaya: ${formatCurrency(w.registrationFee)}</option>`;
+                const schoolQuotasJson = JSON.stringify(w.schoolQuotas || []).replace(/'/g, '&#39;');
+                return `<option value="${w.id}" data-fee="${w.registrationFee}" data-quotas='${schoolQuotasJson}' data-verified="${verified}" data-quota="${quota || ''}" ${isFull ? 'disabled style="color: var(--danger-500);"' : ''}>${w.name}${isFull ? ' (Kuota Penuh)' : ''}</option>`;
               }).join('')}
             </select>
           </div>
@@ -2456,22 +2454,31 @@ function checkWizardQuota() {
   const submitBtn = document.getElementById('wiz-submit-btn');
   if (!waveSelect || !catSelect || !quotaInfo) return true;
 
-  const waveId = waveSelect.value;
+  const selectedOpt = waveSelect.options[waveSelect.selectedIndex];
   const schoolId = catSelect.value;
-  const availableWaves = state.activePeriod?.availableWaves || [];
-  const selectedWave = availableWaves.find(w => w.id === waveId);
 
-  if (!selectedWave) {
+  if (!selectedOpt || !selectedOpt.value) {
     quotaInfo.style.display = 'none';
     return true;
   }
 
+  // Read from data attributes stored in the option element
+  const totalQuota = selectedOpt.getAttribute('data-quota');
+  const totalVerified = Number(selectedOpt.getAttribute('data-verified') || 0);
+  const waveName = selectedOpt.textContent?.replace(' (Kuota Penuh)', '').trim() || '';
+
+  let schoolQuotas = [];
+  try {
+    const raw = selectedOpt.getAttribute('data-quotas');
+    if (raw) schoolQuotas = JSON.parse(raw);
+  } catch(e) { schoolQuotas = []; }
+
   // Check overall wave quota
-  if (selectedWave.isQuotaFull) {
+  if (totalQuota && Number(totalQuota) > 0 && totalVerified >= Number(totalQuota)) {
     quotaInfo.style.display = 'block';
     quotaInfo.innerHTML = `
       <div style="padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger-500); border-radius: var(--radius-md); color: var(--danger-500); font-weight: 600;">
-        <i class="fa-solid fa-triangle-exclamation"></i> Kuota pendaftaran untuk gelombang "${selectedWave.name}" sudah penuh (${selectedWave.verifiedCount || 0}/${selectedWave.quota}).
+        <i class="fa-solid fa-triangle-exclamation"></i> Kuota pendaftaran untuk "${waveName}" sudah penuh (${totalVerified}/${totalQuota}).
       </div>
     `;
     if (submitBtn) submitBtn.disabled = true;
@@ -2483,18 +2490,18 @@ function checkWizardQuota() {
     return true;
   }
 
-  const schoolQuota = selectedWave.schoolQuotas?.find(sq => sq.schoolId === schoolId);
+  const schoolQuota = schoolQuotas.find(sq => sq.schoolId === schoolId);
   if (schoolQuota && schoolQuota.quota > 0) {
     const verified = schoolQuota.verifiedCount || 0;
     const remaining = schoolQuota.remainingQuota !== undefined ? schoolQuota.remainingQuota : Math.max(0, schoolQuota.quota - verified);
     const schoolObj = state.competitionTree?.find(s => s.id === schoolId);
-    const schoolName = schoolObj?.name || 'Sekolah';
+    const schoolName = schoolObj?.name || schoolQuota.schoolName || 'Sekolah';
 
     if (schoolQuota.isFull || remaining <= 0) {
       quotaInfo.style.display = 'block';
       quotaInfo.innerHTML = `
         <div style="padding: 10px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger-500); border-radius: var(--radius-md); color: var(--danger-500); font-weight: 600;">
-          <i class="fa-solid fa-circle-xmark"></i> Kuota pendaftaran untuk <strong>${schoolName}</strong> pada ${selectedWave.name} sudah <strong>PENUH</strong> (${verified}/${schoolQuota.quota} santri terverifikasi). Silakan pilih sekolah lain atau hubungi panitia.
+          <i class="fa-solid fa-circle-xmark"></i> Kuota pendaftaran untuk <strong>${schoolName}</strong> pada ${waveName} sudah <strong>PENUH</strong> (${verified}/${schoolQuota.quota} santri terverifikasi). Silakan pilih sekolah lain atau hubungi panitia.
         </div>
       `;
       if (submitBtn) submitBtn.disabled = true;
@@ -6866,6 +6873,73 @@ async function initHomepageCountdown() {
   }
 }
 
+async function initHomepageQuotaInfo() {
+  const section = document.getElementById('quota-info-section');
+  const cardsContainer = document.getElementById('quota-info-cards');
+  const waveNameEl = document.getElementById('quota-info-wave-name');
+  if (!section || !cardsContainer) return;
+
+  try {
+    const res = await apiRequest('/api/competitions/periods/active');
+    if (!res.success || !res.data) {
+      section.style.display = 'none';
+      return;
+    }
+
+    const activePeriod = res.data;
+    const availableWaves = activePeriod.availableWaves || [];
+    if (availableWaves.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    const activeWave = availableWaves[0];
+    const schoolQuotas = activeWave.schoolQuotas || [];
+
+    if (schoolQuotas.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    if (waveNameEl) {
+      waveNameEl.innerHTML = `Gelombang Aktif: <strong>${activeWave.name}</strong>`;
+    }
+
+    cardsContainer.innerHTML = schoolQuotas.map(sq => {
+      const remaining = sq.remainingQuota !== undefined ? sq.remainingQuota : Math.max(0, (sq.quota || 0) - (sq.verifiedCount || 0));
+      const isFull = sq.isFull || remaining <= 0;
+      const schoolName = sq.schoolName || sq.school?.name || 'Sekolah';
+      const initial = sq.schoolInitial || sq.school?.initial || schoolName.substring(0, 3).toUpperCase();
+
+      return `
+        <div style="flex: 1 1 calc(25% - 14px); min-width: 180px; max-width: 240px; background: #ffffff; border: 1px solid ${isFull ? '#fecaca' : '#e2e8f0'}; border-radius: 12px; padding: 16px 14px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+          <div style="display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 10px; background: ${isFull ? '#fee2e2' : '#eff6ff'}; color: ${isFull ? '#dc2626' : '#2563eb'}; font-weight: 800; font-size: 0.95rem; margin-bottom: 8px;">
+            ${initial}
+          </div>
+          <div style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 8px; line-height: 1.3;">
+            ${schoolName}
+          </div>
+          ${isFull ? `
+            <div style="display: inline-block; padding: 4px 10px; background: #fee2e2; color: #dc2626; border-radius: 6px; font-size: 0.8rem; font-weight: 700;">
+              <i class="fa-solid fa-circle-xmark"></i> Kuota Penuh
+            </div>
+          ` : `
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+              <span style="font-size: 1.5rem; font-weight: 800; color: #059669; line-height: 1;">${remaining}</span>
+              <span style="font-size: 0.78rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">Sisa Kuota Kursi</span>
+            </div>
+          `}
+        </div>
+      `;
+    }).join('');
+
+    section.style.display = 'block';
+  } catch (err) {
+    console.error('Error loading homepage quota info:', err);
+    section.style.display = 'none';
+  }
+}
+
 // --- AUDIT LOGS (UNIVERSAL TABLE) ---
 async function renderAdminAuditLogsView() {
   const container = document.getElementById('main-view-slot');
@@ -7693,6 +7767,7 @@ window.previewBrandingFile = previewBrandingFile;
 window.renderAdminCountdownView = renderAdminCountdownView;
 window.handleCountdownSave = handleCountdownSave;
 window.initHomepageCountdown = initHomepageCountdown;
+window.initHomepageQuotaInfo = initHomepageQuotaInfo;
 window.handleOperationalResetSubmit = handleOperationalResetSubmit;
 window.handlePasswordChangeSubmit = handlePasswordChangeSubmit;
 

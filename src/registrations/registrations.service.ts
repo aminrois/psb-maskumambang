@@ -143,6 +143,35 @@ export class RegistrationsService {
     const schoolId = classProgram.major.school.id;
     const schoolName = classProgram.major.school.name;
 
+    // Helper to check if a wave has remaining quota for this registration
+    const checkWaveAvailability = async (w: any): Promise<boolean> => {
+      // Check school-specific quota
+      const schoolQuota = (w.schoolQuotas || []).find((sq: any) => sq.schoolId === schoolId);
+      if (schoolQuota && schoolQuota.quota > 0) {
+        const verifiedSchoolCount = await this.prisma.registration.count({
+          where: {
+            admissionWaveId: w.id,
+            classProgram: { major: { schoolId } },
+            payments: { some: { status: PaymentStatus.APPROVED } },
+          },
+        });
+        if (verifiedSchoolCount >= schoolQuota.quota) return false;
+      }
+
+      // Check overall wave quota
+      if (w.quota !== null && w.quota !== undefined && w.quota > 0) {
+        const verifiedCount = await this.prisma.registration.count({
+          where: {
+            admissionWaveId: w.id,
+            payments: { some: { status: PaymentStatus.APPROVED } },
+          },
+        });
+        if (verifiedCount >= w.quota) return false;
+      }
+
+      return true;
+    };
+
     if (waveId) {
       const w = await this.prisma.admissionWave.findUnique({
         where: { id: waveId },
@@ -155,51 +184,44 @@ export class RegistrationsService {
         throw new BadRequestException('Pendaftaran pada gelombang ini belum dibuka atau sudah ditutup.');
       }
 
-      // 1. Check School-specific Quota
-      const schoolQuota = (w.schoolQuotas || []).find((sq) => sq.schoolId === schoolId);
-      if (schoolQuota && schoolQuota.quota > 0) {
-        const verifiedSchoolCount = await this.prisma.registration.count({
+      const isAvailable = await checkWaveAvailability(w);
+
+      if (!isAvailable) {
+        // Auto-advance: find the next active wave in the same period that has quota
+        const allActiveWaves = await this.prisma.admissionWave.findMany({
           where: {
-            admissionWaveId: w.id,
-            classProgram: {
-              major: {
-                schoolId: schoolId,
-              },
-            },
-            payments: {
-              some: { status: PaymentStatus.APPROVED },
-            },
+            academicPeriodId: w.academicPeriodId,
+            isActive: true,
+            startDate: { lte: now },
+            endDate: { gte: now },
+            id: { not: waveId },
           },
+          include: { schoolQuotas: true },
+          orderBy: { startDate: 'asc' },
         });
-        if (verifiedSchoolCount >= schoolQuota.quota) {
+
+        let nextWave: any = null;
+        for (const candidate of allActiveWaves) {
+          if (await checkWaveAvailability(candidate)) {
+            nextWave = candidate;
+            break;
+          }
+        }
+
+        if (!nextWave) {
           throw new BadRequestException(
-            `Kuota pendaftaran untuk ${schoolName} pada ${w.name} sudah penuh (${schoolQuota.quota} santri telah terverifikasi). Silakan hubungi panitia.`,
+            `Kuota pendaftaran untuk ${schoolName} sudah penuh di semua gelombang yang aktif. Silakan hubungi panitia.`,
           );
         }
+        waveId = nextWave.id;
       }
 
-      // 2. Check Overall Wave Quota
-      if (w.quota !== null && w.quota !== undefined && w.quota > 0) {
-        const verifiedCount = await this.prisma.registration.count({
-          where: {
-            admissionWaveId: w.id,
-            payments: {
-              some: { status: PaymentStatus.APPROVED },
-            },
-          },
-        });
-        if (verifiedCount >= w.quota) {
-          throw new BadRequestException(
-            `Kuota pendaftaran untuk ${w.name} sudah penuh (${w.quota} santri telah terverifikasi). Silakan pilih gelombang/kuota lain atau hubungi panitia.`,
-          );
-        }
-      }
       if (periodId && w.academicPeriodId !== periodId) {
         periodId = w.academicPeriodId;
       }
     } else if (periodId) {
-      // Find active wave in active period
-      const activeWave = await this.prisma.admissionWave.findFirst({
+      // Find active waves in period and pick the first with available quota
+      const allActiveWaves = await this.prisma.admissionWave.findMany({
         where: {
           academicPeriodId: periodId,
           isActive: true,
@@ -209,45 +231,11 @@ export class RegistrationsService {
         include: { schoolQuotas: true },
         orderBy: { startDate: 'asc' },
       });
-      if (activeWave) {
-        let isWaveAvailable = true;
 
-        const schoolQuota = (activeWave.schoolQuotas || []).find((sq) => sq.schoolId === schoolId);
-        if (schoolQuota && schoolQuota.quota > 0) {
-          const verifiedSchoolCount = await this.prisma.registration.count({
-            where: {
-              admissionWaveId: activeWave.id,
-              classProgram: {
-                major: {
-                  schoolId: schoolId,
-                },
-              },
-              payments: {
-                some: { status: PaymentStatus.APPROVED },
-              },
-            },
-          });
-          if (verifiedSchoolCount >= schoolQuota.quota) {
-            isWaveAvailable = false;
-          }
-        }
-
-        if (isWaveAvailable && activeWave.quota !== null && activeWave.quota !== undefined && activeWave.quota > 0) {
-          const verifiedCount = await this.prisma.registration.count({
-            where: {
-              admissionWaveId: activeWave.id,
-              payments: {
-                some: { status: PaymentStatus.APPROVED },
-              },
-            },
-          });
-          if (verifiedCount >= activeWave.quota) {
-            isWaveAvailable = false;
-          }
-        }
-
-        if (isWaveAvailable) {
-          waveId = activeWave.id;
+      for (const candidate of allActiveWaves) {
+        if (await checkWaveAvailability(candidate)) {
+          waveId = candidate.id;
+          break;
         }
       }
     }

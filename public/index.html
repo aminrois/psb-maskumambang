@@ -916,6 +916,20 @@
     </div>
   </section>
 
+  <!-- ===== QUOTA INFO SECTION ===== -->
+  <section id="quota-info-section" style="padding: 28px 20px 0; display: none;">
+    <div style="max-width: 900px; margin: 0 auto;">
+      <div style="text-align: center; margin-bottom: 16px;">
+        <div style="display: inline-block; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 4px 14px; border-radius: 9999px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+          <i class="fa-solid fa-user-graduate"></i> Ketersediaan Kuota
+        </div>
+        <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">Sisa Kuota Penerimaan Santri Baru</h3>
+        <p id="quota-info-wave-name" style="font-size: 0.85rem; color: #64748b; margin: 0;"></p>
+      </div>
+      <div id="quota-info-cards" style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;"></div>
+    </div>
+  </section>
+
   <!-- ===== ALUR PENDAFTARAN SECTION ===== -->
   <section class="flow-section">
     <div style="max-width: 1200px; margin: 0 auto;">
@@ -974,12 +988,13 @@
     </div>
   </footer>
 
-  <script src="/js/app.js?v=20260909_schoolquota_v3"></script>
+  <script src="/js/app.js?v=20260910_quota_features_v1"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       initTheme();
       loadBrandingInfo();
       initHomepageCountdown();
+      initHomepageQuotaInfo();
       initHeroSliderCarousel();
       initFlowSteps();
 
