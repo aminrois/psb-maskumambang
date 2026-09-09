@@ -56,6 +56,13 @@ export class CompetitionsController {
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Get('schools')
+  async getAllSchools() {
+    const schools = await this.competitionsService.getAllCategories();
+    return { success: true, data: schools };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Post('categories')
   async createCategory(@Body() dto: CreateSchoolDto) {
     const created = await this.competitionsService.createCategory(dto);
