@@ -964,11 +964,11 @@ async function openAdminVerificationDetailModal(regId) {
           <div style="grid-column: 1 / -1;">Alamat Sekolah Asal: <strong>${st.previousSchoolAddress || '-'}</strong></div>
         </div>
 
-        <!-- SECTION D & E: ORANG TUA -->
-        <h4 style="color: var(--primary-600); border-bottom: 2px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 12px;"><i class="fa-solid fa-users"></i> D & E. Data Orang Tua</h4>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <!-- SECTION D: DATA ORANG TUA & KONDISI RUMAH TANGGA -->
+        <h4 style="color: var(--primary-600); border-bottom: 2px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 12px;"><i class="fa-solid fa-users"></i> D. Data Orang Tua Kandung & Kondisi Rumah Tangga</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 14px;">
           <div style="background: var(--bg-body); padding: 12px; border-radius: 8px;">
-            <strong style="color: var(--primary-600);">DATA AYAH:</strong>
+            <strong style="color: var(--primary-600);"><i class="fa-solid fa-user-tie"></i> DATA AYAH:</strong>
             <div style="margin-top: 6px;">Nama: <strong>${st.fatherName || '-'}</strong> (${formatParentStatus(st.fatherStatus)})</div>
             <div>NIK: <strong>${st.fatherNik || '-'}</strong></div>
             <div>Tempat/Tgl Lahir: <strong>${st.fatherBirthPlace || '-'}, ${formatBirthDate(st.fatherBirthDate)}</strong></div>
@@ -978,7 +978,7 @@ async function openAdminVerificationDetailModal(regId) {
             <div>WhatsApp: <strong>${st.fatherWhatsapp || '-'}</strong></div>
           </div>
           <div style="background: var(--bg-body); padding: 12px; border-radius: 8px;">
-            <strong style="color: var(--primary-600);">DATA IBU:</strong>
+            <strong style="color: var(--primary-600);"><i class="fa-solid fa-person-dress"></i> DATA IBU:</strong>
             <div style="margin-top: 6px;">Nama: <strong>${st.motherName || '-'}</strong> (${formatParentStatus(st.motherStatus)})</div>
             <div>NIK: <strong>${st.motherNik || '-'}</strong></div>
             <div>Tempat/Tgl Lahir: <strong>${st.motherBirthPlace || '-'}, ${formatBirthDate(st.motherBirthDate)}</strong></div>
@@ -988,10 +988,20 @@ async function openAdminVerificationDetailModal(regId) {
             <div>WhatsApp: <strong>${st.motherWhatsapp || '-'}</strong></div>
           </div>
         </div>
+        <div style="background: var(--bg-body); padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+          <strong style="color: var(--primary-600);"><i class="fa-solid fa-house-user"></i> KONDISI RUMAH TANGGA:</strong>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 6px;">
+            <div>Status Pernikahan Ortu: <strong>${st.parentsMaritalStatus || 'Bersama (Utuh)'}</strong></div>
+            ${st.parentsMaritalStatus === 'Bercerai' ? `
+              <div>Hak Asuh Anak: <strong>${st.childCustody || '-'}</strong></div>
+              <div>Tempat Tinggal Anak: <strong>${st.childLivingWith || '-'}</strong></div>
+            ` : ''}
+          </div>
+        </div>
 
-        <!-- SECTION F: DATA WALI -->
-        ${st.hasGuardian ? `
-          <h4 style="color: var(--primary-600); border-bottom: 2px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 12px;"><i class="fa-solid fa-user-shield"></i> F. Data Wali</h4>
+        <!-- SECTION E: DATA WALI -->
+        ${(st.hasGuardian || st.fatherStatus === 'SUDAH_MENINGGAL') ? `
+          <h4 style="color: var(--primary-600); border-bottom: 2px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 12px;"><i class="fa-solid fa-user-shield"></i> E. Data Wali</h4>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px; background: var(--bg-body); padding: 12px; border-radius: 8px;">
             <div>Nama Wali: <strong>${st.guardianName || '-'}</strong> (${st.guardianRelation || '-'})</div>
             <div>NIK Wali: <strong>${st.guardianNik || '-'}</strong></div>
@@ -1004,15 +1014,50 @@ async function openAdminVerificationDetailModal(regId) {
           </div>
         ` : ''}
 
-        <!-- SECTION G & H: KONTAK & TAMBAHAN -->
-        <h4 style="color: var(--primary-600); border-bottom: 2px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 12px;"><i class="fa-solid fa-address-book"></i> G & H. Kontak Utama & Data Tambahan</h4>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px;">
-          <div>Kontak Utama: <strong>${st.primaryContactName || '-'}</strong></div>
-          <div>Hubungan Kontak: <strong>${st.primaryContactRelation || '-'}</strong></div>
-          <div>No. WhatsApp Utama: <strong>${st.primaryContactWhatsapp || '-'}</strong></div>
+        <!-- SECTION F: TEMPAT TINGGAL & FASILITAS -->
+        <h4 style="color: var(--primary-600); border-bottom: 2px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 12px;"><i class="fa-solid fa-house-chimney"></i> F. Tempat Tinggal & Fasilitas</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <div>Jarak ke Sekolah: <strong>${st.distanceToSchool || '-'}</strong></div>
+          <div>Transportasi: <strong>${st.transportationMode || '-'}</strong></div>
+          <div>Kepemilikan Rumah: <strong>${st.homeOwnership || '-'}</strong></div>
+          <div>Daya Listrik: <strong>${st.electricityPower || '-'}</strong></div>
+          <div>Sumber Air: <strong>${st.waterSource || '-'}</strong></div>
+          <div>Akses Internet: <strong>${st.internetAccess || '-'}</strong></div>
+          <div>Kepemilikan HP: <strong>${st.phoneOwnership || '-'}</strong></div>
+          <div>No. HP/WA Santri: <strong>${st.studentPhone || '-'}</strong></div>
+        </div>
+
+        <!-- SECTION G: MEDIA SOSIAL -->
+        <h4 style="color: var(--primary-600); border-bottom: 2px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 12px;"><i class="fa-solid fa-hashtag"></i> G. Akun & Media Sosial</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <div>Email: <strong>${st.socialEmail || '-'}</strong></div>
+          <div>Facebook: <strong>${st.socialFacebook || '-'}</strong></div>
+          <div>Instagram: <strong>${st.socialInstagram || '-'}</strong></div>
+          <div>Twitter / X: <strong>${st.socialTwitter || '-'}</strong></div>
+          <div>TikTok: <strong>${st.socialTiktok || '-'}</strong></div>
+        </div>
+
+        <!-- SECTION H: RIWAYAT KESEHATAN & FISIK -->
+        <h4 style="color: var(--primary-600); border-bottom: 2px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 12px;"><i class="fa-solid fa-heart-pulse"></i> H. Riwayat Kesehatan & Kondisi Khusus</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
           <div>Tinggi Badan: <strong>${st.heightCm ? st.heightCm + ' cm' : '-'}</strong></div>
           <div>Berat Badan: <strong>${st.weightKg ? st.weightKg + ' kg' : '-'}</strong></div>
+          <div>Riwayat Merokok: <strong>${st.smokingStatus || '-'}</strong></div>
+          <div>Status Buta Warna: <strong>${st.colorBlindStatus || '-'}</strong></div>
+          <div>Mata Kiri: <strong>${(st.eyeMinusLeft || st.eyeCylLeft) ? `Minus: ${st.eyeMinusLeft || '0'}, Cyl: ${st.eyeCylLeft || '0'}` : 'Normal'}</strong></div>
+          <div>Mata Kanan: <strong>${(st.eyeMinusRight || st.eyeCylRight) ? `Minus: ${st.eyeMinusRight || '0'}, Cyl: ${st.eyeCylRight || '0'}` : 'Normal'}</strong></div>
+          <div>Riwayat Penyakit: <strong>${st.diseaseHistory || '-'}</strong></div>
+          <div>Riwayat Alergi: <strong>${st.allergyHistory || '-'}</strong></div>
+          <div>Riwayat Operasi: <strong>${st.surgeryHistory || '-'}</strong></div>
           <div>Kebutuhan Khusus: <strong>${st.hasSpecialNeeds ? `Ya (${st.specialNeedsDescription || '-'})` : 'Tidak Ada'}</strong></div>
+        </div>
+
+        <!-- SECTION I: KONTAK UTAMA -->
+        <h4 style="color: var(--primary-600); border-bottom: 2px solid var(--border-subtle); padding-bottom: 6px; margin-bottom: 12px;"><i class="fa-solid fa-address-book"></i> I. Kontak Utama / Darurat</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <div>Nama Kontak Utama: <strong>${st.primaryContactName || '-'}</strong></div>
+          <div>Hubungan: <strong>${st.primaryContactRelation || '-'}</strong></div>
+          <div>No. WhatsApp: <strong>${st.primaryContactWhatsapp || '-'}</strong></div>
         </div>
 
         <!-- PRESTASI -->
@@ -1178,6 +1223,77 @@ const PSB_INCOME_OPTIONS = [
   { value: 'LEBIH_DARI_10JT', label: '> Rp 10 Juta' }
 ];
 
+const PSB_CHILD_STATUS_OPTIONS = [
+  { value: 'KANDUNG', label: 'Anak Kandung' },
+  { value: 'TIRI', label: 'Anak Tiri' },
+  { value: 'ANGKAT', label: 'Anak Angkat' }
+];
+
+const PSB_DISTANCE_OPTIONS = [
+  'Kurang dari 1 km',
+  '1 - 5 km',
+  '5 - 10 km',
+  'Lebih dari 10 km'
+];
+
+const PSB_TRANSPORT_OPTIONS = [
+  'Jalan Kaki',
+  'Sepeda Motor',
+  'Mobil / Antar Jemput',
+  'Angkutan Umum',
+  'Sepeda',
+  'Lainnya'
+];
+
+const PSB_HOME_OWNERSHIP_OPTIONS = [
+  'Milik Sendiri',
+  'Sewa / Kontrak',
+  'Menumpang / Ikut Keluarga',
+  'Rumah Dinas',
+  'Lainnya'
+];
+
+const PSB_ELECTRICITY_OPTIONS = [
+  '450 VA',
+  '900 VA',
+  '1300 VA',
+  '2200 VA',
+  '> 2200 VA',
+  'Tidak Ada Listrik'
+];
+
+const PSB_WATER_OPTIONS = [
+  'PAM / PDAM',
+  'Sumur Bor / Gali',
+  'Air Isi Ulang',
+  'Mata Air / Sungai',
+  'Lainnya'
+];
+
+const PSB_PHONE_OWNERSHIP_OPTIONS = [
+  'Pribadi (Santri)',
+  'Orang Tua / Bersama',
+  'Tidak Memiliki'
+];
+
+const PSB_INTERNET_OPTIONS = [
+  'WiFi Rumah (Indihome/Biznet dll)',
+  'Paket Data Seluler',
+  'Tidak Ada Akses Internet'
+];
+
+const PSB_SMOKING_OPTIONS = [
+  'Tidak Merokok',
+  'Pernah Merokok',
+  'Aktif Merokok'
+];
+
+const PSB_COLOR_BLIND_OPTIONS = [
+  'Normal (Tidak Buta Warna)',
+  'Buta Warna Parsial',
+  'Buta Warna Total'
+];
+
 function renderOccupationFieldHtml(idPrefix, label, currentValue = '', isReadOnly = false) {
   const isCustom = currentValue && !PSB_OCCUPATION_OPTIONS.includes(currentValue) && currentValue !== 'Lainnya';
   const selectedOption = isCustom ? 'Lainnya' : (currentValue || '');
@@ -1220,6 +1336,38 @@ function getOccupationFormValue(idPrefix) {
   return sel.value.trim();
 }
 
+function handleFatherStatusChange(val) {
+  const isDeceased = val === 'SUDAH_MENINGGAL';
+  const guardianNotice = document.getElementById('guardian-required-notice');
+  const guardianAsterisk = document.getElementById('guardian-req-asterisk');
+  const guardianCheckbox = document.getElementById('ff-hasGuardian');
+  const guardianFields = document.getElementById('guardian-fields');
+
+  if (guardianNotice) guardianNotice.style.display = isDeceased ? 'block' : 'none';
+  if (guardianAsterisk) guardianAsterisk.style.display = isDeceased ? 'inline' : 'none';
+
+  if (isDeceased) {
+    if (guardianCheckbox) {
+      guardianCheckbox.checked = true;
+      guardianCheckbox.disabled = true;
+    }
+    if (guardianFields) guardianFields.style.display = 'block';
+  } else {
+    if (guardianCheckbox) {
+      guardianCheckbox.disabled = false;
+    }
+  }
+}
+window.handleFatherStatusChange = handleFatherStatusChange;
+
+function handleMaritalStatusChange(val) {
+  const divorcedFields = document.getElementById('divorced-fields');
+  if (divorcedFields) {
+    divorcedFields.style.display = (val === 'Bercerai') ? 'block' : 'none';
+  }
+}
+window.handleMaritalStatusChange = handleMaritalStatusChange;
+
 async function renderPesertaFullFormView(regId) {
   const container = document.getElementById('main-view-slot');
   container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat formulir pendaftaran lengkap...</div>';
@@ -1235,13 +1383,17 @@ async function renderPesertaFullFormView(regId) {
     const isReadOnly = d.formStatus === 'SUBMITTED' || d.formStatus === 'VERIFIED';
     const isRevision = d.formStatus === 'REVISION_REQUIRED';
 
+    const isFatherDeceased = st.fatherStatus === 'SUDAH_MENINGGAL';
+    const isGuardianMandatory = isFatherDeceased || !!st.hasGuardian;
+    const isDivorced = st.parentsMaritalStatus === 'Bercerai';
+
     const birthDateVal = st.birthDate ? new Date(st.birthDate).toISOString().split('T')[0] : '';
     const fatherBirthVal = st.fatherBirthDate ? new Date(st.fatherBirthDate).toISOString().split('T')[0] : '';
     const motherBirthVal = st.motherBirthDate ? new Date(st.motherBirthDate).toISOString().split('T')[0] : '';
     const guardianBirthVal = st.guardianBirthDate ? new Date(st.guardianBirthDate).toISOString().split('T')[0] : '';
 
     container.innerHTML = `
-      <div style="max-width: 900px; margin: 0 auto;">
+      <div style="max-width: 960px; margin: 0 auto;">
         
         <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
@@ -1314,29 +1466,29 @@ async function renderPesertaFullFormView(regId) {
             </h3>
 
             <div class="form-group" style="margin-bottom: 14px;">
-              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Lengkap (sesuai Akta/Ijazah)</label>
-              <input type="text" id="ff-fullName" class="form-control" value="${st.fullName || d.individualParticipant?.fullName || ''}" ${isReadOnly ? 'disabled' : ''} required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Lengkap (sesuai Akta/Ijazah) <span style="color: red;">*</span></label>
+              <input type="text" id="ff-fullName" class="form-control" value="${escapeHtml(st.fullName || d.individualParticipant?.fullName || '')}" ${isReadOnly ? 'disabled' : ''} required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
             </div>
 
             <div class="form-grid-2" style="margin-bottom: 14px;">
               <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Calon Santri</label>
-                <input type="text" id="ff-nik" class="form-control" placeholder="16 digit NIK" value="${st.nik || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Calon Santri (No. KTP/KIA) <span style="color: red;">*</span></label>
+                <input type="text" id="ff-nik" class="form-control" placeholder="16 digit NIK" value="${escapeHtml(st.nik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nomor Kartu Keluarga (KK)</label>
-                <input type="text" id="ff-familyCardNumber" class="form-control" placeholder="16 digit Nomor KK" value="${st.familyCardNumber || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nomor Kartu Keluarga (KK) <span style="color: red;">*</span></label>
+                <input type="text" id="ff-familyCardNumber" class="form-control" placeholder="16 digit Nomor KK" value="${escapeHtml(st.familyCardNumber || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
             </div>
 
             <div class="form-grid-2" style="margin-bottom: 14px;">
               <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NISN</label>
-                <input type="text" id="ff-nisn" class="form-control" placeholder="10 digit NISN" value="${st.nisn || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NISN <span style="color: red;">*</span></label>
+                <input type="text" id="ff-nisn" class="form-control" placeholder="10 digit NISN" value="${escapeHtml(st.nisn || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nomor Akta Kelahiran</label>
-                <input type="text" id="ff-birthCertificateNumber" class="form-control" value="${st.birthCertificateNumber || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nomor Akta Kelahiran <span style="color: red;">*</span></label>
+                <input type="text" id="ff-birthCertificateNumber" class="form-control" value="${escapeHtml(st.birthCertificateNumber || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
             </div>
 
@@ -1350,7 +1502,7 @@ async function renderPesertaFullFormView(regId) {
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir</label>
-                <input type="text" id="ff-birthPlace" class="form-control" value="${st.birthPlace || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="text" id="ff-birthPlace" class="form-control" value="${escapeHtml(st.birthPlace || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir</label>
@@ -1358,28 +1510,47 @@ async function renderPesertaFullFormView(regId) {
               </div>
             </div>
 
-            <div class="form-grid-4">
+            <div class="form-grid-4" style="margin-bottom: 14px;">
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Agama</label>
-                <input type="text" id="ff-religion" class="form-control" value="${st.religion || 'Islam'}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="text" id="ff-religion" class="form-control" value="${escapeHtml(st.religion || 'Islam')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tinggi Badan (cm)</label>
+                <input type="number" id="ff-heightCm" class="form-control" min="50" max="250" placeholder="Contoh: 155" value="${st.heightCm || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Berat Badan (kg)</label>
+                <input type="number" id="ff-weightKg" class="form-control" min="20" max="200" placeholder="Contoh: 45" value="${st.weightKg || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Golongan Darah</label>
                 <select id="ff-bloodType" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                  <option value="">-</option>
+                  <option value="">- Belum Tahu -</option>
                   <option value="A" ${st.bloodType === 'A' ? 'selected' : ''}>A</option>
                   <option value="B" ${st.bloodType === 'B' ? 'selected' : ''}>B</option>
                   <option value="AB" ${st.bloodType === 'AB' ? 'selected' : ''}>AB</option>
                   <option value="O" ${st.bloodType === 'O' ? 'selected' : ''}>O</option>
                 </select>
               </div>
+            </div>
+
+            <div class="form-grid-3">
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Anak Ke-</label>
                 <input type="number" id="ff-childOrder" class="form-control" min="1" value="${st.childOrder || 1}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Jml Sdr Kandung</label>
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Jumlah Saudara Kandung</label>
                 <input type="number" id="ff-siblingsCount" class="form-control" min="0" value="${st.siblingsCount || 0}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Status Anak</label>
+                <select id="ff-childStatus" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  ${PSB_CHILD_STATUS_OPTIONS.map(opt => `
+                    <option value="${opt.value}" ${st.childStatus === opt.value ? 'selected' : ''}>${opt.label}</option>
+                  `).join('')}
+                </select>
               </div>
             </div>
           </div>
@@ -1435,22 +1606,22 @@ async function renderPesertaFullFormView(regId) {
               <div class="form-grid-3" style="margin-bottom: 14px;">
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">RT <span style="color: red;">*</span></label>
-                  <input type="text" id="ff-rt" class="form-control" placeholder="01" value="${st.rt || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-rt" class="form-control" placeholder="01" value="${escapeHtml(st.rt || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">RW <span style="color: red;">*</span></label>
-                  <input type="text" id="ff-rw" class="form-control" placeholder="02" value="${st.rw || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-rw" class="form-control" placeholder="02" value="${escapeHtml(st.rw || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Kode Pos <span style="color: red;">*</span></label>
-                  <input type="text" id="ff-postalCode" class="form-control" placeholder="61155" value="${st.postalCode || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-postalCode" class="form-control" placeholder="61155" value="${escapeHtml(st.postalCode || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Alamat Lengkap (Jalan, No. Rumah, Dusun)</label>
-              <textarea id="ff-fullAddress" class="form-control" rows="3" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">${st.fullAddress || ''}</textarea>
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Alamat Lengkap (Jalan, No. Rumah, Dusun) <span style="color: red;">*</span></label>
+              <textarea id="ff-fullAddress" class="form-control" rows="3" placeholder="Contoh: Jl. Maskumambang No. 12 RT 01 RW 02 Dusun Sembungan" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">${escapeHtml(st.fullAddress || '')}</textarea>
             </div>
           </div>
 
@@ -1458,19 +1629,19 @@ async function renderPesertaFullFormView(regId) {
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
             <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
               <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">C</span>
-              Data Asal Sekolah
+              Data Asal Sekolah / Madrasah
             </h3>
 
             <div class="form-group" style="margin-bottom: 14px;">
-              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Sekolah / Madrasah Asal</label>
-              <input type="text" id="ff-previousSchoolName" class="form-control" value="${st.previousSchoolName || d.individualParticipant?.schoolName || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Sekolah / Madrasah Asal <span style="color: red;">*</span></label>
+              <input type="text" id="ff-previousSchoolName" class="form-control" value="${escapeHtml(st.previousSchoolName || d.individualParticipant?.schoolName || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
             </div>
 
             <div class="form-grid-3" style="margin-bottom: 14px;">
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Jenjang Sekolah Asal</label>
                 <select id="ff-previousSchoolLevel" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                  <option value="TK" ${st.previousSchoolLevel === 'TK' ? 'selected' : ''}>TK / PAUD</option>
+                  <option value="TK" ${st.previousSchoolLevel === 'TK' ? 'selected' : ''}>TK / PAUD / RA</option>
                   <option value="SD_MI" ${st.previousSchoolLevel === 'SD_MI' ? 'selected' : ''}>SD / MI</option>
                   <option value="SMP_MTS" ${(!st.previousSchoolLevel || st.previousSchoolLevel === 'SMP_MTS') ? 'selected' : ''}>SMP / MTs</option>
                   <option value="SMA_MA_SMK" ${st.previousSchoolLevel === 'SMA_MA_SMK' ? 'selected' : ''}>SMA / MA / SMK</option>
@@ -1478,192 +1649,241 @@ async function renderPesertaFullFormView(regId) {
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tahun Lulus</label>
-                <input type="text" id="ff-graduationYear" class="form-control" placeholder="2026" value="${st.graduationYear || '2026'}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="text" id="ff-graduationYear" class="form-control" placeholder="2026" value="${escapeHtml(st.graduationYear || '2026')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">No. Ijazah / SKL (Opsional)</label>
-                <input type="text" id="ff-diplomaNumber" class="form-control" value="${st.diplomaNumber || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="text" id="ff-diplomaNumber" class="form-control" value="${escapeHtml(st.diplomaNumber || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
             </div>
 
             <div class="form-group">
               <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Alamat Sekolah Asal</label>
-              <input type="text" id="ff-previousSchoolAddress" class="form-control" value="${st.previousSchoolAddress || d.individualParticipant?.schoolAddress || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              <input type="text" id="ff-previousSchoolAddress" class="form-control" value="${escapeHtml(st.previousSchoolAddress || d.individualParticipant?.schoolAddress || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
             </div>
           </div>
 
-          <!-- SECTION D: DATA AYAH -->
+          <!-- SECTION D: DATA ORANG TUA & KONDISI RUMAH TANGGA -->
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
             <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
               <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">D</span>
-              Data Ayah Kandung
+              Data Orang Tua Kandung & Kondisi Rumah Tangga
             </h3>
 
-            <div class="form-grid-2-1" style="margin-bottom: 14px;">
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Lengkap Ayah</label>
-                <input type="text" id="ff-fatherName" class="form-control" value="${st.fatherName || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+            <!-- D1: AYAH KANDUNG -->
+            <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 16px; margin-bottom: 18px; border: 1px solid var(--border-subtle);">
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-600); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-user-tie"></i> Data Ayah Kandung
+              </h4>
+
+              <div class="form-grid-2-1" style="margin-bottom: 14px;">
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Lengkap Ayah <span style="color: red;">*</span></label>
+                  <input type="text" id="ff-fatherName" class="form-control" value="${escapeHtml(st.fatherName || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Status Ayah</label>
+                  <select id="ff-fatherStatus" class="form-select" onchange="handleFatherStatusChange(this.value)" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                    <option value="MASIH_HIDUP" ${(!st.fatherStatus || st.fatherStatus === 'MASIH_HIDUP') ? 'selected' : ''}>Masih Hidup</option>
+                    <option value="SUDAH_MENINGGAL" ${st.fatherStatus === 'SUDAH_MENINGGAL' ? 'selected' : ''}>Sudah Meninggal</option>
+                  </select>
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Status Ayah</label>
-                <select id="ff-fatherStatus" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                  <option value="MASIH_HIDUP" ${(!st.fatherStatus || st.fatherStatus === 'MASIH_HIDUP') ? 'selected' : ''}>Masih Hidup</option>
-                  <option value="SUDAH_MENINGGAL" ${st.fatherStatus === 'SUDAH_MENINGGAL' ? 'selected' : ''}>Sudah Meninggal</option>
-                </select>
+
+              <div class="form-grid-3" style="margin-bottom: 14px;">
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Ayah</label>
+                  <input type="text" id="ff-fatherNik" class="form-control" value="${escapeHtml(st.fatherNik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir Ayah</label>
+                  <input type="text" id="ff-fatherBirthPlace" class="form-control" value="${escapeHtml(st.fatherBirthPlace || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir Ayah</label>
+                  <input type="date" id="ff-fatherBirthDate" class="form-control" value="${fatherBirthVal}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
+              </div>
+
+              <div class="form-grid-4">
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Pendidikan Ayah</label>
+                  <select id="ff-fatherEducation" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                    ${PSB_EDUCATION_OPTIONS.map(opt => `
+                      <option value="${opt.value}" ${st.fatherEducation === opt.value ? 'selected' : ''}>${opt.label}</option>
+                    `).join('')}
+                  </select>
+                </div>
+                ${renderOccupationFieldHtml('ff-fatherOccupation', 'Pekerjaan Ayah', st.fatherOccupation, isReadOnly)}
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Penghasilan Ayah / Bln</label>
+                  <select id="ff-fatherMonthlyIncome" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                    ${PSB_INCOME_OPTIONS.map(opt => `
+                      <option value="${opt.value}" ${st.fatherMonthlyIncome === opt.value ? 'selected' : ''}>${opt.label}</option>
+                    `).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">WhatsApp Ayah</label>
+                  <input type="text" id="ff-fatherWhatsapp" class="form-control" placeholder="08..." value="${escapeHtml(st.fatherWhatsapp || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
               </div>
             </div>
 
-            <div class="form-grid-3" style="margin-bottom: 14px;">
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Ayah</label>
-                <input type="text" id="ff-fatherNik" class="form-control" value="${st.fatherNik || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+            <!-- D2: IBU KANDUNG -->
+            <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 16px; margin-bottom: 18px; border: 1px solid var(--border-subtle);">
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-600); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-person-dress"></i> Data Ibu Kandung
+              </h4>
+
+              <div class="form-grid-2-1" style="margin-bottom: 14px;">
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Lengkap Ibu <span style="color: red;">*</span></label>
+                  <input type="text" id="ff-motherName" class="form-control" value="${escapeHtml(st.motherName || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Status Ibu</label>
+                  <select id="ff-motherStatus" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                    <option value="MASIH_HIDUP" ${(!st.motherStatus || st.motherStatus === 'MASIH_HIDUP') ? 'selected' : ''}>Masih Hidup</option>
+                    <option value="SUDAH_MENINGGAL" ${st.motherStatus === 'SUDAH_MENINGGAL' ? 'selected' : ''}>Sudah Meninggal</option>
+                  </select>
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir Ayah</label>
-                <input type="text" id="ff-fatherBirthPlace" class="form-control" value="${st.fatherBirthPlace || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+
+              <div class="form-grid-3" style="margin-bottom: 14px;">
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Ibu</label>
+                  <input type="text" id="ff-motherNik" class="form-control" value="${escapeHtml(st.motherNik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir Ibu</label>
+                  <input type="text" id="ff-motherBirthPlace" class="form-control" value="${escapeHtml(st.motherBirthPlace || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir Ibu</label>
+                  <input type="date" id="ff-motherBirthDate" class="form-control" value="${motherBirthVal}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir Ayah</label>
-                <input type="date" id="ff-fatherBirthDate" class="form-control" value="${fatherBirthVal}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+
+              <div class="form-grid-4">
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Pendidikan Ibu</label>
+                  <select id="ff-motherEducation" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                    ${PSB_EDUCATION_OPTIONS.map(opt => `
+                      <option value="${opt.value}" ${st.motherEducation === opt.value ? 'selected' : ''}>${opt.label}</option>
+                    `).join('')}
+                  </select>
+                </div>
+                ${renderOccupationFieldHtml('ff-motherOccupation', 'Pekerjaan Ibu', st.motherOccupation, isReadOnly)}
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Penghasilan Ibu / Bln</label>
+                  <select id="ff-motherMonthlyIncome" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                    ${PSB_INCOME_OPTIONS.map(opt => `
+                      <option value="${opt.value}" ${st.motherMonthlyIncome === opt.value ? 'selected' : ''}>${opt.label}</option>
+                    `).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">WhatsApp Ibu</label>
+                  <input type="text" id="ff-motherWhatsapp" class="form-control" placeholder="08..." value="${escapeHtml(st.motherWhatsapp || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
               </div>
             </div>
 
-            <div class="form-grid-4">
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Pendidikan</label>
-                <select id="ff-fatherEducation" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                  ${PSB_EDUCATION_OPTIONS.map(opt => `
-                    <option value="${opt.value}" ${st.fatherEducation === opt.value ? 'selected' : ''}>${opt.label}</option>
-                  `).join('')}
+            <!-- D3: KONDISI RUMAH TANGGA -->
+            <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 16px; border: 1px solid var(--border-subtle);">
+              <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary-600); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa-solid fa-house-user"></i> Kondisi Rumah Tangga
+              </h4>
+
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Status Pernikahan / Hubungan Orang Tua <span style="color: red;">*</span></label>
+                <select id="ff-parentsMaritalStatus" class="form-select" onchange="handleMaritalStatusChange(this.value)" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="Bersama (Utuh)" ${(!st.parentsMaritalStatus || st.parentsMaritalStatus === 'Bersama (Utuh)') ? 'selected' : ''}>Bersama (Utuh)</option>
+                  <option value="Bercerai" ${st.parentsMaritalStatus === 'Bercerai' ? 'selected' : ''}>Bercerai</option>
                 </select>
               </div>
-              ${renderOccupationFieldHtml('ff-fatherOccupation', 'Pekerjaan', st.fatherOccupation, isReadOnly)}
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Penghasilan / Bln</label>
-                <select id="ff-fatherMonthlyIncome" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                  ${PSB_INCOME_OPTIONS.map(opt => `
-                    <option value="${opt.value}" ${st.fatherMonthlyIncome === opt.value ? 'selected' : ''}>${opt.label}</option>
-                  `).join('')}
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">WhatsApp Ayah</label>
-                <input type="text" id="ff-fatherWhatsapp" class="form-control" placeholder="08..." value="${st.fatherWhatsapp || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+
+              <div id="divorced-fields" style="${isDivorced ? 'display: block;' : 'display: none;'} background: rgba(239, 68, 68, 0.04); border: 1px dashed var(--danger-300, #fca5a5); border-radius: 6px; padding: 14px; margin-top: 10px;">
+                <div class="form-grid-2">
+                  <div class="form-group">
+                    <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Hak Asuh Anak <span style="color: red;">*</span></label>
+                    <select id="ff-childCustody" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                      <option value="Pihak Ayah" ${st.childCustody === 'Pihak Ayah' ? 'selected' : ''}>Pihak Ayah</option>
+                      <option value="Pihak Ibu" ${(!st.childCustody || st.childCustody === 'Pihak Ibu') ? 'selected' : ''}>Pihak Ibu</option>
+                      <option value="Bersama" ${st.childCustody === 'Bersama' ? 'selected' : ''}>Bersama</option>
+                      <option value="Lainnya" ${st.childCustody === 'Lainnya' ? 'selected' : ''}>Lainnya</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Tinggal Anak Saat Ini <span style="color: red;">*</span></label>
+                    <select id="ff-childLivingWith" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                      <option value="Bersama Ayah" ${st.childLivingWith === 'Bersama Ayah' ? 'selected' : ''}>Bersama Ayah</option>
+                      <option value="Bersama Ibu" ${(!st.childLivingWith || st.childLivingWith === 'Bersama Ibu') ? 'selected' : ''}>Bersama Ibu</option>
+                      <option value="Saudara Ayah/Ibu" ${st.childLivingWith === 'Saudara Ayah/Ibu' ? 'selected' : ''}>Saudara Ayah/Ibu</option>
+                      <option value="Kakek/Nenek" ${st.childLivingWith === 'Kakek/Nenek' ? 'selected' : ''}>Kakek/Nenek</option>
+                      <option value="Lainnya" ${st.childLivingWith === 'Lainnya' ? 'selected' : ''}>Lainnya</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- SECTION E: DATA IBU -->
-          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
-            <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-              <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">E</span>
-              Data Ibu Kandung
-            </h3>
-
-            <div class="form-grid-2-1" style="margin-bottom: 14px;">
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Lengkap Ibu</label>
-                <input type="text" id="ff-motherName" class="form-control" value="${st.motherName || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Status Ibu</label>
-                <select id="ff-motherStatus" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                  <option value="MASIH_HIDUP" ${(!st.motherStatus || st.motherStatus === 'MASIH_HIDUP') ? 'selected' : ''}>Masih Hidup</option>
-                  <option value="SUDAH_MENINGGAL" ${st.motherStatus === 'SUDAH_MENINGGAL' ? 'selected' : ''}>Sudah Meninggal</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-grid-3" style="margin-bottom: 14px;">
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Ibu</label>
-                <input type="text" id="ff-motherNik" class="form-control" value="${st.motherNik || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir Ibu</label>
-                <input type="text" id="ff-motherBirthPlace" class="form-control" value="${st.motherBirthPlace || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir Ibu</label>
-                <input type="date" id="ff-motherBirthDate" class="form-control" value="${motherBirthVal}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-              </div>
-            </div>
-
-            <div class="form-grid-4">
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Pendidikan</label>
-                <select id="ff-motherEducation" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                  ${PSB_EDUCATION_OPTIONS.map(opt => `
-                    <option value="${opt.value}" ${st.motherEducation === opt.value ? 'selected' : ''}>${opt.label}</option>
-                  `).join('')}
-                </select>
-              </div>
-              ${renderOccupationFieldHtml('ff-motherOccupation', 'Pekerjaan', st.motherOccupation, isReadOnly)}
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Penghasilan / Bln</label>
-                <select id="ff-motherMonthlyIncome" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                  ${PSB_INCOME_OPTIONS.map(opt => `
-                    <option value="${opt.value}" ${st.motherMonthlyIncome === opt.value ? 'selected' : ''}>${opt.label}</option>
-                  `).join('')}
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">WhatsApp Ibu</label>
-                <input type="text" id="ff-motherWhatsapp" class="form-control" placeholder="08..." value="${st.motherWhatsapp || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-              </div>
-            </div>
-          </div>
-
-          <!-- SECTION F: DATA WALI (CONDITIONAL) -->
+          <!-- SECTION E: DATA WALI -->
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
               <h3 style="font-size: 1.15rem; color: var(--text-heading); margin: 0; display: flex; align-items: center; gap: 8px;">
-                <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">F</span>
-                Data Wali (Jika Ada)
+                <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">E</span>
+                Data Wali Calon Santri <span id="guardian-req-asterisk" style="color: red; ${isFatherDeceased ? '' : 'display: none;'}">*</span>
               </h3>
               <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 600;">
-                <input type="checkbox" id="ff-hasGuardian" onchange="toggleGuardianSection(this.checked)" ${st.hasGuardian ? 'checked' : ''} ${isReadOnly ? 'disabled' : ''} style="width: 16px; height: 16px;">
+                <input type="checkbox" id="ff-hasGuardian" onchange="toggleGuardianSection(this.checked)" ${isGuardianMandatory ? 'checked' : ''} ${isFatherDeceased ? 'disabled' : ''} ${isReadOnly ? 'disabled' : ''} style="width: 16px; height: 16px;">
                 <span>Memiliki Wali Selain Orang Tua</span>
               </label>
             </div>
 
-            <div id="guardian-fields" style="${st.hasGuardian ? '' : 'display: none;'} border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+            <div id="guardian-required-notice" style="${isFatherDeceased ? 'display: block;' : 'display: none;'} background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 6px; font-size: 0.825rem; font-weight: 600; margin-bottom: 14px;">
+              <i class="fa-solid fa-circle-info"></i> Karena status Ayah adalah <strong>Sudah Meninggal</strong>, pengisian data Wali adalah <strong>WAJIB</strong>.
+            </div>
+
+            <div id="guardian-fields" style="${isGuardianMandatory ? '' : 'display: none;'} border-top: 1px solid var(--border-subtle); padding-top: 14px;">
               <div class="form-grid-3" style="margin-bottom: 14px;">
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Hubungan Wali</label>
-                  <input type="text" id="ff-guardianRelation" class="form-control" placeholder="Paman / Kakek dll" value="${st.guardianRelation || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-guardianRelation" class="form-control" placeholder="Paman / Kakek / Bibi" value="${escapeHtml(st.guardianRelation || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Lengkap Wali</label>
-                  <input type="text" id="ff-guardianName" class="form-control" value="${st.guardianName || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-guardianName" class="form-control" value="${escapeHtml(st.guardianName || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Wali</label>
-                  <input type="text" id="ff-guardianNik" class="form-control" value="${st.guardianNik || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-guardianNik" class="form-control" value="${escapeHtml(st.guardianNik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
               </div>
 
               <div class="form-grid-2" style="margin-bottom: 14px;">
                 <div class="form-group">
-                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir</label>
-                  <input type="text" id="ff-guardianBirthPlace" class="form-control" value="${st.guardianBirthPlace || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir Wali</label>
+                  <input type="text" id="ff-guardianBirthPlace" class="form-control" value="${escapeHtml(st.guardianBirthPlace || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
                 <div class="form-group">
-                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir</label>
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir Wali</label>
                   <input type="date" id="ff-guardianBirthDate" class="form-control" value="${guardianBirthVal}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
               </div>
 
               <div class="form-grid-4" style="margin-bottom: 14px;">
                 <div class="form-group">
-                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Pendidikan</label>
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Pendidikan Wali</label>
                   <select id="ff-guardianEducation" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                     ${PSB_EDUCATION_OPTIONS.map(opt => `
                       <option value="${opt.value}" ${st.guardianEducation === opt.value ? 'selected' : ''}>${opt.label}</option>
                     `).join('')}
                   </select>
                 </div>
-                ${renderOccupationFieldHtml('ff-guardianOccupation', 'Pekerjaan', st.guardianOccupation, isReadOnly)}
+                ${renderOccupationFieldHtml('ff-guardianOccupation', 'Pekerjaan Wali', st.guardianOccupation, isReadOnly)}
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Penghasilan / Bln</label>
                   <select id="ff-guardianMonthlyIncome" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
@@ -1674,94 +1894,270 @@ async function renderPesertaFullFormView(regId) {
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">WhatsApp Wali</label>
-                  <input type="text" id="ff-guardianWhatsapp" class="form-control" placeholder="08..." value="${st.guardianWhatsapp || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-guardianWhatsapp" class="form-control" placeholder="08..." value="${escapeHtml(st.guardianWhatsapp || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
               </div>
 
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Alamat Lengkap Wali</label>
-                <input type="text" id="ff-guardianAddress" class="form-control" value="${st.guardianAddress || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="text" id="ff-guardianAddress" class="form-control" value="${escapeHtml(st.guardianAddress || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
             </div>
           </div>
 
-          <!-- SECTION G: KONTAK UTAMA -->
+          <!-- SECTION F: TEMPAT TINGGAL & FASILITAS -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
+            <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">F</span>
+              Data Tempat Tinggal & Fasilitas
+            </h3>
+
+            <div class="form-grid-3" style="margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Jarak Tempat Tinggal ke Sekolah</label>
+                <select id="ff-distanceToSchool" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">-- Pilih Jarak --</option>
+                  ${PSB_DISTANCE_OPTIONS.map(opt => `
+                    <option value="${opt}" ${st.distanceToSchool === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Transportasi ke Sekolah</label>
+                <select id="ff-transportationMode" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">-- Pilih Transportasi --</option>
+                  ${PSB_TRANSPORT_OPTIONS.map(opt => `
+                    <option value="${opt}" ${st.transportationMode === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Status Kepemilikan Rumah</label>
+                <select id="ff-homeOwnership" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">-- Pilih Status Rumah --</option>
+                  ${PSB_HOME_OWNERSHIP_OPTIONS.map(opt => `
+                    <option value="${opt}" ${st.homeOwnership === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid-3" style="margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Daya Listrik Rumah</label>
+                <select id="ff-electricityPower" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">-- Pilih Daya Listrik --</option>
+                  ${PSB_ELECTRICITY_OPTIONS.map(opt => `
+                    <option value="${opt}" ${st.electricityPower === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Sumber Air Bersih</label>
+                <select id="ff-waterSource" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">-- Pilih Sumber Air --</option>
+                  ${PSB_WATER_OPTIONS.map(opt => `
+                    <option value="${opt}" ${st.waterSource === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Akses Internet di Rumah</label>
+                <select id="ff-internetAccess" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">-- Pilih Akses Internet --</option>
+                  ${PSB_INTERNET_OPTIONS.map(opt => `
+                    <option value="${opt}" ${st.internetAccess === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Kepemilikan HP / Smartphone</label>
+                <select id="ff-phoneOwnership" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">-- Pilih Kepemilikan HP --</option>
+                  ${PSB_PHONE_OWNERSHIP_OPTIONS.map(opt => `
+                    <option value="${opt}" ${st.phoneOwnership === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nomor HP / WhatsApp Santri (Jika Ada)</label>
+                <input type="text" id="ff-studentPhone" class="form-control" placeholder="08..." value="${escapeHtml(st.studentPhone || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION G: DATA MEDIA SOSIAL -->
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
             <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
               <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">G</span>
-              Kontak Utama Pendaftaran
+              Data Akun & Media Sosial (Santri / Orang Tua)
+            </h3>
+
+            <div class="form-grid-3" style="margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;"><i class="fa-solid fa-envelope" style="color: var(--primary-600);"></i> Email Aktif</label>
+                <input type="email" id="ff-socialEmail" class="form-control" placeholder="contoh@gmail.com" value="${escapeHtml(st.socialEmail || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;"><i class="fa-brands fa-facebook" style="color: #1877f2;"></i> Facebook</label>
+                <input type="text" id="ff-socialFacebook" class="form-control" placeholder="Nama / Link Akun" value="${escapeHtml(st.socialFacebook || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;"><i class="fa-brands fa-instagram" style="color: #e4405f;"></i> Instagram</label>
+                <input type="text" id="ff-socialInstagram" class="form-control" placeholder="@username" value="${escapeHtml(st.socialInstagram || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;"><i class="fa-brands fa-x-twitter"></i> Twitter / X</label>
+                <input type="text" id="ff-socialTwitter" class="form-control" placeholder="@username" value="${escapeHtml(st.socialTwitter || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;"><i class="fa-brands fa-tiktok"></i> TikTok</label>
+                <input type="text" id="ff-socialTiktok" class="form-control" placeholder="@username" value="${escapeHtml(st.socialTiktok || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION H: RIWAYAT KESEHATAN & FISIK -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
+            <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">H</span>
+              Riwayat Kesehatan & Kondisi Khusus
+            </h3>
+
+            <div class="form-grid-2" style="margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Riwayat Merokok</label>
+                <select id="ff-smokingStatus" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  ${PSB_SMOKING_OPTIONS.map(opt => `
+                    <option value="${opt}" ${st.smokingStatus === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Status Buta Warna</label>
+                <select id="ff-colorBlindStatus" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  ${PSB_COLOR_BLIND_OPTIONS.map(opt => `
+                    <option value="${opt}" ${st.colorBlindStatus === opt ? 'selected' : ''}>${opt}</option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+
+            <!-- KONDISI MATA -->
+            <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; border: 1px solid var(--border-subtle);">
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 8px; color: var(--text-heading);">
+                <i class="fa-solid fa-eye" style="color: var(--primary-600); margin-right: 4px;"></i> Riwayat Mata (Minus & Silinder) - Kosongkan jika Normal
+              </label>
+              <div class="form-grid-2">
+                <div style="background: var(--bg-card); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                  <strong style="font-size: 0.8rem; display: block; margin-bottom: 6px; color: var(--text-heading);">Mata Kiri</strong>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                      <label style="font-size: 0.75rem; color: var(--text-muted);">Minus (-)</label>
+                      <input type="text" id="ff-eyeMinusLeft" class="form-control" placeholder="Contoh: 0.5" value="${escapeHtml(st.eyeMinusLeft || '')}" ${isReadOnly ? 'disabled' : ''} style="padding: 6px 10px; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.75rem; color: var(--text-muted);">Silinder (Cyl)</label>
+                      <input type="text" id="ff-eyeCylLeft" class="form-control" placeholder="Contoh: 0.25" value="${escapeHtml(st.eyeCylLeft || '')}" ${isReadOnly ? 'disabled' : ''} style="padding: 6px 10px; font-size: 0.85rem;">
+                    </div>
+                  </div>
+                </div>
+                <div style="background: var(--bg-card); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                  <strong style="font-size: 0.8rem; display: block; margin-bottom: 6px; color: var(--text-heading);">Mata Kanan</strong>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <div>
+                      <label style="font-size: 0.75rem; color: var(--text-muted);">Minus (-)</label>
+                      <input type="text" id="ff-eyeMinusRight" class="form-control" placeholder="Contoh: 0.5" value="${escapeHtml(st.eyeMinusRight || '')}" ${isReadOnly ? 'disabled' : ''} style="padding: 6px 10px; font-size: 0.85rem;">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.75rem; color: var(--text-muted);">Silinder (Cyl)</label>
+                      <input type="text" id="ff-eyeCylRight" class="form-control" placeholder="Contoh: 0.25" value="${escapeHtml(st.eyeCylRight || '')}" ${isReadOnly ? 'disabled' : ''} style="padding: 6px 10px; font-size: 0.85rem;">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-grid-3" style="margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Riwayat Penyakit Berat/Kronis</label>
+                <input type="text" id="ff-diseaseHistory" class="form-control" placeholder="Contoh: Asma, Tipus dll" value="${escapeHtml(st.diseaseHistory || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Riwayat Alergi (Makanan/Obat)</label>
+                <input type="text" id="ff-allergyHistory" class="form-control" placeholder="Contoh: Alergi Seafood/Debu" value="${escapeHtml(st.allergyHistory || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Riwayat Operasi</label>
+                <input type="text" id="ff-surgeryHistory" class="form-control" placeholder="Contoh: Usus Buntu (2023)" value="${escapeHtml(st.surgeryHistory || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 600;">
+                <input type="checkbox" id="ff-hasSpecialNeeds" onchange="toggleSpecialNeedsField(this.checked)" ${st.hasSpecialNeeds ? 'checked' : ''} ${isReadOnly ? 'disabled' : ''} style="width: 16px; height: 16px;">
+                <span>Memiliki Kebutuhan Khusus / Disabilitas</span>
+              </label>
+              <div id="special-needs-container" style="${st.hasSpecialNeeds ? '' : 'display: none;'} margin-top: 10px;">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Keterangan Kebutuhan Khusus <span style="color:red;">*</span></label>
+                <textarea id="ff-specialNeedsDescription" class="form-control" rows="2" placeholder="Jelaskan kebutuhan khusus calon santri..." ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">${escapeHtml(st.specialNeedsDescription || '')}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION I: KONTAK UTAMA -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
+            <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">I</span>
+              Kontak Utama / Darurat Pendaftaran
             </h3>
 
             <div class="form-grid-3">
               <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Kontak Utama</label>
-                <input type="text" id="ff-primaryContactName" class="form-control" value="${st.primaryContactName || d.individualParticipant?.mentorName || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Kontak Utama <span style="color: red;">*</span></label>
+                <input type="text" id="ff-primaryContactName" class="form-control" value="${escapeHtml(st.primaryContactName || d.individualParticipant?.mentorName || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Hubungan</label>
-                <input type="text" id="ff-primaryContactRelation" class="form-control" placeholder="Ayah / Ibu / Wali" value="${st.primaryContactRelation || 'Orang Tua'}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="text" id="ff-primaryContactRelation" class="form-control" placeholder="Ayah / Ibu / Wali" value="${escapeHtml(st.primaryContactRelation || 'Orang Tua')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">WhatsApp Utama</label>
-                <input type="text" id="ff-primaryContactWhatsapp" class="form-control" value="${st.primaryContactWhatsapp || d.individualParticipant?.whatsappNumber || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">WhatsApp Utama <span style="color: red;">*</span></label>
+                <input type="text" id="ff-primaryContactWhatsapp" class="form-control" value="${escapeHtml(st.primaryContactWhatsapp || d.individualParticipant?.whatsappNumber || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
             </div>
           </div>
 
-          <!-- SECTION H: DATA TAMBAHAN & PRESTASI -->
+          <!-- SECTION J: CATATAN PRESTASI SANTRI -->
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px;">
-            <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-              <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">H</span>
-              Kondisi Fisik, Kebutuhan Khusus & Prestasi
-            </h3>
-
-            <div class="form-grid-3" style="margin-bottom: 16px;">
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tinggi Badan (cm)</label>
-                <input type="number" id="ff-heightCm" class="form-control" min="50" max="250" placeholder="160" value="${st.heightCm || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Berat Badan (kg)</label>
-                <input type="number" id="ff-weightKg" class="form-control" min="20" max="200" placeholder="50" value="${st.weightKg || ''}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-              </div>
-              <div class="form-group">
-                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Kebutuhan Khusus</label>
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; padding-top: 8px;">
-                  <input type="checkbox" id="ff-hasSpecialNeeds" onchange="toggleSpecialNeedsField(this.checked)" ${st.hasSpecialNeeds ? 'checked' : ''} ${isReadOnly ? 'disabled' : ''} style="width: 16px; height: 16px;">
-                  <span>Memiliki Kebutuhan Khusus</span>
-                </label>
-              </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h3 style="font-size: 1.15rem; color: var(--text-heading); margin: 0; display: flex; align-items: center; gap: 8px;">
+                <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">J</span>
+                Catatan Prestasi Santri (Opsional)
+              </h3>
+              ${!isReadOnly ? `
+                <button type="button" class="btn btn-xs btn-outline-primary" onclick="addAchievementRow()">
+                  <i class="fa-solid fa-plus"></i> Tambah Prestasi
+                </button>
+              ` : ''}
             </div>
 
-            <div id="special-needs-container" style="${st.hasSpecialNeeds ? '' : 'display: none;'} margin-bottom: 18px;">
-              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Keterangan Kebutuhan Khusus <span style="color:red;">*</span></label>
-              <textarea id="ff-specialNeedsDescription" class="form-control" rows="2" placeholder="Jelaskan kebutuhan khusus calon santri..." ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">${st.specialNeedsDescription || ''}</textarea>
-            </div>
-
-            <!-- PRESTASI -->
-            <div style="border-top: 1px solid var(--border-subtle); padding-top: 16px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <label class="form-label" style="font-size: 0.95rem; font-weight: 700; color: var(--text-heading); margin: 0;">
-                  <i class="fa-solid fa-trophy" style="color: var(--accent-500);"></i> Prestasi Yang Pernah Diraih (Opsional)
-                </label>
-                ${!isReadOnly ? `
-                  <button type="button" class="btn btn-xs btn-outline-primary" onclick="addAchievementRow()">
-                    <i class="fa-solid fa-plus"></i> Tambah Prestasi
-                  </button>
-                ` : ''}
-              </div>
-
-              <div id="achievements-list">
-                ${achs.length === 0 ? '<div id="no-ach-label" style="color: var(--text-dim); font-size: 0.85rem; font-style: italic;">Belum ada prestasi yang ditambahkan.</div>' : ''}
-                ${achs.map((ach, idx) => renderAchievementRowHtml(idx, ach, isReadOnly)).join('')}
-              </div>
+            <div id="achievements-list">
+              ${achs.length === 0 ? '<div id="no-ach-label" style="color: var(--text-dim); font-size: 0.85rem; font-style: italic;">Belum ada prestasi yang ditambahkan.</div>' : ''}
+              ${achs.map((ach, idx) => renderAchievementRowHtml(idx, ach, isReadOnly)).join('')}
             </div>
           </div>
 
-          <!-- SECTION DOKUMEN: UPLOAD BERKAS -->
+          <!-- SECTION K: UPLOAD BERKAS PERSYARATAN -->
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 28px;">
             <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
-              <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;"><i class="fa-solid fa-folder-open"></i></span>
+              <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">K</span>
               Upload Dokumen Persyaratan
             </h3>
             <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">
@@ -1834,6 +2230,7 @@ async function renderPesertaFullFormView(regId) {
     container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
   }
 }
+
 
 // ============================================================================
 // WILAYAH INDONESIA CASCADING DROPDOWNS
@@ -2233,6 +2630,7 @@ function gatherFormData() {
   });
 
   return {
+    // A: Identitas
     fullName: getVal('ff-fullName'),
     nik: getVal('ff-nik'),
     familyCardNumber: getVal('ff-familyCardNumber'),
@@ -2245,7 +2643,11 @@ function gatherFormData() {
     bloodType: getVal('ff-bloodType'),
     childOrder: getNum('ff-childOrder'),
     siblingsCount: getNum('ff-siblingsCount'),
+    childStatus: document.getElementById('ff-childStatus')?.value,
+    heightCm: getNum('ff-heightCm'),
+    weightKg: getNum('ff-weightKg'),
 
+    // B: Alamat
     country: getVal('ff-country') || 'Indonesia',
     province: isIndo ? (getSelectName(provEl) || getVal('ff-province')) : undefined,
     provinceCode: isIndo ? getSelectVal(provEl) : undefined,
@@ -2260,6 +2662,7 @@ function gatherFormData() {
     postalCode: isIndo ? getVal('ff-postalCode') : undefined,
     fullAddress: getVal('ff-fullAddress'),
 
+    // C: Asal Sekolah
     previousSchoolName: getVal('ff-previousSchoolName'),
     previousSchoolNpsn: getVal('ff-previousSchoolNpsn') || undefined,
     previousSchoolLevel: document.getElementById('ff-previousSchoolLevel')?.value,
@@ -2267,6 +2670,7 @@ function gatherFormData() {
     diplomaNumber: getVal('ff-diplomaNumber'),
     previousSchoolAddress: getVal('ff-previousSchoolAddress'),
 
+    // D: Data Orang Tua - Ayah
     fatherName: getVal('ff-fatherName'),
     fatherStatus: document.getElementById('ff-fatherStatus')?.value,
     fatherNik: getVal('ff-fatherNik'),
@@ -2277,6 +2681,7 @@ function gatherFormData() {
     fatherMonthlyIncome: document.getElementById('ff-fatherMonthlyIncome')?.value,
     fatherWhatsapp: getVal('ff-fatherWhatsapp'),
 
+    // D: Data Orang Tua - Ibu
     motherName: getVal('ff-motherName'),
     motherStatus: document.getElementById('ff-motherStatus')?.value,
     motherNik: getVal('ff-motherNik'),
@@ -2287,6 +2692,12 @@ function gatherFormData() {
     motherMonthlyIncome: document.getElementById('ff-motherMonthlyIncome')?.value,
     motherWhatsapp: getVal('ff-motherWhatsapp'),
 
+    // D3: Kondisi Rumah Tangga
+    parentsMaritalStatus: document.getElementById('ff-parentsMaritalStatus')?.value,
+    childCustody: document.getElementById('ff-childCustody')?.value,
+    childLivingWith: document.getElementById('ff-childLivingWith')?.value,
+
+    // E: Data Wali
     hasGuardian: getChk('ff-hasGuardian'),
     guardianRelation: getChk('ff-hasGuardian') ? getVal('ff-guardianRelation') : undefined,
     guardianName: getChk('ff-hasGuardian') ? getVal('ff-guardianName') : undefined,
@@ -2299,15 +2710,42 @@ function gatherFormData() {
     guardianWhatsapp: getChk('ff-hasGuardian') ? getVal('ff-guardianWhatsapp') : undefined,
     guardianAddress: getChk('ff-hasGuardian') ? getVal('ff-guardianAddress') : undefined,
 
+    // F: Tempat Tinggal & Fasilitas
+    distanceToSchool: document.getElementById('ff-distanceToSchool')?.value,
+    transportationMode: document.getElementById('ff-transportationMode')?.value,
+    homeOwnership: document.getElementById('ff-homeOwnership')?.value,
+    electricityPower: document.getElementById('ff-electricityPower')?.value,
+    waterSource: document.getElementById('ff-waterSource')?.value,
+    internetAccess: document.getElementById('ff-internetAccess')?.value,
+    phoneOwnership: document.getElementById('ff-phoneOwnership')?.value,
+    studentPhone: getVal('ff-studentPhone'),
+
+    // G: Media Sosial
+    socialEmail: getVal('ff-socialEmail'),
+    socialFacebook: getVal('ff-socialFacebook'),
+    socialInstagram: getVal('ff-socialInstagram'),
+    socialTwitter: getVal('ff-socialTwitter'),
+    socialTiktok: getVal('ff-socialTiktok'),
+
+    // H: Riwayat Kesehatan
+    smokingStatus: document.getElementById('ff-smokingStatus')?.value,
+    colorBlindStatus: document.getElementById('ff-colorBlindStatus')?.value,
+    eyeMinusLeft: getVal('ff-eyeMinusLeft'),
+    eyeCylLeft: getVal('ff-eyeCylLeft'),
+    eyeMinusRight: getVal('ff-eyeMinusRight'),
+    eyeCylRight: getVal('ff-eyeCylRight'),
+    diseaseHistory: getVal('ff-diseaseHistory'),
+    allergyHistory: getVal('ff-allergyHistory'),
+    surgeryHistory: getVal('ff-surgeryHistory'),
+    hasSpecialNeeds: getChk('ff-hasSpecialNeeds'),
+    specialNeedsDescription: getVal('ff-specialNeedsDescription'),
+
+    // I: Kontak Utama
     primaryContactName: getVal('ff-primaryContactName'),
     primaryContactRelation: getVal('ff-primaryContactRelation'),
     primaryContactWhatsapp: getVal('ff-primaryContactWhatsapp'),
 
-    heightCm: getNum('ff-heightCm'),
-    weightKg: getNum('ff-weightKg'),
-    hasSpecialNeeds: getChk('ff-hasSpecialNeeds'),
-    specialNeedsDescription: getVal('ff-specialNeedsDescription'),
-
+    // J: Prestasi
     achievements,
   };
 }
@@ -3004,8 +3442,23 @@ async function printFullStudentForm(regId) {
       </tr>
     </table>
 
-    <!-- E. DATA WALI (JIKA ADA) -->
-    ${st.hasGuardian ? `
+    <div class="sub-section-title">• KONDISI RUMAH TANGGA</div>
+    <table class="data-table">
+      <tr>
+        <td class="label">Status Pernikahan Orang Tua</td><td class="colon">:</td><td class="val">${st.parentsMaritalStatus || 'Bersama (Utuh)'}</td>
+      </tr>
+      ${st.parentsMaritalStatus === 'Bercerai' ? `
+        <tr>
+          <td class="label">Hak Asuh Anak</td><td class="colon">:</td><td class="val">${st.childCustody || '-'}</td>
+        </tr>
+        <tr>
+          <td class="label">Tempat Tinggal Anak</td><td class="colon">:</td><td class="val">${st.childLivingWith || '-'}</td>
+        </tr>
+      ` : ''}
+    </table>
+
+    <!-- E. DATA WALI (JIKA ADA / AYAH MENINGGAL) -->
+    ${(st.hasGuardian || st.fatherStatus === 'SUDAH_MENINGGAL') ? `
       <div class="section-title">E. Data Wali Calon Santri</div>
       <table class="data-table">
         <tr>
@@ -3041,8 +3494,89 @@ async function printFullStudentForm(regId) {
       </table>
     ` : ''}
 
-    <!-- F. KONTAK DARURAT & FISIK -->
-    <div class="section-title">F. Kontak Utama & Kondisi Fisik</div>
+    <!-- F. TEMPAT TINGGAL & FASILITAS -->
+    <div class="section-title">F. Tempat Tinggal & Fasilitas</div>
+    <table class="data-table">
+      <tr>
+        <td class="label">Jarak ke Sekolah</td><td class="colon">:</td><td class="val">${st.distanceToSchool || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Transportasi ke Sekolah</td><td class="colon">:</td><td class="val">${st.transportationMode || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Status Kepemilikan Rumah</td><td class="colon">:</td><td class="val">${st.homeOwnership || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Daya Listrik Rumah</td><td class="colon">:</td><td class="val">${st.electricityPower || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Sumber Air Bersih</td><td class="colon">:</td><td class="val">${st.waterSource || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Akses Internet di Rumah</td><td class="colon">:</td><td class="val">${st.internetAccess || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Kepemilikan Smartphone/HP</td><td class="colon">:</td><td class="val">${st.phoneOwnership || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">No. HP/WA Calon Santri</td><td class="colon">:</td><td class="val">${st.studentPhone || '-'}</td>
+      </tr>
+    </table>
+
+    <!-- G. MEDIA SOSIAL -->
+    <div class="section-title">G. Akun & Media Sosial</div>
+    <table class="data-table">
+      <tr>
+        <td class="label">Email</td><td class="colon">:</td><td class="val">${st.socialEmail || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Facebook</td><td class="colon">:</td><td class="val">${st.socialFacebook || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Instagram</td><td class="colon">:</td><td class="val">${st.socialInstagram || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Twitter / X</td><td class="colon">:</td><td class="val">${st.socialTwitter || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">TikTok</td><td class="colon">:</td><td class="val">${st.socialTiktok || '-'}</td>
+      </tr>
+    </table>
+
+    <!-- H. RIWAYAT KESEHATAN & FISIK -->
+    <div class="section-title">H. Riwayat Kesehatan & Kondisi Khusus</div>
+    <table class="data-table">
+      <tr>
+        <td class="label">Tinggi / Berat Badan</td><td class="colon">:</td><td class="val">${st.heightCm ? st.heightCm + ' cm' : '-'} / ${st.weightKg ? st.weightKg + ' kg' : '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Riwayat Merokok</td><td class="colon">:</td><td class="val">${st.smokingStatus || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Status Buta Warna</td><td class="colon">:</td><td class="val">${st.colorBlindStatus || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Kondisi Mata Kiri</td><td class="colon">:</td><td class="val">${(st.eyeMinusLeft || st.eyeCylLeft) ? `Minus: ${st.eyeMinusLeft || '0'}, Cyl: ${st.eyeCylLeft || '0'}` : 'Normal'}</td>
+      </tr>
+      <tr>
+        <td class="label">Kondisi Mata Kanan</td><td class="colon">:</td><td class="val">${(st.eyeMinusRight || st.eyeCylRight) ? `Minus: ${st.eyeMinusRight || '0'}, Cyl: ${st.eyeCylRight || '0'}` : 'Normal'}</td>
+      </tr>
+      <tr>
+        <td class="label">Riwayat Penyakit Berat</td><td class="colon">:</td><td class="val">${st.diseaseHistory || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Riwayat Alergi</td><td class="colon">:</td><td class="val">${st.allergyHistory || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Riwayat Operasi</td><td class="colon">:</td><td class="val">${st.surgeryHistory || '-'}</td>
+      </tr>
+      <tr>
+        <td class="label">Kebutuhan Khusus</td><td class="colon">:</td><td class="val">${st.hasSpecialNeeds ? ('Ya' + (st.specialNeedsDescription ? ' (' + st.specialNeedsDescription + ')' : '')) : 'Tidak Ada'}</td>
+      </tr>
+    </table>
+
+    <!-- I. KONTAK UTAMA -->
+    <div class="section-title">I. Kontak Utama / Darurat</div>
     <table class="data-table">
       <tr>
         <td class="label">Nama Kontak Utama</td><td class="colon">:</td><td class="val">${st.primaryContactName || '-'}</td>
@@ -3053,19 +3587,10 @@ async function printFullStudentForm(regId) {
       <tr>
         <td class="label">No. WhatsApp Kontak Utama</td><td class="colon">:</td><td class="val"><strong>${st.primaryContactWhatsapp || '-'}</strong></td>
       </tr>
-      <tr>
-        <td class="label">Tinggi Badan</td><td class="colon">:</td><td class="val">${st.heightCm ? st.heightCm + ' cm' : '-'}</td>
-      </tr>
-      <tr>
-        <td class="label">Berat Badan</td><td class="colon">:</td><td class="val">${st.weightKg ? st.weightKg + ' kg' : '-'}</td>
-      </tr>
-      <tr>
-        <td class="label">Kebutuhan Khusus</td><td class="colon">:</td><td class="val">${st.hasSpecialNeeds ? ('Ya' + (st.specialNeedsDescription ? ' (' + st.specialNeedsDescription + ')' : '')) : 'Tidak Ada'}</td>
-      </tr>
     </table>
 
-    <!-- G. PRESTASI -->
-    <div class="section-title">G. Catatan Prestasi Santri (${achs.length})</div>
+    <!-- J. PRESTASI -->
+    <div class="section-title">J. Catatan Prestasi Santri (${achs.length})</div>
     ${achs.length === 0 ? '<div style="font-size: 8pt; color: #64748b; margin-bottom: 4px;">- Tidak ada catatan prestasi khusus terdaftar -</div>' : `
       <table class="table-grid">
         <thead>
@@ -3091,8 +3616,8 @@ async function printFullStudentForm(regId) {
       </table>
     `}
 
-    <!-- H. DOKUMEN & BERKAS TERLAMPIR -->
-    <div class="section-title">H. Dokumen Berkas Terlampir (${docs.length})</div>
+    <!-- K. DOKUMEN & BERKAS TERLAMPIR -->
+    <div class="section-title">K. Dokumen Berkas Terlampir (${docs.length})</div>
     <table class="table-grid">
       <thead>
         <tr>

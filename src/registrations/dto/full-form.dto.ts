@@ -358,7 +358,133 @@ export class SaveFormDraftDto {
   @MaxLength(150)
   primaryContactEmail?: string;
 
-  // Section H: Data Tambahan
+  // Section D.3: Kondisi Rumah Tangga
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  parentsMaritalStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  childCustody?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  childLivingWith?: string;
+
+  // Section F: Data Tempat Tinggal & Fasilitas
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  distanceToSchool?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  transportationMode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  homeOwnership?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  electricityPower?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  waterSource?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  phoneOwnership?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  studentPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  internetAccess?: string;
+
+  // Section G: Data Media Sosial
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  socialEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  socialFacebook?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  socialInstagram?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  socialTwitter?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  socialTiktok?: string;
+
+  // Section H: Riwayat Kesehatan
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  smokingStatus?: string;
+
+  @IsOptional()
+  @IsString()
+  diseaseHistory?: string;
+
+  @IsOptional()
+  @IsString()
+  allergyHistory?: string;
+
+  @IsOptional()
+  @IsString()
+  surgeryHistory?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  eyeMinusLeft?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  eyeMinusRight?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  eyeCylLeft?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  eyeCylRight?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  colorBlindStatus?: string;
+
+  // Section Data Tambahan
   @IsOptional()
   @Type(() => Number)
   @IsInt()

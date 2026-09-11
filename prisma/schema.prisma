@@ -414,7 +414,40 @@ model StudentDetail {
   primaryContactWhatsapp  String?      @map("primary_contact_whatsapp") @db.VarChar(30)
   primaryContactEmail     String?      @map("primary_contact_email") @db.VarChar(150)
 
-  // Section H: Data Tambahan
+  // Section D.3: Kondisi Rumah Tangga
+  parentsMaritalStatus    String?      @map("parents_marital_status") @db.VarChar(50)
+  childCustody            String?      @map("child_custody") @db.VarChar(50)
+  childLivingWith         String?      @map("child_living_with") @db.VarChar(100)
+
+  // Section F: Data Tempat Tinggal & Fasilitas
+  distanceToSchool        String?      @map("distance_to_school") @db.VarChar(50)
+  transportationMode      String?      @map("transportation_mode") @db.VarChar(50)
+  homeOwnership           String?      @map("home_ownership") @db.VarChar(50)
+  electricityPower        String?      @map("electricity_power") @db.VarChar(50)
+  waterSource             String?      @map("water_source") @db.VarChar(50)
+  phoneOwnership          String?      @map("phone_ownership") @db.VarChar(50)
+  studentPhone            String?      @map("student_phone") @db.VarChar(30)
+  internetAccess          String?      @map("internet_access") @db.VarChar(30)
+
+  // Section G: Data Media Sosial
+  socialEmail             String?      @map("social_email") @db.VarChar(100)
+  socialFacebook          String?      @map("social_facebook") @db.VarChar(100)
+  socialInstagram         String?      @map("social_instagram") @db.VarChar(100)
+  socialTwitter           String?      @map("social_twitter") @db.VarChar(100)
+  socialTiktok            String?      @map("social_tiktok") @db.VarChar(100)
+
+  // Section H: Riwayat Kesehatan
+  smokingStatus           String?      @map("smoking_status") @db.VarChar(20)
+  diseaseHistory          String?      @map("disease_history") @db.Text
+  allergyHistory          String?      @map("allergy_history") @db.Text
+  surgeryHistory          String?      @map("surgery_history") @db.Text
+  eyeMinusLeft            String?      @map("eye_minus_left") @db.VarChar(20)
+  eyeMinusRight           String?      @map("eye_minus_right") @db.VarChar(20)
+  eyeCylLeft              String?      @map("eye_cyl_left") @db.VarChar(20)
+  eyeCylRight             String?      @map("eye_cyl_right") @db.VarChar(20)
+  colorBlindStatus        String?      @map("color_blind_status") @db.VarChar(20)
+
+  // Section Data Tambahan
   heightCm                Int?         @map("height_cm")
   weightKg                Int?         @map("weight_kg")
   hasSpecialNeeds         Boolean      @default(false) @map("has_special_needs")

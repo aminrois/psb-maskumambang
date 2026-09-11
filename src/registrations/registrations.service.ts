@@ -662,41 +662,29 @@ export class RegistrationsService {
 
     // 4. Strict Validation: Data Ayah
     if (!merged.fatherName?.trim()) throw new BadRequestException('Nama Lengkap Ayah wajib diisi.');
-    if (!merged.fatherNik?.trim()) throw new BadRequestException('NIK Ayah wajib diisi.');
-    if (!merged.fatherBirthPlace?.trim()) throw new BadRequestException('Tempat Lahir Ayah wajib diisi.');
-    if (!merged.fatherBirthDate) throw new BadRequestException('Tanggal Lahir Ayah wajib diisi.');
-    if (!merged.fatherStatus) throw new BadRequestException('Status Ayah (Masih Hidup / Sudah Meninggal) wajib dipilih.');
-    if (!merged.fatherEducation) throw new BadRequestException('Pendidikan Terakhir Ayah wajib dipilih.');
-    if (!merged.fatherOccupation?.trim()) throw new BadRequestException('Pekerjaan Ayah wajib diisi.');
-    if (!merged.fatherMonthlyIncome) throw new BadRequestException('Penghasilan Bulanan Ayah wajib dipilih.');
-    if (!merged.fatherWhatsapp?.trim()) throw new BadRequestException('Nomor WhatsApp Ayah wajib diisi.');
+    if (!merged.fatherStatus) throw new BadRequestException('Status Ayah (Masih Hidup / Meninggal) wajib dipilih.');
 
     // 5. Strict Validation: Data Ibu
     if (!merged.motherName?.trim()) throw new BadRequestException('Nama Lengkap Ibu wajib diisi.');
-    if (!merged.motherNik?.trim()) throw new BadRequestException('NIK Ibu wajib diisi.');
-    if (!merged.motherBirthPlace?.trim()) throw new BadRequestException('Tempat Lahir Ibu wajib diisi.');
-    if (!merged.motherBirthDate) throw new BadRequestException('Tanggal Lahir Ibu wajib diisi.');
-    if (!merged.motherStatus) throw new BadRequestException('Status Ibu (Masih Hidup / Sudah Meninggal) wajib dipilih.');
-    if (!merged.motherEducation) throw new BadRequestException('Pendidikan Terakhir Ibu wajib dipilih.');
-    if (!merged.motherOccupation?.trim()) throw new BadRequestException('Pekerjaan Ibu wajib diisi.');
-    if (!merged.motherMonthlyIncome) throw new BadRequestException('Penghasilan Bulanan Ibu wajib dipilih.');
-    if (!merged.motherWhatsapp?.trim()) throw new BadRequestException('Nomor WhatsApp Ibu wajib diisi.');
+    if (!merged.motherStatus) throw new BadRequestException('Status Ibu (Masih Hidup / Meninggal) wajib dipilih.');
 
-    // 6. Conditional Validation: Data Wali
-    if (merged.hasGuardian === true) {
+    // 6. Conditional Validation: Kondisi Rumah Tangga
+    if (merged.parentsMaritalStatus === 'Bercerai') {
+      if (!merged.childCustody?.trim()) throw new BadRequestException('Hak asuh anak wajib dipilih jika status orang tua bercerai.');
+      if (!merged.childLivingWith?.trim()) throw new BadRequestException('Tempat tinggal anak saat ini wajib dipilih jika status orang tua bercerai.');
+    }
+
+    // 7. Conditional Validation: Data Wali (Wajib jika Ayah Meninggal atau hasGuardian aktif)
+    const isFatherDeceased = merged.fatherStatus === 'SUDAH_MENINGGAL' || merged.fatherStatus === 'MENINGGAL';
+    if (isFatherDeceased || merged.hasGuardian === true) {
+      if (!merged.guardianName?.trim()) throw new BadRequestException('Nama Lengkap Wali wajib diisi (karena status Ayah meninggal / memiliki wali).');
       if (!merged.guardianRelation?.trim()) throw new BadRequestException('Hubungan Wali dengan Santri wajib diisi.');
-      if (!merged.guardianName?.trim()) throw new BadRequestException('Nama Lengkap Wali wajib diisi.');
-      if (!merged.guardianNik?.trim()) throw new BadRequestException('NIK Wali wajib diisi.');
-      if (!merged.guardianBirthPlace?.trim()) throw new BadRequestException('Tempat Lahir Wali wajib diisi.');
-      if (!merged.guardianBirthDate) throw new BadRequestException('Tanggal Lahir Wali wajib diisi.');
-      if (!merged.guardianEducation) throw new BadRequestException('Pendidikan Terakhir Wali wajib dipilih.');
       if (!merged.guardianOccupation?.trim()) throw new BadRequestException('Pekerjaan Wali wajib diisi.');
-      if (!merged.guardianMonthlyIncome) throw new BadRequestException('Penghasilan Bulanan Wali wajib dipilih.');
-      if (!merged.guardianWhatsapp?.trim()) throw new BadRequestException('Nomor WhatsApp Wali wajib diisi.');
+      if (!merged.guardianWhatsapp?.trim()) throw new BadRequestException('Nomor WhatsApp/Telepon Wali wajib diisi.');
       if (!merged.guardianAddress?.trim()) throw new BadRequestException('Alamat Lengkap Wali wajib diisi.');
     }
 
-    // 7. Strict Validation: Kontak Utama
+    // 8. Strict Validation: Kontak Utama
     if (!merged.primaryContactName?.trim()) throw new BadRequestException('Nama Kontak Utama wajib diisi.');
     if (!merged.primaryContactRelation?.trim()) throw new BadRequestException('Hubungan Kontak Utama wajib diisi.');
     if (!merged.primaryContactWhatsapp?.trim()) throw new BadRequestException('Nomor WhatsApp Kontak Utama wajib diisi.');
