@@ -388,8 +388,8 @@ async function renderAdminWavesView() {
                       </div>
                       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px;">
                         ${schoolQuotas.map(sq => {
-                          const sqPercent = sq.quota > 0 ? Math.min(100, Math.round((sq.verifiedCount / sq.quota) * 100)) : 0;
-                          return `
+        const sqPercent = sq.quota > 0 ? Math.min(100, Math.round((sq.verifiedCount / sq.quota) * 100)) : 0;
+        return `
                             <div style="background: var(--bg-card); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-subtle); font-size: 0.75rem;">
                               <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 700;">
                                 <span>${sq.schoolName || sq.schoolInitial || 'Sekolah'}</span>
@@ -402,7 +402,7 @@ async function renderAdminWavesView() {
                               </div>
                             </div>
                           `;
-                        }).join('')}
+      }).join('')}
                       </div>
                     </div>
                   ` : ''}
@@ -664,15 +664,15 @@ async function openEditWaveModal(waveId) {
           ${schools.length === 0 ? '<div style="font-size: 0.85rem; color: var(--text-muted);">Tidak ada data sekolah.</div>' : `
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
               ${schools.map(s => {
-                const match = existingSchoolQuotas.find(sq => sq.schoolId === s.id);
-                const val = match ? match.quota : '';
-                return `
+      const match = existingSchoolQuotas.find(sq => sq.schoolId === s.id);
+      const val = match ? match.quota : '';
+      return `
                   <div style="background: var(--bg-card); padding: 10px; border-radius: 6px; border: 1px solid var(--border-subtle);">
                     <label style="display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; color: var(--text-heading);">${s.name}</label>
                     <input type="number" class="form-control m-edit-school-quota-input" data-school-id="${s.id}" value="${val !== undefined ? val : ''}" placeholder="Contoh: 30" min="0" style="width: 100%; padding: 8px 10px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: 4px;">
                   </div>
                 `;
-              }).join('')}
+    }).join('')}
             </div>
           `}
           <small style="color: var(--text-muted); font-size: 0.775rem; margin-top: 8px; display: block;">
@@ -2768,7 +2768,7 @@ async function handleSaveFormDraft(regId) {
 }
 
 async function handleFinalFormSubmit(regId) {
-  if (!confirm('Pastikan seluruh data dan dokumen persyaratan yang Anda masukkan sudah LENGKAP dan BENAR.\n\nSetelah dikirim, data tidak dapat diubah kembali kecuali Super Admin meminta revisi.\n\nLanjutkan kirim final?')) {
+  if (!confirm('Pastikan seluruh data dan dokumen persyaratan yang Anda masukkan sudah LENGKAP dan BENAR.\n\nSetelah dikirim, data tidak dapat diubah kembali kecuali panitia meminta revisi.\n\nLanjutkan kirim final?')) {
     return;
   }
 
