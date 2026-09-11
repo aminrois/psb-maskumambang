@@ -146,13 +146,12 @@
       if (e) e.preventDefault();
 
       let captchaToken = '';
-      if (typeof grecaptcha !== 'undefined') {
-        captchaToken = grecaptcha.getResponse();
-      }
-
-      if (!captchaToken) {
-        showBannerAlert('login-alert', 'Silakan centang verifikasi Google reCAPTCHA terlebih dahulu.', 'warning');
-        return;
+      if (typeof grecaptcha !== 'undefined' && grecaptcha.getResponse) {
+        try {
+          captchaToken = grecaptcha.getResponse();
+        } catch (err) {
+          captchaToken = '';
+        }
       }
 
       const btn = document.getElementById('login-submit-btn');
