@@ -27,15 +27,16 @@ export class AuthService {
       return true;
     }
 
-    if (!token) {
+    if (!token || !token.trim()) {
       throw new BadRequestException('Verifikasi Google reCAPTCHA wajib dicentang.');
     }
 
     try {
       const params = new URLSearchParams();
       params.append('secret', secretKey);
-      params.append('response', token);
-      if (ipAddress) {
+      params.append('response', token.trim());
+      // Only include remoteip if it is a valid public IP (not loopback/private/empty)
+      if (ipAddress && !ipAddress.includes('127.0.0.1') && !ipAddress.includes('::1') && !ipAddress.startsWith('10.') && !ipAddress.startsWith('192.168.')) {
         params.append('remoteip', ipAddress);
       }
 
@@ -47,13 +48,36 @@ export class AuthService {
         body: params.toString(),
       });
 
-      const data = (await res.json()) as { success: boolean; 'error-codes'?: string[] };
+      const data = (await res.json()) as { success: boolean; 'error-codes'?: string[]; hostname?: string };
+      
       if (!data.success) {
+        const errorCodes = data['error-codes'] || [];
+        console.warn('[reCAPTCHA Verification Failed]', {
+          errorCodes,
+          hostname: data.hostname,
+        });
+
+        if (errorCodes.includes('timeout-or-duplicate')) {
+          throw new BadRequestException('Verifikasi reCAPTCHA telah kadaluarsa atau sudah terpakai. Silakan centang ulang.');
+        }
+        if (errorCodes.includes('invalid-input-secret')) {
+          console.error('[reCAPTCHA] RECAPTCHA_SECRET_KEY tidak valid atau tidak cocok dengan site key.');
+          throw new BadRequestException('Konfigurasi reCAPTCHA server bermasalah (secret key tidak cocok).');
+        }
+        if (errorCodes.includes('hostname-mismatch')) {
+          console.warn('[reCAPTCHA] Domain/hostname mismatch:', data.hostname);
+          // Allow in development/IP access if configured
+          if (process.env.NODE_ENV !== 'production' || process.env.ALLOW_HOSTNAME_MISMATCH === 'true') {
+            return true;
+          }
+        }
+
         throw new BadRequestException('Verifikasi reCAPTCHA gagal atau kadaluarsa. Silakan centang ulang.');
       }
       return true;
     } catch (err: any) {
       if (err instanceof BadRequestException) throw err;
+      console.error('[reCAPTCHA Error]', err);
       throw new BadRequestException('Gagal memverifikasi reCAPTCHA: ' + (err.message || 'Error'));
     }
   }
