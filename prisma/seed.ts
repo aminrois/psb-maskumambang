@@ -21,6 +21,20 @@ async function main() {
       role: Role.SUPER_ADMIN,
     },
     {
+      name: 'Super Admin',
+      email: 'admin@lomba.id',
+      phoneNumber: '081234567899',
+      password: 'admin123',
+      role: Role.SUPER_ADMIN,
+    },
+    {
+      name: 'Admin Maskumambang',
+      email: 'admin@maskumambang.ac.id',
+      phoneNumber: '081234567898',
+      password: 'admin123',
+      role: Role.SUPER_ADMIN,
+    },
+    {
       name: 'Bendahara Panitia',
       email: 'bendahara@lomba.id',
       phoneNumber: '081234567891',
