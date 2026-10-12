@@ -39,7 +39,13 @@ export class UpdateSchoolDto {
   description?: string;
 }
 
-export { CreateSchoolDto as CreateCategoryDto, UpdateSchoolDto as UpdateCategoryDto };
+export class ReorderSchoolsDto {
+  @IsArray({ message: 'schoolIds harus berupa array string.' })
+  @IsString({ each: true, message: 'Setiap elemen schoolIds harus berupa string ID.' })
+  schoolIds!: string[];
+}
+
+export { CreateSchoolDto as CreateCategoryDto, UpdateSchoolDto as UpdateCategoryDto, ReorderSchoolsDto as ReorderCategoriesDto };
 
 // --- MAJOR (JURUSAN) DTO ---
 export class CreateMajorDto {

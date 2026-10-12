@@ -9,7 +9,7 @@ export interface ValidatedFileResult {
 }
 
 export class FileValidatorUtil {
-  private static readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+  private static readonly MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
   /**
    * Validates binary buffer against strict Magic Byte signatures for Images.
@@ -22,7 +22,7 @@ export class FileValidatorUtil {
     }
 
     if (buffer.length > this.MAX_FILE_SIZE) {
-      throw new BadRequestException('Ukuran file melebihi batas maksimum 5MB.');
+      throw new BadRequestException('Ukuran file melebihi batas maksimum 10MB.');
     }
 
     // Check PNG signature: 89 50 4E 47 0D 0A 1A 0A

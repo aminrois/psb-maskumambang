@@ -45,7 +45,7 @@ export class CompetitionsService {
           orderBy: { name: 'asc' },
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
 
     return schools.map(sch => ({
@@ -181,8 +181,25 @@ export class CompetitionsService {
           select: { majors: true },
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
+  }
+
+  async reorderSchools(schoolIds: string[]) {
+    if (!Array.isArray(schoolIds) || schoolIds.length === 0) {
+      throw new BadRequestException('Daftar ID sekolah tidak boleh kosong.');
+    }
+
+    await this.prisma.$transaction(
+      schoolIds.map((id, index) =>
+        this.prisma.school.update({
+          where: { id },
+          data: { sortOrder: index + 1 },
+        }),
+      ),
+    );
+
+    return { message: 'Urutan sekolah berhasil diperbarui.' };
   }
 
   async createCategory(dto: CreateSchoolDto) {
@@ -821,7 +838,7 @@ export class CompetitionsService {
           select: { registrations: true },
         },
       },
-      orderBy: [{ waveNumber: 'asc' }, { startDate: 'asc' }],
+      orderBy: [{ waveNumber: 'asc' }, { startDate: 'asc' }, { createdAt: 'asc' }],
     });
 
     return this.formatWavesWithQuotas(waves);

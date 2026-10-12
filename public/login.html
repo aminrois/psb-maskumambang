@@ -73,7 +73,7 @@
     <div class="auth-card">
       <div style="margin-bottom: 24px;">
         <h3 style="font-size: 1.3rem; margin-bottom: 6px; color: var(--text-heading);">Masuk ke Akun</h3>
-        <p style="color: var(--text-muted); font-size: 0.875rem;">Gunakan email dan kata sandi Anda untuk mengakses
+        <p style="color: var(--text-muted); font-size: 0.875rem;">Gunakan username atau email dan kata sandi Anda untuk mengakses
           dashboard.</p>
       </div>
 
@@ -83,9 +83,9 @@
       <form id="login-form" onsubmit="handleLoginSubmit(event)">
         <div class="form-group" style="margin-bottom: 18px;">
           <label class="form-label"
-            style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Email</label>
-          <input type="email" id="login-email" class="form-control" placeholder="nama@email.com" required
-            autocomplete="email"
+            style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Username atau Email</label>
+          <input type="text" id="login-identifier" class="form-control" placeholder="Masukkan username atau email" required
+            autocomplete="username" autocapitalize="none" spellcheck="false"
             style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
         </div>
         <div class="form-group" style="margin-bottom: 22px;">
@@ -108,7 +108,7 @@
           </div>
         </div>
 
-        <div class="form-group" style="margin-bottom: 20px; display: flex; justify-content: center;">
+        <div id="recaptcha-wrapper" style="margin-bottom: 20px; display: flex; justify-content: center;">
           <div class="g-recaptcha" data-sitekey="6LfPxLAtAAAAAMaeu-yp0yoozI6IiQkshQaKJgAd"></div>
         </div>
 
@@ -130,11 +130,18 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=20260909_schoolquota_v3"></script>
+  <script src="/js/app.js?v=20261010_rc"></script>
   <script>
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
     document.addEventListener('DOMContentLoaded', () => {
       initTheme();
       loadBrandingInfo();
+
+      if (isLocalhost) {
+        const rc = document.getElementById('recaptcha-wrapper');
+        if (rc) rc.style.display = 'none';
+      }
 
       const form = document.getElementById('login-form');
       if (form) {
@@ -146,11 +153,21 @@
       if (e) e.preventDefault();
 
       let captchaToken = '';
-      if (typeof grecaptcha !== 'undefined' && grecaptcha.getResponse) {
-        try {
-          captchaToken = grecaptcha.getResponse();
-        } catch (err) {
-          captchaToken = '';
+      const recaptchaWrapper = document.getElementById('recaptcha-wrapper');
+      const isRecaptchaHidden = recaptchaWrapper && recaptchaWrapper.style.display === 'none';
+      if (isLocalhost || isRecaptchaHidden) {
+        captchaToken = 'LOCAL_BYPASS';
+      } else {
+        if (typeof grecaptcha !== 'undefined' && grecaptcha.getResponse) {
+          try {
+            captchaToken = grecaptcha.getResponse();
+          } catch (err) {
+            captchaToken = '';
+          }
+        }
+        if (!captchaToken) {
+          showBannerAlert('login-alert', 'Silakan centang verifikasi "Saya bukan robot" (reCAPTCHA) terlebih dahulu.', 'danger');
+          return;
         }
       }
 
@@ -161,24 +178,25 @@
       }
 
       try {
-        const email = document.getElementById('login-email').value.trim();
+        const identifierInput = document.getElementById('login-identifier') || document.getElementById('login-email');
+        const identifier = (identifierInput ? identifierInput.value : '').trim();
         const password = document.getElementById('login-password').value;
 
         const res = await apiRequest('/api/auth/login', {
           method: 'POST',
-          body: { email, password, captchaToken },
+          body: { username: identifier, email: identifier, identifier, password, captchaToken },
         });
 
         if (res.success && res.data) {
           setSession(res.data.accessToken, res.data.user);
           window.location.href = '/dashboard.html';
         } else {
-          showBannerAlert('login-alert', res.message || 'Login gagal, periksa email dan kata sandi Anda.', 'danger');
-          if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+          showBannerAlert('login-alert', res.message || 'Login gagal, periksa username/email dan kata sandi Anda.', 'danger');
+          if (typeof grecaptcha !== 'undefined' && grecaptcha.reset) grecaptcha.reset();
         }
       } catch (err) {
         showBannerAlert('login-alert', err.message || 'Terjadi kesalahan saat masuk.', 'danger');
-        if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+        if (typeof grecaptcha !== 'undefined' && grecaptcha.reset) grecaptcha.reset();
       } finally {
         if (btn) {
           btn.disabled = false;

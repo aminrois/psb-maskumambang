@@ -30,6 +30,79 @@ function escapeHtml(str) {
 }
 window.escapeHtml = escapeHtml;
 
+/**
+ * Auto Image Compression using HTML5 Canvas
+ * Mengompres foto berukuran besar (dari kamera HP/screenshot) menjadi ukuran ideal (~150KB-350KB)
+ * tanpa mengurangi ketajaman teks/nominal transfer pada struk.
+ */
+async function compressImageFile(file, options = {}) {
+  if (!file || !file.type || !file.type.startsWith('image/')) {
+    return file;
+  }
+
+  // Jika ukuran file sudah sangat kecil (< 200 KB), langsung kembalikan
+  if (file.size <= (options.minSize || 200 * 1024)) {
+    return file;
+  }
+
+  const maxWidth = options.maxWidth || 1920;
+  const maxHeight = options.maxHeight || 1920;
+  const quality = options.quality || 0.82;
+  const outputType = 'image/jpeg';
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onerror = () => resolve(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = () => resolve(file);
+      img.onload = () => {
+        let { width, height } = img;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width / maxWidth > height / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Background putih untuk transparansi
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob || blob.size >= file.size) {
+              resolve(file);
+              return;
+            }
+            const baseName = file.name.replace(/\.[^/.]+$/, '');
+            const compressedFile = new File([blob], `${baseName}.jpg`, {
+              type: outputType,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          outputType,
+          quality
+        );
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+window.compressImageFile = compressImageFile;
+
 // Global Application State
 const state = {
   token: null, // Token dikelola via HttpOnly Cookie oleh server, tidak disimpan di JS
@@ -170,6 +243,13 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+function formatDateIndo(dateStr) {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function getStatusBadge(status) {
   switch (status) {
     case 'APPROVED':
@@ -265,6 +345,88 @@ function showToast(message, type = 'info') {
 }
 window.showToast = showToast;
 window.showGlobalAlert = showToast;
+
+// Modern System Confirmation Dialog
+function showAppConfirm(options = {}) {
+  return new Promise((resolve) => {
+    let title = 'Konfirmasi Tindakan';
+    let message = '';
+    let confirmText = 'Ya, Lanjutkan';
+    let cancelText = 'Batal';
+    let type = 'danger'; // 'danger' | 'primary' | 'warning' | 'info'
+    let icon = 'fa-triangle-exclamation';
+
+    if (typeof options === 'string') {
+      message = options;
+    } else {
+      title = options.title || title;
+      message = options.message || '';
+      confirmText = options.confirmText || confirmText;
+      cancelText = options.cancelText || cancelText;
+      type = options.type || (options.isDangerous ? 'danger' : 'primary');
+      if (options.icon) icon = options.icon;
+      else if (type === 'danger') icon = 'fa-triangle-exclamation';
+      else if (type === 'warning') icon = 'fa-circle-exclamation';
+      else icon = 'fa-circle-question';
+    }
+
+    let dialog = document.getElementById('app-confirm-dialog');
+    if (!dialog) {
+      dialog = document.createElement('div');
+      dialog.id = 'app-confirm-dialog';
+      dialog.className = 'modal-backdrop';
+      dialog.style.cssText = 'position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 999999; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; transition: opacity 0.2s ease;';
+      document.body.appendChild(dialog);
+    }
+
+    const btnColor = type === 'danger' ? '#dc2626' : (type === 'warning' ? '#d97706' : '#2563eb');
+    const iconBg = type === 'danger' ? 'rgba(239, 68, 68, 0.12)' : (type === 'warning' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(37, 99, 235, 0.12)');
+    const iconColor = type === 'danger' ? '#dc2626' : (type === 'warning' ? '#d97706' : '#2563eb');
+
+    const formattedMessage = (message || '').replace(/\n/g, '<br>');
+
+    dialog.innerHTML = `
+      <div style="background: var(--bg-card, #ffffff); color: var(--text-main, #1e293b); border: 1px solid var(--border-subtle, #e2e8f0); border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1); padding: 26px 24px 20px 24px; max-width: 480px; width: 100%; transform: scale(0.95); transition: transform 0.2s ease;">
+        <div style="display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px;">
+          <div style="width: 46px; height: 46px; border-radius: 50%; background: ${iconBg}; color: ${iconColor}; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0;">
+            <i class="fa-solid ${icon}"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-heading, #0f172a); margin: 0 0 6px 0; line-height: 1.3;">${title}</h3>
+            <div style="font-size: 0.88rem; color: var(--text-muted, #64748b); line-height: 1.5;">${formattedMessage}</div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-subtle, #f1f5f9); padding-top: 16px;">
+          <button type="button" id="app-confirm-cancel-btn" class="btn btn-secondary" style="padding: 9px 18px; border-radius: 8px; font-weight: 600; font-size: 0.875rem; cursor: pointer;">${cancelText}</button>
+          <button type="button" id="app-confirm-ok-btn" style="background: ${btnColor}; color: #ffffff; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 700; font-size: 0.875rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${confirmText}</button>
+        </div>
+      </div>
+    `;
+
+    dialog.style.display = 'flex';
+    requestAnimationFrame(() => {
+      dialog.style.opacity = '1';
+      const box = dialog.firstElementChild;
+      if (box) box.style.transform = 'scale(1)';
+    });
+
+    const closeDialog = (resVal) => {
+      dialog.style.opacity = '0';
+      const box = dialog.firstElementChild;
+      if (box) box.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        dialog.style.display = 'none';
+        resolve(resVal);
+      }, 180);
+    };
+
+    document.getElementById('app-confirm-cancel-btn').onclick = () => closeDialog(false);
+    document.getElementById('app-confirm-ok-btn').onclick = () => closeDialog(true);
+  });
+}
+window.showAppConfirm = showAppConfirm;
+window.confirmDialog = showAppConfirm;
+window.showConfirmDialog = showAppConfirm;
 
 // Global Modal Helpers
 function openModal(title = '', bodyHtml = '', sizeClass = '') {
@@ -739,6 +901,9 @@ async function initDashboardApp() {
       return;
     }
     state.user = profile;
+    window.currentUser = profile;
+    window.currentUserRole = profile.role;
+    window.state = state;
     safeStorage.setItem('lomba_user_data', JSON.stringify(profile));
   } catch (e) {
     clearSession();
@@ -811,7 +976,7 @@ function buildRoleSidebar(role) {
   if (!menu) return;
 
   // Retrieve saved group states from localStorage
-  let savedGroups = { 'homepage': true, 'master-psb': true, 'cbt': true, 'interview': true, 'system': false };
+  let savedGroups = { 'homepage': true, 'master-psb': true, 'cbt': true, 'practical': true, 'interview': true, 'system': false };
   try {
     const raw = localStorage.getItem('psb_nav_groups');
     if (raw) savedGroups = { ...savedGroups, ...JSON.parse(raw) };
@@ -842,33 +1007,18 @@ function buildRoleSidebar(role) {
     menu.innerHTML = `
       <div class="nav-section-title">MENU UTAMA</div>
       <a href="#overview" id="nav-overview" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Dashboard</span></a>
+      <a href="#verifikasi-pembayaran" id="nav-verifikasi-pembayaran" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span><span class="nav-label">Verifikasi Pembayaran</span></a>
       <a href="#verifikasi-data" id="nav-verifikasi-data" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-user-check"></i></span><span class="nav-label">Verifikasi Berkas Santri</span></a>
       <a href="#cbt-verification" id="nav-cbt-verification" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-check"></i></span><span class="nav-label">Verifikasi CBT</span></a>
       <a href="#verifikasi-final" id="nav-verifikasi-final" class="sidebar-nav-item" style="border-left: 3px solid #10b981; background: rgba(16, 185, 129, 0.08);"><span class="nav-icon" style="color: #10b981;"><i class="fa-solid fa-award"></i></span><span class="nav-label" style="color: #ffffff; font-weight: 700;">Verifikasi Final</span><span class="badge" style="background: #10b981; color:#ffffff; font-size:0.62rem; font-weight: 800; padding:2px 6px; border-radius:4px; margin-left:auto;">FINAL</span></a>
       <a href="#daftar-peserta" id="nav-daftar-peserta" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span><span class="nav-label">Daftar Calon Siswa</span></a>
-      <a href="#verifikasi-pembayaran" id="nav-verifikasi-pembayaran" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span><span class="nav-label">Pembayaran</span></a>
       <a href="#checkin-scanner" id="nav-checkin-scanner" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-qrcode"></i></span><span class="nav-label">Check-In QR</span></a>
       <a href="#cetak-kartu" id="nav-cetak-kartu" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-print"></i></span><span class="nav-label">Cetak Bukti Pendaftaran</span></a>
 
-      <!-- COLLAPSIBLE GROUP: HOMEPAGE / PENGATURAN WEBSITE -->
-      <div class="sidebar-nav-group">
-        <button type="button" class="sidebar-nav-group-header ${savedGroups['homepage'] ? 'open' : ''}" id="nav-group-header-homepage" onclick="toggleNavGroup('homepage')">
-          <span class="nav-group-title"><i class="fa-solid fa-globe" style="color: #38bdf8;"></i> HOMEPAGE</span>
-          <i class="fa-solid fa-chevron-down nav-group-arrow"></i>
-        </button>
-        <div class="sidebar-nav-group-content ${savedGroups['homepage'] ? 'open' : ''}" id="nav-group-content-homepage">
-          <a href="#homepage-hero-slider" id="nav-homepage-hero-slider" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-images"></i></span><span class="nav-label">Hero Slider</span></a>
-          <a href="#homepage-info" id="nav-homepage-info" class="sidebar-nav-item" onclick="alert('Fitur Informasi Singkat akan segera hadir.'); return false;"><span class="nav-icon"><i class="fa-solid fa-circle-info"></i></span><span class="nav-label">Informasi Singkat</span></a>
-          <a href="#countdown-settings" id="nav-countdown-settings" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-stopwatch"></i></span><span class="nav-label">Countdown Pendaftaran</span></a>
-          <a href="#homepage-announcements" id="nav-homepage-announcements" class="sidebar-nav-item" onclick="alert('Fitur Pengumuman Homepage akan segera hadir.'); return false;"><span class="nav-icon"><i class="fa-solid fa-bullhorn"></i></span><span class="nav-label">Pengumuman Homepage</span></a>
-          <a href="#homepage-flow" id="nav-homepage-flow" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-route"></i></span><span class="nav-label">Alur Pendaftaran</span></a>
-        </div>
-      </div>
-
-      <!-- COLLAPSIBLE GROUP: MASTER DATA PSB -->
+      <!-- COLLAPSIBLE GROUP: SETTING PSB -->
       <div class="sidebar-nav-group">
         <button type="button" class="sidebar-nav-group-header ${savedGroups['master-psb'] ? 'open' : ''}" id="nav-group-header-master-psb" onclick="toggleNavGroup('master-psb')">
-          <span class="nav-group-title"><i class="fa-solid fa-database" style="color: #60a5fa;"></i> MASTER DATA PSB</span>
+          <span class="nav-group-title"><i class="fa-solid fa-database" style="color: #60a5fa;"></i> SETTING PSB</span>
           <i class="fa-solid fa-chevron-down nav-group-arrow"></i>
         </button>
         <div class="sidebar-nav-group-content ${savedGroups['master-psb'] ? 'open' : ''}" id="nav-group-content-master-psb">
@@ -892,6 +1042,20 @@ function buildRoleSidebar(role) {
         </div>
       </div>
 
+      <!-- COLLAPSIBLE GROUP: TES PRAKTIK -->
+      <div class="sidebar-nav-group">
+        <button type="button" class="sidebar-nav-group-header ${savedGroups['practical'] ? 'open' : ''}" id="nav-group-header-practical" onclick="toggleNavGroup('practical')">
+          <span class="nav-group-title"><i class="fa-solid fa-book-quran" style="color: #38bdf8;"></i> TES PRAKTIK</span>
+          <i class="fa-solid fa-chevron-down nav-group-arrow"></i>
+        </button>
+        <div class="sidebar-nav-group-content ${savedGroups['practical'] ? 'open' : ''}" id="nav-group-content-practical">
+          <a href="#practical-dashboard" id="nav-practical-dashboard" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span><span class="nav-label">Dashboard Praktik</span></a>
+          <a href="#practical-schedules" id="nav-practical-schedules" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-week"></i></span><span class="nav-label">Jadwal Praktik</span></a>
+          <a href="#practical-candidates" id="nav-practical-candidates" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-user-check"></i></span><span class="nav-label">Penilaian Santri</span></a>
+          <a href="#practical-recap" id="nav-practical-recap" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span><span class="nav-label">Rekapitulasi Nilai</span></a>
+        </div>
+      </div>
+
       <!-- COLLAPSIBLE GROUP: WAWANCARA -->
       <div class="sidebar-nav-group">
         <button type="button" class="sidebar-nav-group-header ${savedGroups['interview'] ? 'open' : ''}" id="nav-group-header-interview" onclick="toggleNavGroup('interview')">
@@ -903,6 +1067,22 @@ function buildRoleSidebar(role) {
           <a href="#interview-schedules" id="nav-interview-schedules" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-week"></i></span><span class="nav-label">Jadwal Wawancara</span></a>
           <a href="#interview-interviewers" id="nav-interview-interviewers" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-user-tie"></i></span><span class="nav-label">Data Pewawancara</span></a>
           <a href="#interview-results" id="nav-interview-results" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-bar"></i></span><span class="nav-label">Hasil Wawancara</span></a>
+        </div>
+      </div>
+
+
+      <!-- COLLAPSIBLE GROUP: HOMEPAGE / PENGATURAN WEBSITE -->
+      <div class="sidebar-nav-group">
+        <button type="button" class="sidebar-nav-group-header ${savedGroups['homepage'] ? 'open' : ''}" id="nav-group-header-homepage" onclick="toggleNavGroup('homepage')">
+          <span class="nav-group-title"><i class="fa-solid fa-globe" style="color: #38bdf8;"></i> HOMEPAGE</span>
+          <i class="fa-solid fa-chevron-down nav-group-arrow"></i>
+        </button>
+        <div class="sidebar-nav-group-content ${savedGroups['homepage'] ? 'open' : ''}" id="nav-group-content-homepage">
+          <a href="#homepage-hero-slider" id="nav-homepage-hero-slider" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-images"></i></span><span class="nav-label">Hero Slider</span></a>
+          <a href="#homepage-info" id="nav-homepage-info" class="sidebar-nav-item" onclick="alert('Fitur Informasi Singkat akan segera hadir.'); return false;"><span class="nav-icon"><i class="fa-solid fa-circle-info"></i></span><span class="nav-label">Informasi Singkat</span></a>
+          <a href="#countdown-settings" id="nav-countdown-settings" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-stopwatch"></i></span><span class="nav-label">Countdown Pendaftaran</span></a>
+          <a href="#homepage-announcements" id="nav-homepage-announcements" class="sidebar-nav-item" onclick="alert('Fitur Pengumuman Homepage akan segera hadir.'); return false;"><span class="nav-icon"><i class="fa-solid fa-bullhorn"></i></span><span class="nav-label">Pengumuman Homepage</span></a>
+          <a href="#homepage-flow" id="nav-homepage-flow" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-route"></i></span><span class="nav-label">Alur Pendaftaran</span></a>
         </div>
       </div>
 
@@ -965,6 +1145,20 @@ function buildRoleSidebar(role) {
         </div>
       </div>
 
+      <!-- COLLAPSIBLE GROUP: TES PRAKTIK -->
+      <div class="sidebar-nav-group">
+        <button type="button" class="sidebar-nav-group-header ${savedGroups['practical'] ? 'open' : ''}" id="nav-group-header-practical" onclick="toggleNavGroup('practical')">
+          <span class="nav-group-title"><i class="fa-solid fa-book-quran" style="color: #38bdf8;"></i> TES PRAKTIK</span>
+          <i class="fa-solid fa-chevron-down nav-group-arrow"></i>
+        </button>
+        <div class="sidebar-nav-group-content ${savedGroups['practical'] ? 'open' : ''}" id="nav-group-content-practical">
+          <a href="#practical-dashboard" id="nav-practical-dashboard" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-gauge-high"></i></span><span class="nav-label">Dashboard Praktik</span></a>
+          <a href="#practical-schedules" id="nav-practical-schedules" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-week"></i></span><span class="nav-label">Jadwal Praktik</span></a>
+          <a href="#practical-candidates" id="nav-practical-candidates" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-user-check"></i></span><span class="nav-label">Penilaian Santri</span></a>
+          <a href="#practical-recap" id="nav-practical-recap" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span><span class="nav-label">Rekapitulasi Nilai</span></a>
+        </div>
+      </div>
+
       <!-- COLLAPSIBLE GROUP: WAWANCARA -->
       <div class="sidebar-nav-group">
         <button type="button" class="sidebar-nav-group-header ${savedGroups['interview'] ? 'open' : ''}" id="nav-group-header-interview" onclick="toggleNavGroup('interview')">
@@ -998,6 +1192,17 @@ function buildRoleSidebar(role) {
       <a href="#iw-my-schedules" id="nav-iw-my-schedules" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-week"></i></span><span class="nav-label">Jadwal Saya</span></a>
       <a href="#iw-my-participants" id="nav-iw-my-participants" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-users"></i></span><span class="nav-label">Daftar Peserta</span></a>
       <a href="#iw-history" id="nav-iw-history" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span><span class="nav-label">Riwayat Wawancara</span></a>
+      <div class="nav-section-title">AKUN SAYA</div>
+      <a href="#change-password" id="nav-change-password" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-key"></i></span><span class="nav-label">Ubah Password</span></a>
+      <a href="javascript:void(0)" onclick="handleLogout()" class="sidebar-nav-item logout-item"><span class="nav-icon"><i class="fa-solid fa-door-open"></i></span><span class="nav-label">Keluar</span></a>
+    `;
+  } else if (role === 'PETUGAS_TES_PRAKTIK') {
+    menu.innerHTML = `
+      <div class="nav-section-title">MENU TES PRAKTIK</div>
+      <a href="#practical-dashboard" id="nav-practical-dashboard" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Dashboard Praktik</span></a>
+      <a href="#practical-my-schedules" id="nav-practical-my-schedules" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span><span class="nav-label">Jadwal Saya</span></a>
+      <a href="#practical-candidates" id="nav-practical-candidates" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-user-check"></i></span><span class="nav-label">Penilaian Santri</span></a>
+      <a href="#practical-recap" id="nav-practical-recap" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span><span class="nav-label">Rekapitulasi Nilai</span></a>
       <div class="nav-section-title">AKUN SAYA</div>
       <a href="#change-password" id="nav-change-password" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-key"></i></span><span class="nav-label">Ubah Password</span></a>
       <a href="javascript:void(0)" onclick="handleLogout()" class="sidebar-nav-item logout-item"><span class="nav-icon"><i class="fa-solid fa-door-open"></i></span><span class="nav-label">Keluar</span></a>
@@ -1132,6 +1337,20 @@ function handleDashboardRoute() {
     else if (mainRoute === 'cbt-reset') {
       if (typeof renderCbtResetView === 'function') renderCbtResetView();
     }
+    // ---- TES PRAKTIK ROUTES ----
+    else if (mainRoute === 'practical-dashboard') {
+      if (typeof renderPracticalDashboardView === 'function') renderPracticalDashboardView();
+    }
+    else if (mainRoute === 'practical-schedules' || mainRoute === 'jadwal-praktik' || mainRoute === 'practical-my-schedules') {
+      if (typeof renderAdminPracticalSchedulesView === 'function') renderAdminPracticalSchedulesView();
+    }
+    else if (mainRoute === 'practical-candidates' || mainRoute === 'penilaian-praktik') {
+      if (typeof renderPracticalCandidatesView === 'function') renderPracticalCandidatesView();
+    }
+    else if (mainRoute === 'practical-recap' || mainRoute === 'rekap-praktik') {
+      if (typeof renderPracticalRecapView === 'function') renderPracticalRecapView();
+    }
+    // ---- END TES PRAKTIK ROUTES ----
     // ---- WAWANCARA ROUTES ----
     else if (mainRoute === 'interview-dashboard') {
       if (typeof renderInterviewAdminDashboard === 'function') renderInterviewAdminDashboard();
@@ -1173,6 +1392,10 @@ function handleDashboardRoute() {
     else if (mainRoute === 'countdown-settings') renderAdminCountdownView();
     else if (mainRoute === 'audit-logs') renderAdminAuditLogsView();
     else if (mainRoute === 'reset-operasional') renderAdminResetOperasionalView();
+    else if (mainRoute === 'formulir') {
+      if (typeof renderPesertaFullFormMenu === 'function') renderPesertaFullFormMenu(param);
+      else if (typeof renderPesertaFullFormView === 'function') renderPesertaFullFormView(param);
+    }
     else if (mainRoute === 'detail') renderPesertaRegistrationDetail(param);
     else if (mainRoute === 'card') renderParticipantCardView(param);
     else if (mainRoute === 'change-password') renderChangePasswordView();
@@ -1228,9 +1451,25 @@ function handleDashboardRoute() {
     else if (mainRoute === 'master-periode') renderAdminPeriodsView();
     else if (mainRoute === 'master-gelombang') renderAdminWavesView();
     else if (mainRoute === 'master-kategori') renderAdminCategoriesView();
+    else if (mainRoute === 'practical-dashboard') {
+      if (typeof renderPracticalDashboardView === 'function') renderPracticalDashboardView();
+    }
+    else if (mainRoute === 'practical-schedules' || mainRoute === 'jadwal-praktik' || mainRoute === 'practical-my-schedules') {
+      if (typeof renderAdminPracticalSchedulesView === 'function') renderAdminPracticalSchedulesView();
+    }
+    else if (mainRoute === 'practical-candidates' || mainRoute === 'penilaian-praktik') {
+      if (typeof renderPracticalCandidatesView === 'function') renderPracticalCandidatesView();
+    }
+    else if (mainRoute === 'practical-recap' || mainRoute === 'rekap-praktik') {
+      if (typeof renderPracticalRecapView === 'function') renderPracticalRecapView();
+    }
     else if (mainRoute === 'checkin-scanner') renderCheckInScannerView();
     else if (mainRoute === 'cetak-kartu') renderCetakKartuView();
     else if (mainRoute === 'verifikasi-pembayaran') renderBendaharaPaymentsView();
+    else if (mainRoute === 'formulir') {
+      if (typeof renderPesertaFullFormMenu === 'function') renderPesertaFullFormMenu(param);
+      else if (typeof renderPesertaFullFormView === 'function') renderPesertaFullFormView(param);
+    }
     else if (mainRoute === 'detail') renderPesertaRegistrationDetail(param);
     else if (mainRoute === 'card') renderParticipantCardView(param);
     else if (mainRoute === 'change-password') renderChangePasswordView();
@@ -1252,6 +1491,18 @@ function handleDashboardRoute() {
     } else {
       if (typeof renderInterviewerDashboard === 'function') renderInterviewerDashboard();
     }
+  } else if (role === 'PETUGAS_TES_PRAKTIK') {
+    if (mainRoute === 'practical-schedules' || mainRoute === 'practical-my-schedules' || mainRoute === 'jadwal-praktik') {
+      if (typeof renderExaminerMySchedules === 'function') renderExaminerMySchedules();
+    } else if (mainRoute === 'practical-candidates' || mainRoute === 'penilaian-praktik') {
+      if (typeof renderPracticalCandidatesView === 'function') renderPracticalCandidatesView();
+    } else if (mainRoute === 'practical-recap' || mainRoute === 'rekap-praktik') {
+      if (typeof renderPracticalRecapView === 'function') renderPracticalRecapView();
+    } else if (mainRoute === 'change-password') {
+      renderChangePasswordView();
+    } else {
+      if (typeof renderPracticalDashboardView === 'function') renderPracticalDashboardView();
+    }
   }
 }
 
@@ -1262,7 +1513,7 @@ function handleDashboardRoute() {
 // Component Local State for Universal Tables
 const tableState = {
   pesertaRegs: { page: 1, pageSize: 10, search: '', sortKey: '', sortDir: 'asc', filterKey: '', filterVal: '', data: [] },
-  bendaharaPayments: { page: 1, pageSize: 10, search: '', sortKey: '', sortDir: 'asc', filterKey: '', filterVal: '', data: [] },
+  bendaharaPayments: { page: 1, pageSize: 10, search: '', sortKey: '', sortDir: 'asc', filterKey: '', filterVal: '', startDate: '', endDate: '', datePreset: 'all', data: [] },
   adminRegistrations: { page: 1, pageSize: 10, search: '', sortKey: '', sortDir: 'asc', filterKey: '', filterVal: '', data: [] },
   adminUsers: { page: 1, pageSize: 10, search: '', sortKey: '', sortDir: 'asc', filterKey: '', filterVal: '', data: [] },
   adminAudit: { page: 1, pageSize: 10, search: '', sortKey: '', sortDir: 'asc', filterKey: '', filterVal: '', data: [] },
@@ -1328,6 +1579,10 @@ async function renderPesertaDashboard() {
     const isCbtPending = isCbtCompleted && cbt.verificationStatus === 'PENDING';
     const isCbtRejected = cbt && cbt.verificationStatus === 'REJECTED';
 
+    // State Tes Praktik (BTQ, Wudhu & Salat)
+    const practical = reg.practicalTest;
+    const isPracticalCompleted = practical && practical.status === 'COMPLETED';
+
     // State Interview / Wawancara
     const iw = reg.interview;
     const iwSchedule = iw?.schedule;
@@ -1348,12 +1603,13 @@ async function renderPesertaDashboard() {
     if (isPayApproved) progressPercent = 28; // Step 2: Pembayaran
     if (isFormDraft) progressPercent = Math.max(progressPercent, 42); // Step 3: Mengisi formulir
     if (isFormSubmitted) progressPercent = 42; // Step 3: Formulir terkirim
-    if (isFormVerified) progressPercent = 57; // Step 4: Formulir terverifikasi / Akses CBT
-    if (isCbtPending) progressPercent = 65; // Step 4: CBT selesai dikerjakan, menunggu verifikasi
-    if (isCbtVerified) progressPercent = 75; // Step 4: CBT Lulus Diverifikasi -> Lanjut Wawancara (Step 5 aktif)
-    if (isInterviewScheduled) progressPercent = 80;
-    if (isInterviewCompleted) progressPercent = 88;
-    if (isWaitlisted) progressPercent = 92;
+    if (isFormVerified) progressPercent = 55; // Step 4: Formulir terverifikasi / Akses CBT
+    if (isCbtPending) progressPercent = 62; // Step 4: CBT selesai, menunggu verifikasi
+    if (isCbtVerified) progressPercent = 70; // Step 4: CBT Lulus Diverifikasi -> Siap Tes Praktik
+    if (isPracticalCompleted) progressPercent = 82; // Step 5: Tes Praktik Selesai -> Lanjut Wawancara
+    if (isInterviewScheduled) progressPercent = 88;
+    if (isInterviewCompleted) progressPercent = 94;
+    if (isWaitlisted) progressPercent = 96;
     if (isAccepted || isRejected) progressPercent = 100;
 
     container.innerHTML = `
@@ -1633,44 +1889,46 @@ async function renderPesertaDashboard() {
             </div>
           </div>
 
-          <!-- Step 5: Tes Wawancara -->
-          <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 12px; border: 1px solid ${isInterviewCompleted ? '#10b981' : isInterviewInProgress ? '#0284c7' : isInterviewScheduled ? '#3b82f6' : isCbtVerified ? '#f59e0b' : '#94a3b8'};">
+          <!-- Step 5: Tes Praktik (BTQ, Wudhu & Salat) -->
+          <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 12px; border: 1px solid ${isPracticalCompleted ? '#10b981' : isCbtVerified ? '#0284c7' : '#94a3b8'};">
             <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
-              <span style="width: 22px; height: 22px; border-radius: 50%; background: ${isInterviewCompleted ? '#10b981' : isInterviewInProgress ? '#0284c7' : isInterviewScheduled ? '#3b82f6' : isCbtVerified ? '#f59e0b' : '#94a3b8'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex-shrink: 0;">
-                ${isInterviewCompleted ? '✓' : '5'}
+              <span style="width: 22px; height: 22px; border-radius: 50%; background: ${isPracticalCompleted ? '#10b981' : isCbtVerified ? '#0284c7' : '#94a3b8'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex-shrink: 0;">
+                ${isPracticalCompleted ? '✓' : '5'}
               </span>
-              <strong style="font-size: 0.78rem; color: var(--text-heading);">5. Wawancara</strong>
+              <strong style="font-size: 0.78rem; color: var(--text-heading);">5. Tes Praktik</strong>
             </div>
-            <div style="font-size: 0.72rem; font-weight: 600; color: ${isInterviewCompleted ? '#059669' : isInterviewInProgress ? '#0284c7' : isInterviewScheduled ? '#2563eb' : isCbtVerified ? '#d97706' : '#64748b'};">
-              ${isInterviewCompleted ? 'Selesai Wawancara ✓' : isInterviewInProgress ? 'Sedang Wawancara' : isInterviewScheduled ? `Terjadwal (${iwSchedule.startTime || '08:00'})` : isCbtVerified ? 'Menunggu Jadwal' : 'Menunggu CBT'}
+            <div style="font-size: 0.72rem; font-weight: 600; color: ${isPracticalCompleted ? '#059669' : isCbtVerified ? '#0284c7' : '#64748b'};">
+              ${isPracticalCompleted ? `Selesai (${practical.totalScore || '-'}) ✓` : isCbtVerified ? 'Siap Diuji' : 'Menunggu CBT'}
             </div>
           </div>
 
-          <!-- Step 6: Pengumuman -->
+          <!-- Step 6: Tes Wawancara -->
+          <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 12px; border: 1px solid ${isInterviewCompleted ? '#10b981' : isInterviewInProgress ? '#0284c7' : isInterviewScheduled ? '#3b82f6' : isPracticalCompleted ? '#f59e0b' : '#94a3b8'};">
+            <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
+              <span style="width: 22px; height: 22px; border-radius: 50%; background: ${isInterviewCompleted ? '#10b981' : isInterviewInProgress ? '#0284c7' : isInterviewScheduled ? '#3b82f6' : isPracticalCompleted ? '#f59e0b' : '#94a3b8'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex-shrink: 0;">
+                ${isInterviewCompleted ? '✓' : '6'}
+              </span>
+              <strong style="font-size: 0.78rem; color: var(--text-heading);">6. Wawancara</strong>
+            </div>
+            <div style="font-size: 0.72rem; font-weight: 600; color: ${isInterviewCompleted ? '#059669' : isInterviewInProgress ? '#0284c7' : isInterviewScheduled ? '#2563eb' : isPracticalCompleted ? 'Menunggu Jadwal' : '#64748b'};">
+              ${isInterviewCompleted ? 'Selesai Wawancara ✓' : isInterviewInProgress ? 'Sedang Wawancara' : isInterviewScheduled ? `Terjadwal (${iwSchedule.startTime || '08:00'})` : isPracticalCompleted ? 'Menunggu Jadwal' : 'Menunggu Praktik'}
+            </div>
+          </div>
+
+          <!-- Step 7: Pengumuman -->
           <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 12px; border: 1px solid ${isAccepted ? '#10b981' : isRejected ? '#ef4444' : isWaitlisted ? '#f59e0b' : isInterviewCompleted ? '#0284c7' : '#94a3b8'};">
             <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
               <span style="width: 22px; height: 22px; border-radius: 50%; background: ${isAccepted ? '#10b981' : isRejected ? '#ef4444' : isWaitlisted ? '#f59e0b' : isInterviewCompleted ? '#0284c7' : '#94a3b8'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex-shrink: 0;">
-                ${isAccepted ? '✓' : isRejected ? '✗' : isWaitlisted ? '!' : '6'}
+                ${isAccepted ? '✓' : isRejected ? '✗' : isWaitlisted ? '!' : '7'}
               </span>
-              <strong style="font-size: 0.78rem; color: var(--text-heading);">6. Pengumuman</strong>
+              <strong style="font-size: 0.78rem; color: var(--text-heading);">7. Pengumuman</strong>
             </div>
             <div style="font-size: 0.72rem; font-weight: 600; color: ${isAccepted ? '#059669' : isRejected ? '#dc2626' : isWaitlisted ? '#d97706' : isInterviewCompleted ? '#0284c7' : '#64748b'};">
               ${isAccepted ? 'DITERIMA ✓' : isRejected ? 'TIDAK LOLOS' : isWaitlisted ? 'CADANGAN' : isInterviewCompleted ? 'Menunggu Keputusan' : 'Belum Diumumkan'}
             </div>
           </div>
 
-          <!-- Step 7: Santri Aktif -->
-          <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 12px; border: 1px solid ${isAccepted ? '#10b981' : isRejected ? '#64748b' : isWaitlisted ? '#f59e0b' : '#94a3b8'};">
-            <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
-              <span style="width: 22px; height: 22px; border-radius: 50%; background: ${isAccepted ? '#10b981' : isRejected ? '#64748b' : isWaitlisted ? '#f59e0b' : '#94a3b8'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex-shrink: 0;">
-                ${isAccepted ? '✓' : '7'}
-              </span>
-              <strong style="font-size: 0.78rem; color: var(--text-heading);">7. Santri Aktif</strong>
-            </div>
-            <div style="font-size: 0.72rem; font-weight: 600; color: ${isAccepted ? '#059669' : isRejected ? '#64748b' : isWaitlisted ? '#d97706' : '#64748b'};">
-              ${isAccepted ? 'Siap Masuk ✓' : isRejected ? 'Selesai' : isWaitlisted ? 'Menunggu Kuota' : 'Menunggu Proses'}
-            </div>
-          </div>
+          
 
         </div>
       </div>
@@ -1680,11 +1938,85 @@ async function renderPesertaDashboard() {
         // Build individual cards with priority scores based on candidate's current latest stage
         const cards = [];
 
+        // 0. CARD TES PRAKTIK (BTQ, WUDHU, SALAT)
+        const ptSchedule = practical?.schedule;
+        const ptExaminer = practical?.examiner;
+        const isPracticalScheduled = !isPracticalCompleted && Boolean(ptSchedule);
+
+        let practicalPriority = 35;
+        if (isPracticalCompleted) practicalPriority = 98;
+        else if (isPracticalScheduled) practicalPriority = 94;
+        else if (isCbtVerified) practicalPriority = 90;
+
+        const practicalCardHtml = `
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div style="width: 44px; height: 44px; border-radius: 10px; background: ${isPracticalCompleted ? 'rgba(16, 185, 129, 0.12)' : isPracticalScheduled ? 'rgba(59, 130, 246, 0.12)' : isCbtVerified ? 'rgba(2, 132, 199, 0.12)' : 'rgba(148, 163, 184, 0.15)'}; color: ${isPracticalCompleted ? '#059669' : isPracticalScheduled ? '#2563eb' : isCbtVerified ? '#0284c7' : '#64748b'}; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                  <i class="fa-solid fa-book-quran"></i>
+                </div>
+                <span class="badge ${isPracticalCompleted ? 'badge-success' : isPracticalScheduled ? 'badge-primary' : isCbtVerified ? 'badge-warning' : 'badge-secondary'}" style="font-size: 0.75rem;">
+                  ${isPracticalCompleted ? '<i class="fa-solid fa-check-double"></i> SELESAI' : isPracticalScheduled ? '<i class="fa-solid fa-calendar-check"></i> TERJADWAL' : isCbtVerified ? '<i class="fa-solid fa-hourglass-half"></i> MENUNGGU JADWAL' : '<i class="fa-solid fa-lock"></i> MENUNGGU CBT'}
+                </span>
+              </div>
+              <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 10px;">Tes Praktik (BTQ, Wudhu & Salat)</h3>
+              
+              ${isPracticalCompleted ? `
+                <div style="font-size: 0.85rem; color: var(--text-main); display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; background: var(--bg-body); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                  <div style="display: flex; justify-content: space-between;"><span>Skor BTQ:</span> <strong>${practical.btqScore || '-'}/6</strong></div>
+                  <div style="display: flex; justify-content: space-between;"><span>Skor Wudhu:</span> <strong>${practical.wudhuScore || '-'}/3</strong></div>
+                  <div style="display: flex; justify-content: space-between;"><span>Skor Salat:</span> <strong>${practical.salatScore || '-'}/3</strong></div>
+                  <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-subtle); padding-top: 4px; color: #059669; font-weight: 800;"><span>Rerata Nilai:</span> <strong>${practical.totalScore ? Number(practical.totalScore).toFixed(2) : '-'}/4.00</strong></div>
+                  ${practical.generalNotes ? `<div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 4px;"><em>"${escapeHtml(practical.generalNotes)}"</em></div>` : ''}
+                </div>
+              ` : isPracticalScheduled ? `
+                <div style="font-size: 0.85rem; color: var(--text-main); display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; background: rgba(59, 130, 246, 0.05); padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                  <div style="font-weight: 700; color: #1d4ed8; font-size: 0.88rem; margin-bottom: 2px;"><i class="fa-solid fa-calendar-check"></i> Jadwal Ujian Praktik Anda:</div>
+                  <div style="display: flex; justify-content: space-between;"><span>Sesi:</span> <strong>${escapeHtml(ptSchedule.name)}</strong></div>
+                  <div style="display: flex; justify-content: space-between;"><span>Tanggal:</span> <strong>${formatDateIndo(ptSchedule.scheduleDate)}</strong></div>
+                  <div style="display: flex; justify-content: space-between;"><span>Waktu:</span> <strong>${escapeHtml(ptSchedule.startTime || '08:00')} - ${escapeHtml(ptSchedule.endTime || '12:00')} WIB</strong></div>
+                  <div style="display: flex; justify-content: space-between;"><span>Ruangan:</span> <strong>${escapeHtml(ptSchedule.roomLocation || ptSchedule.room || 'Ruang Penguji')}</strong></div>
+                  ${ptExaminer ? `<div style="display: flex; justify-content: space-between;"><span>Penguji:</span> <strong>${escapeHtml(ptExaminer.name)}</strong></div>` : ''}
+                </div>
+              ` : isCbtVerified ? `
+                <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin-bottom: 16px;">
+                  Selamat! Anda telah lulus CBT dan siap mengikuti <strong>Tes Praktik Baca Tulis Al-Qur'an (BTQ), Wudhu & Salat</strong>. Jadwal pengujian sedang disiapkan oleh Panitia.
+                </p>
+              ` : `
+                <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin-bottom: 16px;">
+                  Tahap Tes Praktik akan aktif setelah Anda dinyatakan Lulus Ujian CBT.
+                </p>
+              `}
+            </div>
+            <div>
+              ${isPracticalCompleted ? `
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid #86efac; border-radius: 8px; padding: 10px; font-size: 0.825rem; color: #15803d; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-circle-check"></i> Tes Praktik telah dinilai oleh Penguji.
+                </div>
+              ` : isPracticalScheduled ? `
+                <div style="font-size: 0.775rem; color: #1d4ed8; background: rgba(59, 130, 246, 0.08); padding: 8px 12px; border-radius: 6px; display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-location-dot"></i> Hadir di <strong>${escapeHtml(ptSchedule.roomLocation || ptSchedule.room || 'Ruangan')}</strong> tepat waktu.
+                </div>
+              ` : isCbtVerified ? `
+                <div style="font-size: 0.775rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-circle-info" style="color: var(--primary-600);"></i> Menunggu panitia memplot jadwal sesi tes praktik Anda.
+                </div>
+              ` : `
+                <button type="button" class="btn btn-secondary" style="width: 100%; opacity: 0.75; cursor: not-allowed;" disabled>
+                  <i class="fa-solid fa-lock"></i> Menunggu Lulus CBT
+                </button>
+              `}
+            </div>
+          </div>
+        `;
+        cards.push({ id: 'practical', priority: practicalPriority, html: practicalCardHtml });
+
         // 1. CARD TES WAWANCARA
         let interviewPriority = 30;
         if (isInterviewCompleted) interviewPriority = 100;
         else if (isInterviewScheduled) interviewPriority = 95;
-        else if (isCbtVerified) interviewPriority = 85;
+        else if (isPracticalCompleted) interviewPriority = 88;
+        else if (isCbtVerified) interviewPriority = 75;
 
         const interviewCardHtml = `
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
@@ -2035,15 +2367,11 @@ async function renderPanduanView() {
           </div>
           <div style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; background: var(--bg-body); border-radius: 8px; border: 1px solid var(--border-subtle);">
             <i class="fa-solid fa-address-card" style="color: var(--primary-600); margin-top: 3px;"></i>
-            <div><strong style="font-size: 0.875rem;">KTP Orang Tua / Wali</strong><div style="font-size: 0.775rem; color: var(--text-muted);">Scan KTP Ayah dan Ibu/Wali aktif.</div></div>
+            <div><strong style="font-size: 0.875rem;">KTP Orang Tua / Wali (Opsional)</strong><div style="font-size: 0.775rem; color: var(--text-muted);">Scan/foto KTP Ayah dan Ibu/Wali aktif (jika ada).</div></div>
           </div>
           <div style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; background: var(--bg-body); border-radius: 8px; border: 1px solid var(--border-subtle);">
             <i class="fa-solid fa-graduation-cap" style="color: var(--primary-600); margin-top: 3px;"></i>
             <div><strong style="font-size: 0.875rem;">Ijazah / SKL / Rapor</strong><div style="font-size: 0.775rem; color: var(--text-muted);">Surat keterangan dari sekolah asal.</div></div>
-          </div>
-          <div style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; background: var(--bg-body); border-radius: 8px; border: 1px solid var(--border-subtle);">
-            <i class="fa-solid fa-image" style="color: var(--primary-600); margin-top: 3px;"></i>
-            <div><strong style="font-size: 0.875rem;">Pas Foto Formal</strong><div style="font-size: 0.775rem; color: var(--text-muted);">Berpakaian rapi (putra berpeci, putri berbusana muslimah).</div></div>
           </div>
           <div style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; background: var(--bg-body); border-radius: 8px; border: 1px solid var(--border-subtle);">
             <i class="fa-solid fa-trophy" style="color: var(--primary-600); margin-top: 3px;"></i>
@@ -2288,14 +2616,20 @@ async function renderPesertaRegistrationWizard() {
           <input type="hidden" id="wiz-period-id" value="${activePeriod.id}">
 
           <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Kuota / Gelombang Pendaftaran Aktif</label>
-            <select id="wiz-wave-id" class="form-select" onchange="onWizardWaveChange()" required style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+            <label class="form-label" style="display: flex; align-items: center; justify-content: space-between; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">
+              <span>Kuota / Gelombang Pendaftaran</span>
+              <span style="font-size: 0.78rem; font-weight: 500; color: var(--primary-600); display: inline-flex; align-items: center; gap: 4px; background: rgba(37, 99, 235, 0.08); padding: 2px 8px; border-radius: 4px;">
+                <i class="fa-solid fa-lock" style="font-size: 0.72rem;"></i> Otomatis ditentukan sistem
+              </span>
+            </label>
+            <input type="text" id="wiz-wave-display" class="form-control" readonly value="${availableWaves[0]?.name || 'Kuota 1'}" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--bg-surface-secondary, #f1f5f9); color: var(--text-main); border-radius: var(--radius-md); font-weight: 600; cursor: not-allowed;" title="Ditentukan otomatis oleh ketersediaan kuota">
+            <select id="wiz-wave-id" style="display: none;">
               ${availableWaves.map(w => {
-                const verified = w.verifiedCount || 0;
-                const quota = w.quota;
-                const schoolQuotasJson = JSON.stringify(w.schoolQuotas || []).replace(/'/g, '&#39;');
-                return `<option value="${w.id}" data-fee="${w.registrationFee}" data-quotas='${schoolQuotasJson}' data-verified="${verified}" data-quota="${quota || ''}">${w.name}</option>`;
-              }).join('')}
+    const verified = w.verifiedCount || 0;
+    const quota = w.quota;
+    const schoolQuotasJson = JSON.stringify(w.schoolQuotas || []).replace(/'/g, '&#39;');
+    return `<option value="${w.id}" data-name="${w.name}" data-fee="${w.registrationFee}" data-quotas='${schoolQuotasJson}' data-verified="${verified}" data-quota="${quota || ''}">${w.name}</option>`;
+  }).join('')}
             </select>
           </div>
 
@@ -2322,12 +2656,36 @@ async function renderPesertaRegistrationWizard() {
             </select>
           </div>
 
-          <div class="form-group" style="margin-bottom: 16px;">
-            <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Apakah Calon Santri Akan Mukim / Mondok?</label>
-            <select id="wiz-boarding" class="form-select" required style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-              <option value="MUKIM">Ya, Mukim / Mondok di Pesantren</option>
-              <option value="NON_MUKIM">Tidak, Non-Mukim (Pulang-Pergi)</option>
-            </select>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">
+              Apakah Calon Santri Akan Mukim / Mondok? <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="hidden" id="wiz-boarding" value="">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;" id="boarding-btn-group">
+              <button type="button" class="btn-boarding-choice" onclick="selectBoardingOption('MUKIM')" id="btn-boarding-MUKIM" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 2px solid var(--border-subtle, #e2e8f0); border-radius: var(--radius-lg, 12px); background: var(--bg-card, #ffffff); cursor: pointer; text-align: left; transition: all 0.2s ease;">
+                <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(37, 99, 235, 0.1); color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+                  <i class="fa-solid fa-hotel"></i>
+                </div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; font-size: 0.92rem; color: var(--text-heading, #0f172a);">Ya, Mukim / Mondok</div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted, #64748b);">Tinggal di asrama pesantren</div>
+                </div>
+                <i class="fa-solid fa-circle-check check-indicator" style="display: none; color: #2563eb; font-size: 1.15rem;"></i>
+              </button>
+              <button type="button" class="btn-boarding-choice" onclick="selectBoardingOption('NON_MUKIM')" id="btn-boarding-NON_MUKIM" style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 2px solid var(--border-subtle, #e2e8f0); border-radius: var(--radius-lg, 12px); background: var(--bg-card, #ffffff); cursor: pointer; text-align: left; transition: all 0.2s ease;">
+                <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+                  <i class="fa-solid fa-house-user"></i>
+                </div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; font-size: 0.92rem; color: var(--text-heading, #0f172a);">Tidak (Non-Mukim / Laju)</div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted, #64748b);">Pulang-pergi dari rumah</div>
+                </div>
+                <i class="fa-solid fa-circle-check check-indicator" style="display: none; color: #10b981; font-size: 1.15rem;"></i>
+              </button>
+            </div>
+            <small id="wiz-boarding-error" style="display: none; color: #ef4444; font-size: 0.8rem; font-weight: 600; margin-top: 6px;">
+              <i class="fa-solid fa-circle-exclamation"></i> Wajib memilih salah satu opsi Mukim / Non-Mukim.
+            </small>
           </div>
 
           <!-- Program Details Banner -->
@@ -2425,14 +2783,19 @@ async function renderPesertaRegistrationWizard() {
             </div>
 
             <div class="form-group" style="margin-bottom: 16px;">
-              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">File Bukti Transfer / Screenshot QRIS (PNG, JPG, WEBP - Max 5MB)</label>
+              <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">
+                <span>File Bukti Transfer / Screenshot QRIS</span>
+                <span class="badge badge-success" style="font-size: 0.72rem; font-weight: 600; padding: 2px 8px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Compress Aktif</span>
+              </label>
               <input type="file" id="wiz-pay-file" class="form-control" accept="image/png, image/jpeg, image/webp" onchange="previewProofImage(this)" required style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              <div id="wiz-compress-info" style="display: none; margin-top: 8px;"></div>
             </div>
           </div>
 
           <!-- Image Preview Slot -->
-          <div id="wiz-img-preview-slot" style="display: none; margin-bottom: 16px; text-align: center; background: #000; border-radius: 8px; padding: 10px;">
-            <img id="wiz-preview-img" src="" alt="Preview Bukti" style="max-height: 200px; max-width: 100%; object-fit: contain;">
+          <div id="wiz-img-preview-slot" style="display: none; margin-bottom: 16px; text-align: center; background: #0f172a; border-radius: 8px; padding: 12px; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600;">Pratinjau Bukti Pembayaran:</div>
+            <img id="wiz-preview-img" src="" alt="Preview Bukti" style="max-height: 220px; max-width: 100%; object-fit: contain; border-radius: 4px;">
           </div>
         </div>
 
@@ -2457,7 +2820,7 @@ function isWaveAvailableForSchool(optionEl, schoolId) {
   try {
     const raw = optionEl.getAttribute('data-quotas');
     if (raw) schoolQuotas = JSON.parse(raw);
-  } catch(e) { schoolQuotas = []; }
+  } catch (e) { schoolQuotas = []; }
   const sq = schoolQuotas.find(s => s.schoolId === schoolId);
   if (sq && sq.quota > 0) {
     const verified = sq.verifiedCount || 0;
@@ -2469,21 +2832,24 @@ function isWaveAvailableForSchool(optionEl, schoolId) {
 
 function checkWizardQuota() {
   const waveSelect = document.getElementById('wiz-wave-id');
+  const waveDisplay = document.getElementById('wiz-wave-display');
   const catSelect = document.getElementById('wiz-cat');
   const quotaInfo = document.getElementById('wiz-school-quota-info');
   const submitBtn = document.getElementById('wiz-submit-btn');
+  const payFeeLabel = document.getElementById('wiz-pay-fee-label');
   if (!waveSelect || !catSelect || !quotaInfo) return true;
 
-  const selectedOpt = waveSelect.options[waveSelect.selectedIndex];
   const schoolId = catSelect.value;
-
-  if (!selectedOpt || !selectedOpt.value) {
-    quotaInfo.style.display = 'none';
-    return true;
-  }
+  const options = Array.from(waveSelect.options);
 
   if (!schoolId) {
     quotaInfo.style.display = 'none';
+    if (options.length > 0) {
+      waveSelect.selectedIndex = 0;
+      if (waveDisplay) waveDisplay.value = options[0].getAttribute('data-name') || options[0].textContent?.trim() || 'Kuota 1';
+      const fee = Number(options[0].getAttribute('data-fee') || 0);
+      if (payFeeLabel) payFeeLabel.textContent = formatCurrency(fee);
+    }
     if (submitBtn) submitBtn.disabled = false;
     return true;
   }
@@ -2491,77 +2857,67 @@ function checkWizardQuota() {
   const schoolObj = state.competitionTree?.find(s => s.id === schoolId);
   const schoolName = schoolObj?.name || 'Sekolah Terpilih';
 
-  // Check if current selected wave is available for this school
-  const isCurrentAvailable = isWaveAvailableForSchool(selectedOpt, schoolId);
+  // Find FIRST available wave in sequential order (Kuota 1 -> Kuota 2 -> ...)
+  let chosenOpt = null;
+  let chosenIndex = -1;
 
-  if (!isCurrentAvailable) {
-    const oldWaveName = selectedOpt.textContent?.trim() || 'Kuota Sebelumnya';
-
-    // Find next available wave in dropdown
-    let nextAvailableOpt = null;
-    for (let i = 0; i < waveSelect.options.length; i++) {
-      const opt = waveSelect.options[i];
-      if (opt.value && opt.value !== selectedOpt.value) {
-        if (isWaveAvailableForSchool(opt, schoolId)) {
-          nextAvailableOpt = opt;
-          break;
-        }
-      }
+  for (let i = 0; i < options.length; i++) {
+    const opt = options[i];
+    if (opt.value && isWaveAvailableForSchool(opt, schoolId)) {
+      chosenOpt = opt;
+      chosenIndex = i;
+      break;
     }
+  }
 
-    if (nextAvailableOpt) {
-      // Auto switch to next wave
-      waveSelect.value = nextAvailableOpt.value;
-      const newWaveName = nextAvailableOpt.textContent?.trim() || 'Kuota Selanjutnya';
-      const fee = Number(nextAvailableOpt.getAttribute('data-fee') || 0);
-      const payFeeLabel = document.getElementById('wiz-pay-fee-label');
-      if (payFeeLabel) payFeeLabel.textContent = formatCurrency(fee);
+  if (chosenOpt) {
+    waveSelect.value = chosenOpt.value;
+    const waveName = chosenOpt.getAttribute('data-name') || chosenOpt.textContent?.trim() || 'Kuota Aktif';
+    if (waveDisplay) waveDisplay.value = waveName;
 
+    const fee = Number(chosenOpt.getAttribute('data-fee') || 0);
+    if (payFeeLabel) payFeeLabel.textContent = formatCurrency(fee);
+
+    if (chosenIndex > 0) {
+      // Earlier quota (e.g. Kuota 1) was full, auto rolled over to next
+      const prevWaveName = options[0].getAttribute('data-name') || options[0].textContent?.trim() || 'Kuota 1';
       quotaInfo.style.display = 'block';
       quotaInfo.innerHTML = `
         <div style="padding: 12px 16px; background: rgba(59, 130, 246, 0.08); border: 1px solid #3b82f6; border-radius: var(--radius-md); color: #1d4ed8; font-weight: 600; font-size: 0.9rem; line-height: 1.5;">
           <div style="display: flex; align-items: flex-start; gap: 8px;">
             <i class="fa-solid fa-circle-info" style="font-size: 1.1rem; color: #2563eb; margin-top: 2px;"></i>
             <div>
-              Pendaftaran <strong>${oldWaveName}</strong> di sekolah <strong>${schoolName}</strong> Terpenuhi, Anda dialihkan ke <strong>${newWaveName}</strong>.
+              Pendaftaran <strong>${prevWaveName}</strong> untuk <strong>${schoolName}</strong> sudah terpenuhi. Anda otomatis dialihkan ke <strong>${waveName}</strong>.
             </div>
           </div>
         </div>
       `;
-      if (submitBtn) submitBtn.disabled = false;
-      return true;
     } else {
-      // All waves full for this school
-      quotaInfo.style.display = 'block';
-      quotaInfo.innerHTML = `
-        <div style="padding: 12px 16px; background: rgba(239, 68, 68, 0.08); border: 1px solid #ef4444; border-radius: var(--radius-md); color: #b91c1c; font-weight: 600; font-size: 0.9rem;">
-          <div style="display: flex; align-items: flex-start; gap: 8px;">
-            <i class="fa-solid fa-circle-xmark" style="font-size: 1.1rem; color: #dc2626; margin-top: 2px;"></i>
-            <div>
-              Kuota pendaftaran untuk <strong>${schoolName}</strong> sudah <strong>PENUH</strong> di seluruh gelombang/kuota. Silakan hubungi panitia.
-            </div>
+      quotaInfo.style.display = 'none';
+    }
+
+    if (submitBtn) submitBtn.disabled = false;
+    return true;
+  } else {
+    // All waves full for this school
+    if (waveDisplay) waveDisplay.value = 'Semua Kuota Penuh';
+    quotaInfo.style.display = 'block';
+    quotaInfo.innerHTML = `
+      <div style="padding: 12px 16px; background: rgba(239, 68, 68, 0.08); border: 1px solid #ef4444; border-radius: var(--radius-md); color: #b91c1c; font-weight: 600; font-size: 0.9rem;">
+        <div style="display: flex; align-items: flex-start; gap: 8px;">
+          <i class="fa-solid fa-circle-xmark" style="font-size: 1.1rem; color: #dc2626; margin-top: 2px;"></i>
+          <div>
+            Kuota pendaftaran untuk <strong>${schoolName}</strong> sudah <strong>PENUH</strong> di seluruh kuota/gelombang yang dibuka. Silakan hubungi panitia.
           </div>
         </div>
-      `;
-      if (submitBtn) submitBtn.disabled = true;
-      return false;
-    }
+      </div>
+    `;
+    if (submitBtn) submitBtn.disabled = true;
+    return false;
   }
-
-  // Current wave has quota
-  quotaInfo.style.display = 'none';
-  if (submitBtn) submitBtn.disabled = false;
-  return true;
 }
 
 function onWizardWaveChange() {
-  const waveSelect = document.getElementById('wiz-wave-id');
-  const selectedOpt = waveSelect?.options[waveSelect.selectedIndex];
-  const fee = selectedOpt ? Number(selectedOpt.getAttribute('data-fee') || 0) : 0;
-  const payFeeLabel = document.getElementById('wiz-pay-fee-label');
-  if (payFeeLabel) {
-    payFeeLabel.textContent = formatCurrency(fee);
-  }
   checkWizardQuota();
 }
 
@@ -2771,39 +3127,133 @@ function selectQrisAccount(accountId, qrisIdx) {
   }
 }
 
-function previewProofImage(input) {
+async function previewProofImage(input) {
   const slot = document.getElementById('wiz-img-preview-slot');
   const img = document.getElementById('wiz-preview-img');
+  const infoEl = document.getElementById('wiz-compress-info');
+  
   if (input.files && input.files[0]) {
+    const origFile = input.files[0];
+    const origSizeKB = Math.round(origFile.size / 1024);
+    const origSizeText = origSizeKB > 1024 ? `${(origSizeKB / 1024).toFixed(1)} MB` : `${origSizeKB} KB`;
+
+    if (infoEl) {
+      infoEl.innerHTML = `<span style="color: var(--primary-600); font-size: 0.8rem;"><i class="fa-solid fa-spinner fa-spin"></i> Mengoptimalkan & mengompresi foto...</span>`;
+      infoEl.style.display = 'block';
+    }
+
+    // Tampilkan preview segera dari dataURL
     const reader = new FileReader();
     reader.onload = function (e) {
       img.src = e.target.result;
       slot.style.display = 'block';
     };
-    reader.readAsDataURL(input.files[0]);
+    reader.readAsDataURL(origFile);
+
+    // Lakukan kompresi otomatis di background
+    try {
+      const compressed = await compressImageFile(origFile);
+      input._compressedFile = compressed;
+      const compSizeKB = Math.round(compressed.size / 1024);
+      const compSizeText = compSizeKB > 1024 ? `${(compSizeKB / 1024).toFixed(1)} MB` : `${compSizeKB} KB`;
+
+      if (infoEl) {
+        if (compressed.size < origFile.size) {
+          const ratio = Math.round((1 - (compressed.size / origFile.size)) * 100);
+          infoEl.innerHTML = `
+            <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; color: #15803d; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Foto berhasil dioptimalkan: <strong>${origSizeText}</strong> &rarr; <strong style="color: #166534;">${compSizeText}</strong> (Hemat ${ratio}%)</span>
+            </div>
+          `;
+        } else {
+          infoEl.innerHTML = `
+            <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid #3b82f6; border-radius: 6px; padding: 6px 10px; font-size: 0.8rem; color: #1d4ed8; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-image"></i>
+              <span>Ukuran foto optimal: <strong>${compSizeText}</strong> (Siap dikirim)</span>
+            </div>
+          `;
+        }
+        infoEl.style.display = 'block';
+      }
+    } catch (err) {
+      input._compressedFile = origFile;
+      if (infoEl) infoEl.style.display = 'none';
+    }
   } else {
     slot.style.display = 'none';
+    if (infoEl) infoEl.style.display = 'none';
+    input._compressedFile = null;
   }
 }
+
+function selectBoardingOption(val) {
+  const hiddenInput = document.getElementById('wiz-boarding');
+  if (hiddenInput) {
+    hiddenInput.value = val;
+  }
+  const btnMukim = document.getElementById('btn-boarding-MUKIM');
+  const btnNonMukim = document.getElementById('btn-boarding-NON_MUKIM');
+  const err = document.getElementById('wiz-boarding-error');
+  if (err) err.style.display = 'none';
+
+  if (btnMukim && btnNonMukim) {
+    if (val === 'MUKIM') {
+      btnMukim.style.borderColor = '#2563eb';
+      btnMukim.style.background = 'rgba(37, 99, 235, 0.06)';
+      btnMukim.style.boxShadow = '0 0 0 2px rgba(37, 99, 235, 0.25)';
+      const chk = btnMukim.querySelector('.check-indicator');
+      if (chk) chk.style.display = 'inline-block';
+
+      btnNonMukim.style.borderColor = 'var(--border-subtle, #e2e8f0)';
+      btnNonMukim.style.background = 'var(--bg-card, #ffffff)';
+      btnNonMukim.style.boxShadow = 'none';
+      const chk2 = btnNonMukim.querySelector('.check-indicator');
+      if (chk2) chk2.style.display = 'none';
+    } else if (val === 'NON_MUKIM') {
+      btnNonMukim.style.borderColor = '#10b981';
+      btnNonMukim.style.background = 'rgba(16, 185, 129, 0.06)';
+      btnNonMukim.style.boxShadow = '0 0 0 2px rgba(16, 185, 129, 0.25)';
+      const chk = btnNonMukim.querySelector('.check-indicator');
+      if (chk) chk.style.display = 'inline-block';
+
+      btnMukim.style.borderColor = 'var(--border-subtle, #e2e8f0)';
+      btnMukim.style.background = 'var(--bg-card, #ffffff)';
+      btnMukim.style.boxShadow = 'none';
+      const chk2 = btnMukim.querySelector('.check-indicator');
+      if (chk2) chk2.style.display = 'none';
+    }
+  }
+}
+window.selectBoardingOption = selectBoardingOption;
 
 async function handleFullRegistrationSubmit(e) {
   e.preventDefault();
   const periodId = document.getElementById('wiz-period-id')?.value;
   const waveId = document.getElementById('wiz-wave-id')?.value;
   const branchId = document.getElementById('wiz-branch')?.value;
-  const boardingStatus = document.getElementById('wiz-boarding')?.value || 'MUKIM';
+  const boardingStatus = document.getElementById('wiz-boarding')?.value;
   const fileInput = document.getElementById('wiz-pay-file');
   const btn = document.getElementById('wiz-submit-btn');
 
   if (!branchId) return;
 
+  if (!boardingStatus) {
+    const err = document.getElementById('wiz-boarding-error');
+    if (err) err.style.display = 'block';
+    const btnGroup = document.getElementById('boarding-btn-group');
+    if (btnGroup) btnGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('Silakan pilih opsi Apakah Calon Santri Akan Mukim / Mondok terlebih dahulu.', 'error');
+    return;
+  }
+
   if (!fileInput.files || fileInput.files.length === 0) {
-    alert('Wajib mengunggah file bukti transfer pembayaran.');
+    showToast('Wajib mengunggah file bukti transfer pembayaran.', 'error');
     return;
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan pendaftaran & bukti pembayaran...';
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengompresi & menyimpan pendaftaran...';
 
   try {
     // 1. Submit Initial PSB Registration
@@ -2829,21 +3279,25 @@ async function handleFullRegistrationSubmit(e) {
 
     const regId = regRes.data.id;
 
-    // 2. Upload Payment Proof immediately
+    // 2. Auto-compress photo if not already compressed
+    const rawFile = fileInput.files[0];
+    const fileToSend = fileInput._compressedFile || await compressImageFile(rawFile);
+
+    // 3. Upload Payment Proof immediately
     const formData = new FormData();
     formData.append('registrationId', regId);
     formData.append('paymentAccountId', document.getElementById('wiz-pay-account').value);
     formData.append('senderBank', document.getElementById('wiz-pay-bank').value);
     formData.append('senderAccountName', document.getElementById('wiz-pay-sender').value);
     formData.append('paymentDate', document.getElementById('wiz-pay-date').value);
-    formData.append('payment_proof', fileInput.files[0]);
+    formData.append('payment_proof', fileToSend);
 
     await apiRequest('/api/payments/upload', {
       method: 'POST',
       body: formData,
     });
 
-    // 3. Success Redirect
+    // 4. Success Redirect
     window.location.hash = `#detail/${regId}`;
     showToast('Pendaftaran awal dan bukti transfer berhasil dikirim!', 'success');
   } catch (err) {
@@ -2882,7 +3336,10 @@ async function renderPesertaRegistrationDetail(regId) {
             </a>
             <h2 style="font-size: 1.6rem; color: var(--text-heading); margin: 0;">Ringkasan Pendaftaran Calon Siswa</h2>
           </div>
-          <div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            ${(state.user?.role === 'SUPER_ADMIN' || state.user?.role === 'ADMIN') ? `
+              <button type="button" class="btn btn-primary" onclick="openAdminEditStudentModal('${reg.id}')"><i class="fa-solid fa-pen-to-square"></i> Edit Data Calon Siswa</button>
+            ` : ''}
             ${reg.status === 'APPROVED' ? `
               <button type="button" class="btn btn-success" onclick="openParticipantCardModal('${reg.id}')"><i class="fa-solid fa-id-card"></i> Cetak Bukti Pendaftaran</button>
             ` : ''}
@@ -2974,11 +3431,15 @@ async function renderPesertaRegistrationDetail(regId) {
 
             <!-- Inline Re-upload Form -->
             <div style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px;">
-              <h4 style="font-size: 1rem; color: var(--text-heading); margin-bottom: 12px;">Unggah Ulang Bukti Pembayaran</h4>
+              <h4 style="font-size: 1rem; color: var(--text-heading); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;">
+                <span>Unggah Ulang Bukti Pembayaran</span>
+                <span class="badge badge-success" style="font-size: 0.72rem; font-weight: 600; padding: 2px 8px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Compress Aktif</span>
+              </h4>
               <form onsubmit="handleReuploadSubmit(event, '${reg.id}')">
                 <div class="form-group" style="margin-bottom: 14px;">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Pilih File Bukti Transfer Baru</label>
                   <input type="file" id="reupload-file" class="form-control" accept="image/png, image/jpeg, image/webp" required style="width: 100%; padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <div id="reupload-compress-info" style="display: none; margin-top: 6px;"></div>
                 </div>
                 <button type="submit" id="reupload-btn" class="btn btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> Kirim Bukti Baru</button>
               </form>
@@ -3021,7 +3482,7 @@ async function renderPesertaRegistrationDetail(regId) {
             <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0;">Lengkapi biodata santri, data orang tua/wali, data asal sekolah, dan upload berkas.</p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            ${(reg.isFormUnlocked || reg.status === 'APPROVED') ? `
+            ${(reg.isFormUnlocked || reg.status === 'APPROVED' || state.user?.role === 'SUPER_ADMIN' || state.user?.role === 'ADMIN') ? `
               <button type="button" class="btn btn-secondary" onclick="printFullStudentForm('${reg.id}')">
                 <i class="fa-solid fa-print"></i> Print
               </button>
@@ -3029,7 +3490,7 @@ async function renderPesertaRegistrationDetail(regId) {
                 <i class="fa-solid fa-file-pdf"></i> Download PDF
               </button>
               <a href="#formulir/${reg.id}" class="btn btn-primary">
-                <i class="fa-solid fa-pen-to-square"></i> Buka Formulir
+                <i class="fa-solid fa-pen-to-square"></i> ${(state.user?.role === 'SUPER_ADMIN' || state.user?.role === 'ADMIN') ? 'Edit Formulir (Admin)' : 'Buka Formulir'}
               </a>
             ` : `
               <a href="#formulir/${reg.id}" class="btn btn-secondary">
@@ -3057,12 +3518,15 @@ async function handleReuploadSubmit(e, regId) {
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah...';
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengompresi & mengunggah...';
 
   try {
+    const rawFile = fileInput.files[0];
+    const fileToSend = await compressImageFile(rawFile);
+
     const formData = new FormData();
     formData.append('registrationId', regId);
-    formData.append('payment_proof', fileInput.files[0]);
+    formData.append('payment_proof', fileToSend);
 
     const res = await apiRequest('/api/payments/reupload', {
       method: 'POST',
@@ -3148,16 +3612,12 @@ function buildSingleCardHTML(card) {
       <!-- IDENTITAS PESERTA & STATUS MUKIM -->
       <div style="padding:10px 14px;flex:1;display:flex;flex-direction:column;justify-content:space-between;">
         <div style="display:flex;gap:12px;align-items:flex-start;">
-          <!-- PAS FOTO -->
-          <div style="width:85px;height:110px;flex-shrink:0;background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.08);">
-            ${photoSrc ? `
-              <img src="${photoSrc}" alt="Pas Foto" style="width:100%;height:100%;object-fit:cover;" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'text-align:center;color:#94a3b8;font-size:0.65rem;font-weight:700;padding:4px;\\'><i class=\\'fa-solid fa-user\\' style=\\'font-size:2.2rem;margin-bottom:4px;color:#cbd5e1;display:block;\\'></i>PAS FOTO<br>3x4</div>';">
-            ` : `
-              <div style="text-align:center;color:#94a3b8;font-size:0.65rem;font-weight:700;padding:4px;">
-                <i class="fa-solid fa-user" style="font-size:2.2rem;margin-bottom:4px;color:#cbd5e1;display:block;"></i>
-                PAS FOTO<br>3x4
-              </div>
-            `}
+          <!-- FOTO DUMMY KARAKTER ABU-ABU -->
+          <div style="width:85px;height:110px;flex-shrink:0;background:#e2e8f0;border:1.5px solid #cbd5e1;border-radius:6px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 2px 4px rgba(0,0,0,0.06);position:relative;">
+            <svg viewBox="0 0 80 95" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:68px;height:82px;margin-top:8px;">
+              <circle cx="40" cy="30" r="18" fill="#94a3b8" />
+              <path d="M12 85 C12 62, 24 54, 40 54 C56 54, 68 62, 68 85 Z" fill="#94a3b8" />
+            </svg>
           </div>
 
           <!-- DETAIL IDENTITAS -->
@@ -3649,7 +4109,342 @@ function printParticipantCard(card) {
 // BENDAHARA MODULE (VERIFIKASI + SCANNER CHECK-IN MOBILE VERTICAL LAYOUT)
 // ============================================================================
 async function renderBendaharaDashboard() {
-  renderBendaharaPaymentsView();
+  const container = document.getElementById('main-view-slot');
+  container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat dashboard analitik keuangan bendahara...</div>';
+
+  try {
+    const [regRes, categoriesRes, wavesRes, periodsRes] = await Promise.all([
+      apiRequest('/api/registrations?perPage=1000').catch(() => ({ success: true, registrations: [] })),
+      apiRequest('/api/competitions/categories').catch(() => []),
+      apiRequest('/api/competitions/waves').catch(() => ({ success: true, data: [] })),
+      apiRequest('/api/competitions/periods').catch(() => ({ success: true, data: [] })),
+    ]);
+
+    const allRegs = (regRes.success && Array.isArray(regRes.registrations)) ? regRes.registrations : [];
+    const allSchools = Array.isArray(categoriesRes) ? categoriesRes : (categoriesRes.data || []);
+    const allWaves = (wavesRes.success && Array.isArray(wavesRes.data)) ? wavesRes.data : (Array.isArray(wavesRes) ? wavesRes : []);
+    const allPeriods = (periodsRes.success && Array.isArray(periodsRes.data)) ? periodsRes.data : (Array.isArray(periodsRes) ? periodsRes : []);
+
+    const activePeriod = allPeriods.find(p => p.isActive) || allPeriods[0] || null;
+    const activeWave = allWaves.find(w => w.isActive) || allWaves[0] || null;
+
+    const totalRegs = allRegs.length;
+
+    // Status Pembayaran Breakdown
+    const approvedPay = allRegs.filter(r => r.status === 'APPROVED');
+    const pendingPay = allRegs.filter(r => r.status === 'WAITING_VERIFICATION');
+    const rejectedPay = allRegs.filter(r => r.status === 'PAYMENT_REJECTED');
+
+    // Total Uang Pendaftaran Terkonfirmasi
+    const totalConfirmedFunds = approvedPay.reduce((sum, r) => {
+      const fee = Number(r.admissionWave?.registrationFee || r.payments?.[0]?.amount || r.classProgram?.registrationFee || 0);
+      return sum + fee;
+    }, 0);
+
+    // Rekapitulasi per Sekolah
+    const schoolMap = new Map();
+    allSchools.forEach(sch => {
+      schoolMap.set(sch.id, {
+        id: sch.id,
+        name: sch.name,
+        level: sch.level || sch.code || '-',
+        maleCount: 0,
+        femaleCount: 0,
+        totalCount: 0,
+        paidCount: 0,
+        pendingPayCount: 0,
+        verifiedDocCount: 0,
+        submittedDocCount: 0,
+        confirmedFunds: 0,
+      });
+    });
+
+    allRegs.forEach(reg => {
+      const schoolId = reg.classProgram?.major?.schoolId || reg.classProgram?.major?.school?.id;
+      const schoolName = reg.schoolName || reg.classProgram?.major?.school?.name || 'Sekolah Lainnya / Belum Memilih';
+
+      let entry = schoolId ? schoolMap.get(schoolId) : null;
+      if (!entry) {
+        const found = Array.from(schoolMap.values()).find(s => s.name.toLowerCase() === schoolName.toLowerCase());
+        if (found) {
+          entry = found;
+        } else {
+          entry = {
+            id: schoolId || `custom-${schoolName}`,
+            name: schoolName,
+            level: reg.classProgram?.major?.school?.level || '-',
+            maleCount: 0,
+            femaleCount: 0,
+            totalCount: 0,
+            paidCount: 0,
+            pendingPayCount: 0,
+            verifiedDocCount: 0,
+            submittedDocCount: 0,
+            confirmedFunds: 0,
+          };
+          schoolMap.set(entry.id, entry);
+        }
+      }
+
+      entry.totalCount += 1;
+
+      // Gender check
+      const gender = (reg.studentDetail?.gender || reg.individualParticipant?.gender || '').toUpperCase();
+      if (gender === 'P' || gender === 'PEREMPUAN' || gender === 'F') {
+        entry.femaleCount += 1;
+      } else {
+        entry.maleCount += 1;
+      }
+
+      // Pembayaran
+      if (reg.status === 'APPROVED') {
+        entry.paidCount += 1;
+        const fee = Number(reg.admissionWave?.registrationFee || reg.payments?.[0]?.amount || reg.classProgram?.registrationFee || 0);
+        entry.confirmedFunds += fee;
+      } else if (reg.status === 'WAITING_VERIFICATION') {
+        entry.pendingPayCount += 1;
+      }
+
+      // Verifikasi Dokumen
+      if (reg.formStatus === 'VERIFIED') {
+        entry.verifiedDocCount += 1;
+      } else if (reg.formStatus === 'SUBMITTED') {
+        entry.submittedDocCount += 1;
+      }
+    });
+
+    const schoolStats = Array.from(schoolMap.values());
+    schoolStats.sort((a, b) => b.totalCount - a.totalCount || a.name.localeCompare(b.name));
+    window.latestSchoolStats = schoolStats;
+
+    // Totals for table summary footer
+    const totalMale = schoolStats.reduce((sum, s) => sum + s.maleCount, 0);
+    const totalFemale = schoolStats.reduce((sum, s) => sum + s.femaleCount, 0);
+    const totalPaid = schoolStats.reduce((sum, s) => sum + s.paidCount, 0);
+    const totalPendingPay = schoolStats.reduce((sum, s) => sum + s.pendingPayCount, 0);
+    const totalVerifiedDoc = schoolStats.reduce((sum, s) => sum + s.verifiedDocCount, 0);
+    const totalSubmittedDoc = schoolStats.reduce((sum, s) => sum + s.submittedDocCount, 0);
+
+    container.innerHTML = `
+      <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <h2 style="font-size: 1.6rem; color: var(--text-heading); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-wallet" style="color: var(--primary-600);"></i> Dashboard Bendahara
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
+            Monitoring status pembayaran santri baru, keuangan masuk, dan rekapitulasi pendaftar per unit pendidikan.
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          ${activePeriod ? `
+            <span class="badge badge-info" style="font-size: 0.8rem; padding: 6px 12px;">
+              <i class="fa-solid fa-calendar-check"></i> TA: <strong>${activePeriod.name}</strong>
+            </span>
+          ` : ''}
+          ${activeWave ? `
+            <span class="badge badge-success" style="font-size: 0.8rem; padding: 6px 12px;">
+              <i class="fa-solid fa-bullhorn"></i> Gelombang: <strong>${activeWave.name}</strong>
+            </span>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- 3 STAT CARDS UTAMA (SESUAI PERMINTAAN) -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-bottom: 28px;">
+        
+        <!-- CARD 1: Total Pendaftar -->
+        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+              Total Pendaftar
+            </span>
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: var(--primary-50); color: var(--primary-600); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+          </div>
+          <div style="font-size: 2.2rem; font-weight: 800; color: var(--primary-600); line-height: 1.1;">
+            ${totalRegs}
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-users"></i> Akumulasi seluruh calon santri baru
+          </div>
+        </div>
+
+        <!-- CARD 2: Verifikasi Pembayaran -->
+        <a href="#verifikasi-pembayaran" class="card card-hover" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); text-decoration: none; color: inherit; display: block; transition: transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+              Verifikasi Pembayaran
+            </span>
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: ${pendingPay.length > 0 ? '#fef3c7' : 'var(--success-50)'}; color: ${pendingPay.length > 0 ? '#b45309' : 'var(--success-600)'}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+              <i class="fa-solid fa-receipt"></i>
+            </div>
+          </div>
+          <div style="font-size: 2.2rem; font-weight: 800; color: ${pendingPay.length > 0 ? '#d97706' : 'var(--success-600)'}; line-height: 1.1;">
+            ${pendingPay.length} <span style="font-size: 0.95rem; font-weight: 600; color: var(--text-muted);">Menunggu</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+            <strong style="color: var(--success-600);">${approvedPay.length} Disetujui</strong> &bull; ${rejectedPay.length} Ditolak
+          </div>
+        </a>
+
+        <!-- CARD 3: Uang Pendaftaran Terkonfirmasi -->
+        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+              Uang Pendaftaran Terkonfirmasi
+            </span>
+            <div style="width: 42px; height: 42px; border-radius: 50%; background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+              <i class="fa-solid fa-money-bill-trend-up"></i>
+            </div>
+          </div>
+          <div style="font-size: 1.75rem; font-weight: 800; color: var(--success-600); line-height: 1.1;">
+            ${formatCurrency(totalConfirmedFunds)}
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 6px;">
+            Dari <strong>${approvedPay.length}</strong> calon siswa berstatus lunas
+          </div>
+        </div>
+      </div>
+
+      <!-- LAPORAN JUMLAH PENDAFTAR SISWA BARU PER SEKOLAH (SESUAI DASHBOARD SUPERADMIN) -->
+      <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); margin-bottom: 28px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
+          <div>
+            <h3 style="font-size: 1.25rem; color: var(--text-heading); margin: 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-school" style="color: var(--primary-600);"></i> Laporan Jumlah Pendaftar Siswa Baru per Sekolah
+            </h3>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-top: 4px; margin-bottom: 0;">
+              Rincian pendaftar berdasarkan jenis kelamin (Laki-laki & Perempuan), status pembayaran, dan verifikasi berkas per unit pendidikan.
+            </p>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="exportAdminSchoolStatsExcel()" style="border: 1px solid var(--success-500); color: var(--success-600); background: transparent; padding: 6px 14px; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-file-excel"></i> Export Rekap Sekolah Excel
+            </button>
+            <a href="#verifikasi-pembayaran" class="btn btn-sm btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-credit-card"></i> Buka Verifikasi Pembayaran
+            </a>
+          </div>
+        </div>
+
+        ${schoolStats.length === 0 ? `
+          <div style="text-align: center; padding: 36px; background: var(--bg-body); border-radius: var(--radius-md); border: 1px dashed var(--border-subtle);">
+            <i class="fa-solid fa-school" style="font-size: 2.2rem; color: var(--text-dim); margin-bottom: 10px;"></i>
+            <h4 style="color: var(--text-heading); margin-bottom: 6px;">Belum Ada Data Pendaftar</h4>
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0;">Data pendaftar per unit sekolah akan muncul secara otomatis ketika pendaftaran masuk.</p>
+          </div>
+        ` : `
+          <div class="table-responsive" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+            <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--border-subtle); text-align: left; background: var(--bg-body);">
+                  <th style="padding: 12px 10px; color: var(--text-dim); font-weight: 700; width: 40px;">No</th>
+                  <th style="padding: 12px 10px; color: var(--text-dim); font-weight: 700;">Nama Sekolah / Unit</th>
+                  <th style="padding: 12px 10px; color: #0284c7; font-weight: 700; text-align: center; width: 130px;">
+                    <i class="fa-solid fa-mars"></i> Laki-laki (L)
+                  </th>
+                  <th style="padding: 12px 10px; color: #ec4899; font-weight: 700; text-align: center; width: 140px;">
+                    <i class="fa-solid fa-venus"></i> Perempuan (P)
+                  </th>
+                  <th style="padding: 12px 10px; color: var(--text-dim); font-weight: 700; text-align: center; width: 150px;">
+                    Total Calon Siswa
+                  </th>
+                  <th style="padding: 12px 10px; color: var(--text-dim); font-weight: 700; text-align: center; width: 160px;">
+                    Status Pembayaran
+                  </th>
+                  <th style="padding: 12px 10px; color: var(--text-dim); font-weight: 700; text-align: center; width: 160px;">
+                    Verifikasi Berkas
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                ${schoolStats.map((s, idx) => {
+                  const pct = totalRegs > 0 ? Math.round((s.totalCount / totalRegs) * 100) : 0;
+                  return `
+                    <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.15s;">
+                      <td style="padding: 12px 10px; color: var(--text-muted); font-weight: 600;">${idx + 1}</td>
+                      <td style="padding: 12px 10px;">
+                        <strong style="color: var(--text-heading); font-size: 0.95rem;">${s.name}</strong>
+                      </td>
+                      <td style="padding: 12px 10px; text-align: center;">
+                        <span style="display: inline-block; padding: 3px 12px; background: #e0f2fe; color: #0369a1; border-radius: 12px; font-weight: 700; font-size: 0.85rem;">
+                          ${s.maleCount}
+                        </span>
+                      </td>
+                      <td style="padding: 12px 10px; text-align: center;">
+                        <span style="display: inline-block; padding: 3px 12px; background: #fce7f3; color: #be185d; border-radius: 12px; font-weight: 700; font-size: 0.85rem;">
+                          ${s.femaleCount}
+                        </span>
+                      </td>
+                      <td style="padding: 12px 10px; text-align: center;">
+                        <strong style="font-size: 1.05rem; color: var(--primary-600);">${s.totalCount}</strong>
+                        <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">${pct}% dari total</div>
+                      </td>
+                      <td style="padding: 12px 10px; text-align: center;">
+                        <div style="display: flex; flex-direction: column; gap: 3px; align-items: center;">
+                          <span class="badge badge-success" style="font-size: 0.7rem;">${s.paidCount} Lunas</span>
+                          ${s.pendingPayCount > 0 ? `<span class="badge badge-warning" style="font-size: 0.7rem;">${s.pendingPayCount} Menunggu</span>` : ''}
+                        </div>
+                      </td>
+                      <td style="padding: 12px 10px; text-align: center;">
+                        <div style="display: flex; flex-direction: column; gap: 3px; align-items: center;">
+                          <span class="badge badge-primary" style="font-size: 0.7rem;">${s.verifiedDocCount} Terverifikasi</span>
+                          ${s.submittedDocCount > 0 ? `<span class="badge badge-warning" style="font-size: 0.7rem;">${s.submittedDocCount} Menunggu</span>` : ''}
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+              <tfoot>
+                <tr style="border-top: 2px solid var(--border-subtle); background: var(--bg-body); font-weight: 800;">
+                  <td colspan="2" style="padding: 14px 10px; text-align: right; text-transform: uppercase; color: var(--text-heading);">
+                    Total Seluruh Unit Sekolah:
+                  </td>
+                  <td style="padding: 14px 10px; text-align: center; color: #0284c7; font-size: 1.05rem;">
+                    ${totalMale}
+                  </td>
+                  <td style="padding: 14px 10px; text-align: center; color: #ec4899; font-size: 1.05rem;">
+                    ${totalFemale}
+                  </td>
+                  <td style="padding: 14px 10px; text-align: center; color: var(--primary-600); font-size: 1.15rem;">
+                    ${totalRegs}
+                  </td>
+                  <td style="padding: 14px 10px; text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+                    <span style="color: var(--success-600); font-weight: 700;">${totalPaid} Lunas</span> &bull; ${totalPendingPay} Menunggu
+                  </td>
+                  <td style="padding: 14px 10px; text-align: center; font-size: 0.8rem; color: var(--text-muted);">
+                    <span style="color: var(--primary-600); font-weight: 700;">${totalVerifiedDoc} Valid</span> &bull; ${totalSubmittedDoc} Menunggu
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        `}
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
+  }
+}
+
+function getFilteredBendaharaPaymentsData() {
+  const ts = tableState.bendaharaPayments;
+  let list = ts.data || [];
+
+  if (ts.startDate || ts.endDate) {
+    list = list.filter(p => {
+      const rawDate = p.paymentDate || p.createdAt;
+      if (!rawDate) return false;
+      const d = new Date(rawDate).toISOString().split('T')[0];
+      if (ts.startDate && d < ts.startDate) return false;
+      if (ts.endDate && d > ts.endDate) return false;
+      return true;
+    });
+  }
+
+  return list;
 }
 
 async function renderBendaharaPaymentsView() {
@@ -3661,9 +4456,55 @@ async function renderBendaharaPaymentsView() {
     tableState.bendaharaPayments.data = res.success ? res.payments : [];
 
     container.innerHTML = `
-      <div style="margin-bottom: 24px;">
-        <h2 style="font-size: 1.6rem; color: var(--text-heading); margin-bottom: 4px;">Verifikasi Pembayaran Calon Santri</h2>
-        <p style="color: var(--text-muted); font-size: 0.95rem;">Periksa bukti transfer dan tentukan persetujuan atau penolakan dengan alasan wajib.</p>
+      <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <h2 style="font-size: 1.6rem; color: var(--text-heading); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-credit-card" style="color: var(--primary-600);"></i> Verifikasi Pembayaran Calon Santri
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
+            Periksa bukti transfer dan tentukan persetujuan atau penolakan dengan alasan wajib.
+          </p>
+        </div>
+      </div>
+
+      <!-- FILTER PERIODE TANGGAL PANEL -->
+      <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <strong style="font-size: 0.9rem; color: var(--text-heading); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-calendar-days" style="color: var(--primary-600);"></i> Filter Periode Tanggal Pembayaran
+          </strong>
+          ${(tableState.bendaharaPayments.startDate || tableState.bendaharaPayments.endDate || tableState.bendaharaPayments.datePreset !== 'all') ? `
+            <button type="button" onclick="resetBendaharaDateFilters()" class="btn btn-sm btn-outline-secondary" style="font-size: 0.78rem; padding: 4px 10px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+              <i class="fa-solid fa-rotate-left"></i> Reset Filter Tanggal
+            </button>
+          ` : ''}
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: end;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Pilihan Cepat (Preset)</label>
+            <select id="bendahara-date-preset" class="form-select" onchange="onBendaharaDatePresetChange(this.value)" style="width: 100%; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--bg-body); color: var(--text-main); font-size: 0.85rem;">
+              <option value="all" ${tableState.bendaharaPayments.datePreset === 'all' ? 'selected' : ''}>Semua Periode Tanggal</option>
+              <option value="today" ${tableState.bendaharaPayments.datePreset === 'today' ? 'selected' : ''}>Hari Ini</option>
+              <option value="yesterday" ${tableState.bendaharaPayments.datePreset === 'yesterday' ? 'selected' : ''}>Kemarin</option>
+              <option value="7days" ${tableState.bendaharaPayments.datePreset === '7days' ? 'selected' : ''}>7 Hari Terakhir</option>
+              <option value="30days" ${tableState.bendaharaPayments.datePreset === '30days' ? 'selected' : ''}>30 Hari Terakhir</option>
+              <option value="this_month" ${tableState.bendaharaPayments.datePreset === 'this_month' ? 'selected' : ''}>Bulan Ini</option>
+              <option value="last_month" ${tableState.bendaharaPayments.datePreset === 'last_month' ? 'selected' : ''}>Bulan Lalu</option>
+              <option value="custom" ${tableState.bendaharaPayments.datePreset === 'custom' ? 'selected' : ''}>Kustom Rentang Tanggal</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Dari Tanggal</label>
+            <input type="date" id="bendahara-start-date" class="form-control" value="${tableState.bendaharaPayments.startDate || ''}" onchange="onBendaharaCustomDateChange()" style="width: 100%; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--bg-body); color: var(--text-main); font-size: 0.85rem;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Sampai Tanggal</label>
+            <input type="date" id="bendahara-end-date" class="form-control" value="${tableState.bendaharaPayments.endDate || ''}" onchange="onBendaharaCustomDateChange()" style="width: 100%; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--bg-body); color: var(--text-main); font-size: 0.85rem;">
+          </div>
+        </div>
       </div>
 
       <div id="bendahara-payments-table-slot">
@@ -3677,13 +4518,15 @@ async function renderBendaharaPaymentsView() {
 
 function renderBendaharaPaymentsTable() {
   const ts = tableState.bendaharaPayments;
+  const filteredData = getFilteredBendaharaPaymentsData();
+
   return renderUniversalTable({
     tableId: 'bendahara-payments-table',
     columns: [
       {
         header: 'Tgl Bayar',
         key: 'createdAt',
-        render: p => formatDate(p.createdAt),
+        render: p => formatDate(p.paymentDate || p.createdAt),
       },
       {
         header: 'No. Registrasi',
@@ -3726,7 +4569,7 @@ function renderBendaharaPaymentsTable() {
         `,
       },
     ],
-    data: ts.data,
+    data: filteredData,
     searchQuery: ts.search,
     searchFields: [
       p => p.registration?.registrationNumber,
@@ -3754,14 +4597,14 @@ function renderBendaharaPaymentsTable() {
     onFilterChangeName: 'onBendaharaFilterChange',
     exportFilename: 'data_verifikasi_pembayaran',
     onExportName: 'exportBendaharaPaymentsExcel',
-    emptyMessage: 'Belum ada data pembayaran masuk.',
+    emptyMessage: ts.startDate || ts.endDate ? 'Tidak ada data pembayaran pada rentang tanggal yang dipilih.' : 'Belum ada data pembayaran masuk.',
   });
 }
 
 function exportBendaharaPaymentsExcel() {
-  const data = tableState.bendaharaPayments.data || [];
+  const data = getFilteredBendaharaPaymentsData();
   const cols = [
-    { header: 'Tanggal Bayar', exportValue: p => formatDate(p.createdAt) },
+    { header: 'Tanggal Bayar', exportValue: p => formatDate(p.paymentDate || p.createdAt) },
     { header: 'Nomor Registrasi', exportValue: p => p.registration?.registrationNumber || '-' },
     { header: 'Nama Calon Santri', exportValue: p => p.registration?.individualParticipant?.fullName || p.registration?.team?.teamName || '-' },
     { header: 'Email Akun', exportValue: p => p.registration?.user?.email || '-' },
@@ -3792,6 +4635,98 @@ function onBendaharaFilterChange(v) {
   tableState.bendaharaPayments.page = 1;
   updateUniversalTable('bendahara-payments-table-slot', renderBendaharaPaymentsTable);
 }
+
+function onBendaharaDatePresetChange(preset) {
+  const ts = tableState.bendaharaPayments;
+  ts.datePreset = preset;
+  const now = new Date();
+  
+  const formatDateISO = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  if (preset === 'today') {
+    ts.startDate = formatDateISO(now);
+    ts.endDate = formatDateISO(now);
+  } else if (preset === 'yesterday') {
+    const yest = new Date(now);
+    yest.setDate(yest.getDate() - 1);
+    ts.startDate = formatDateISO(yest);
+    ts.endDate = formatDateISO(yest);
+  } else if (preset === '7days') {
+    const past7 = new Date(now);
+    past7.setDate(past7.getDate() - 6);
+    ts.startDate = formatDateISO(past7);
+    ts.endDate = formatDateISO(now);
+  } else if (preset === '30days') {
+    const past30 = new Date(now);
+    past30.setDate(past30.getDate() - 29);
+    ts.startDate = formatDateISO(past30);
+    ts.endDate = formatDateISO(now);
+  } else if (preset === 'this_month') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    ts.startDate = formatDateISO(firstDay);
+    ts.endDate = formatDateISO(lastDay);
+  } else if (preset === 'last_month') {
+    const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+    ts.startDate = formatDateISO(firstDay);
+    ts.endDate = formatDateISO(lastDay);
+  } else if (preset === 'all') {
+    ts.startDate = '';
+    ts.endDate = '';
+  }
+
+  // Update input values in DOM if exist
+  const startEl = document.getElementById('bendahara-start-date');
+  const endEl = document.getElementById('bendahara-end-date');
+  if (startEl) startEl.value = ts.startDate;
+  if (endEl) endEl.value = ts.endDate;
+
+  ts.page = 1;
+  updateUniversalTable('bendahara-payments-table-slot', renderBendaharaPaymentsTable);
+}
+
+function onBendaharaCustomDateChange() {
+  const ts = tableState.bendaharaPayments;
+  const startEl = document.getElementById('bendahara-start-date');
+  const endEl = document.getElementById('bendahara-end-date');
+  const presetEl = document.getElementById('bendahara-date-preset');
+
+  ts.startDate = startEl ? startEl.value : '';
+  ts.endDate = endEl ? endEl.value : '';
+  ts.datePreset = 'custom';
+  if (presetEl) presetEl.value = 'custom';
+
+  ts.page = 1;
+  updateUniversalTable('bendahara-payments-table-slot', renderBendaharaPaymentsTable);
+}
+
+function resetBendaharaDateFilters() {
+  const ts = tableState.bendaharaPayments;
+  ts.startDate = '';
+  ts.endDate = '';
+  ts.datePreset = 'all';
+
+  const startEl = document.getElementById('bendahara-start-date');
+  const endEl = document.getElementById('bendahara-end-date');
+  const presetEl = document.getElementById('bendahara-date-preset');
+  if (startEl) startEl.value = '';
+  if (endEl) endEl.value = '';
+  if (presetEl) presetEl.value = 'all';
+
+  ts.page = 1;
+  updateUniversalTable('bendahara-payments-table-slot', renderBendaharaPaymentsTable);
+}
+
+window.onBendaharaDatePresetChange = onBendaharaDatePresetChange;
+window.onBendaharaCustomDateChange = onBendaharaCustomDateChange;
+window.resetBendaharaDateFilters = resetBendaharaDateFilters;
+window.exportBendaharaPaymentsExcel = exportBendaharaPaymentsExcel;
 
 function openPaymentVerifyModal(paymentId, filename, regNum, participantName, amount, status) {
   openAppModal(`
@@ -5149,6 +6084,7 @@ function renderAdminUsersTable() {
       { label: 'Bendahara', value: 'BENDAHARA' },
       { label: 'Admin Scanner', value: 'ADMIN_BARCODE' },
       { label: 'Pewawancara', value: 'PEWAWANCARA' },
+      { label: 'Petugas Tes Praktik', value: 'PETUGAS_TES_PRAKTIK' },
       { label: 'Peserta', value: 'PESERTA' },
     ],
     currentPage: ts.page,
@@ -5343,6 +6279,7 @@ function openCreateUserModal() {
           <option value="BENDAHARA">BENDAHARA</option>
           <option value="ADMIN_BARCODE">ADMIN SCANNER (BARCODE)</option>
           <option value="PEWAWANCARA">PEWAWANCARA</option>
+          <option value="PETUGAS_TES_PRAKTIK">PETUGAS TES PRAKTIK</option>
           <option value="SUPER_ADMIN">SUPER_ADMIN</option>
         </select>
       </div>
@@ -5398,6 +6335,7 @@ function openChangeRoleModal(userId, name, currentRole) {
         <option value="BENDAHARA" ${currentRole === 'BENDAHARA' ? 'selected' : ''}>BENDAHARA</option>
         <option value="ADMIN_BARCODE" ${currentRole === 'ADMIN_BARCODE' ? 'selected' : ''}>ADMIN SCANNER (BARCODE)</option>
         <option value="PEWAWANCARA" ${currentRole === 'PEWAWANCARA' ? 'selected' : ''}>PEWAWANCARA</option>
+        <option value="PETUGAS_TES_PRAKTIK" ${currentRole === 'PETUGAS_TES_PRAKTIK' ? 'selected' : ''}>PETUGAS TES PRAKTIK</option>
         <option value="SUPER_ADMIN" ${currentRole === 'SUPER_ADMIN' ? 'selected' : ''}>SUPER_ADMIN</option>
       </select>
     </div>
@@ -5647,11 +6585,14 @@ async function renderAdminBranchesView() {
         const isCatActive = cat.isActive !== false;
 
         return `
-          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <div class="school-draggable-card" data-school-id="${cat.id}" draggable="true" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.03); transition: transform 0.15s ease, box-shadow 0.15s ease;">
             <!-- School Row Header -->
             <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #ffffff;">
-              <!-- School Title & Toggle -->
-              <div style="display: flex; align-items: center; gap: 10px;">
+              <!-- School Title, Drag Handle & Toggle -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="school-drag-handle" style="cursor: grab; color: #94a3b8; padding: 4px 6px; display: flex; align-items: center; font-size: 0.95rem; user-select: none;" title="Klik & tarik untuk mengubah urutan lembaga">
+                  <i class="fa-solid fa-grip-vertical"></i>
+                </div>
                 <button type="button" onclick="toggleTreeCollapse('${catKey}')" style="background: none; border: none; padding: 4px; color: #475569; cursor: pointer; font-size: 0.85rem;">
                   <i class="fa-solid ${isCatCollapsed ? 'fa-chevron-right' : 'fa-chevron-up'}"></i>
                 </button>
@@ -5747,7 +6688,10 @@ async function renderAdminBranchesView() {
       <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 24px; box-shadow: var(--shadow-sm);">
         <!-- Card Header with Title, Search & Add School Button -->
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 22px;">
-          <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-heading); margin: 0;">Daftar Struktur Pendidikan</h3>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-heading); margin: 0;">Daftar Struktur Pendidikan</h3>
+            <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.8rem;"><i class="fa-solid fa-arrows-up-down" style="margin-right: 4px;"></i> Tip: Tarik (drag & drop) kartu sekolah untuk mengubah posisi urutannya.</p>
+          </div>
           
           <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; flex: 1; justify-content: flex-end;">
             <!-- Search Bar -->
@@ -5766,7 +6710,7 @@ async function renderAdminBranchesView() {
         <!-- 2 Column Body -->
         <div style="display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;">
           <!-- Left Column: Hierarchical Tree -->
-          <div style="flex: 1; min-width: 320px;">
+          <div style="flex: 1; min-width: 320px;" id="school-tree-list">
             ${treeHTML}
           </div>
 
@@ -5804,6 +6748,11 @@ async function renderAdminBranchesView() {
       </div>
     `;
 
+    // Inisialisasi Drag and Drop jika tidak sedang dalam mode pencarian
+    if (!search) {
+      initSchoolDragAndDrop();
+    }
+
     // Maintain focus on search bar if active
     if (search) {
       const inp = document.getElementById('tree-search-input');
@@ -5815,6 +6764,94 @@ async function renderAdminBranchesView() {
   } catch (err) {
     container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
   }
+}
+
+function initSchoolDragAndDrop() {
+  const container = document.getElementById('school-tree-list');
+  if (!container) return;
+
+  const cards = container.querySelectorAll('.school-draggable-card');
+  let draggedCard = null;
+
+  cards.forEach(card => {
+    card.addEventListener('dragstart', function (e) {
+      draggedCard = this;
+      this.style.opacity = '0.45';
+      this.style.transform = 'scale(0.99)';
+      this.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)';
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', this.getAttribute('data-school-id') || '');
+    });
+
+    card.addEventListener('dragend', function () {
+      this.style.opacity = '1';
+      this.style.transform = '';
+      this.style.boxShadow = '';
+      cards.forEach(c => {
+        c.style.borderTop = '';
+        c.style.borderBottom = '';
+      });
+      draggedCard = null;
+    });
+
+    card.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      if (!draggedCard || draggedCard === this) return;
+      e.dataTransfer.dropEffect = 'move';
+
+      const rect = this.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        this.style.borderTop = '3px solid #2563eb';
+        this.style.borderBottom = '';
+      } else {
+        this.style.borderTop = '';
+        this.style.borderBottom = '3px solid #2563eb';
+      }
+    });
+
+    card.addEventListener('dragleave', function () {
+      this.style.borderTop = '';
+      this.style.borderBottom = '';
+    });
+
+    card.addEventListener('drop', async function (e) {
+      e.preventDefault();
+      this.style.borderTop = '';
+      this.style.borderBottom = '';
+      if (!draggedCard || draggedCard === this) return;
+
+      const rect = this.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        container.insertBefore(draggedCard, this);
+      } else {
+        container.insertBefore(draggedCard, this.nextSibling);
+      }
+
+      // Kumpulkan urutan baru dari kartu sekolah
+      const updatedCards = container.querySelectorAll('.school-draggable-card');
+      const newSchoolIds = Array.from(updatedCards).map(c => c.getAttribute('data-school-id')).filter(Boolean);
+
+      try {
+        const res = await apiRequest('/api/competitions/schools/reorder', {
+          method: 'PATCH',
+          body: { schoolIds: newSchoolIds },
+        });
+
+        if (res.success) {
+          state.competitionTree = []; // Invalidate tree cache agar dropdown pendaftaran langsung sync
+          showToast('Urutan sekolah berhasil diperbarui.', 'success');
+        } else {
+          showToast(res.message || 'Gagal mengubah urutan sekolah.', 'danger');
+          renderAdminBranchesView();
+        }
+      } catch (err) {
+        showToast(err.message || 'Terjadi kesalahan saat mengubah urutan.', 'danger');
+        renderAdminBranchesView();
+      }
+    });
+  });
 }
 
 // Buka modal tambah program kelas untuk jurusan tertentu
@@ -5915,7 +6952,14 @@ async function submitEditBranch(e, branchId) {
 }
 
 async function executeDeleteBranch(branchId, name) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus program kelas "${name}"?`)) return;
+  const ok = await showAppConfirm({
+    title: 'Hapus Program Kelas',
+    message: `Apakah Anda yakin ingin menghapus program kelas "${name}"?`,
+    confirmText: 'Ya, Hapus',
+    cancelText: 'Batal',
+    type: 'danger'
+  });
+  if (!ok) return;
   try {
     const res = await apiRequest(`/api/competitions/branches/${branchId}`, { method: 'DELETE' });
     if (res.success) {
@@ -5924,7 +6968,7 @@ async function executeDeleteBranch(branchId, name) {
       renderAdminBranchesView();
     }
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'danger');
   }
 }
 
@@ -6115,7 +7159,14 @@ async function submitEditCategory(e, catId) {
 }
 
 async function executeDeleteCategory(catId, name) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus sekolah "${name}"? Seluruh jurusan dan program kelas di dalamnya akan ikut terhapus.`)) return;
+  const ok = await showAppConfirm({
+    title: 'Hapus Sekolah',
+    message: `Apakah Anda yakin ingin menghapus sekolah "${name}"? Seluruh jurusan dan program kelas di dalamnya akan ikut terhapus.`,
+    confirmText: 'Ya, Hapus Semua',
+    cancelText: 'Batal',
+    type: 'danger'
+  });
+  if (!ok) return;
   try {
     const res = await apiRequest(`/api/competitions/categories/${catId}`, { method: 'DELETE' });
     if (res.success) {
@@ -6124,7 +7175,7 @@ async function executeDeleteCategory(catId, name) {
       renderAdminBranchesView();
     }
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'danger');
   }
 }
 
@@ -6212,7 +7263,14 @@ async function submitEditLevel(e, lvlId) {
 }
 
 async function executeDeleteLevel(lvlId, name) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus jurusan "${name}"?`)) return;
+  const ok = await showAppConfirm({
+    title: 'Hapus Jurusan',
+    message: `Apakah Anda yakin ingin menghapus jurusan "${name}"?`,
+    confirmText: 'Ya, Hapus',
+    cancelText: 'Batal',
+    type: 'danger'
+  });
+  if (!ok) return;
   try {
     const res = await apiRequest(`/api/competitions/levels/${lvlId}`, { method: 'DELETE' });
     if (res.success) {
@@ -6221,7 +7279,7 @@ async function executeDeleteLevel(lvlId, name) {
       renderAdminBranchesView();
     }
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'danger');
   }
 }
 
@@ -6519,16 +7577,23 @@ async function submitEditAccount(e, id) {
 }
 
 async function executeDeleteAccountQris(accountId) {
-  if (!confirm('Hapus gambar QRIS dari rekening ini?')) return;
+  const ok = await showAppConfirm({
+    title: 'Hapus QRIS',
+    message: 'Apakah Anda yakin ingin menghapus gambar QRIS dari rekening ini?',
+    confirmText: 'Ya, Hapus',
+    cancelText: 'Batal',
+    type: 'danger'
+  });
+  if (!ok) return;
   try {
     const res = await apiRequest(`/api/payments/accounts/${accountId}/qris`, { method: 'DELETE' });
     if (res.success) {
-      alert(res.message);
+      showToast(res.message || 'QRIS berhasil dihapus.', 'success');
       closeAppModal();
       renderAdminPaymentAccountsView();
     }
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'danger');
   }
 }
 
@@ -6536,7 +7601,7 @@ function previewQrisImage(input, mode) {
   const file = input.files?.[0];
   if (!file) return;
   if (file.size > 5 * 1024 * 1024) {
-    alert('Ukuran file maksimal 5MB.');
+    showToast('Ukuran file maksimal 5MB.', 'error');
     input.value = '';
     return;
   }
@@ -6571,7 +7636,7 @@ function handleQrisFileDrop(event, mode) {
   area.style.borderColor = 'var(--border-subtle)';
   const file = event.dataTransfer?.files?.[0];
   if (!file || !file.type.startsWith('image/')) {
-    alert('Hanya file gambar (JPG, PNG, WEBP) yang diperbolehkan.');
+    showToast('Hanya file gambar (JPG, PNG, WEBP) yang diperbolehkan.', 'warning');
     return;
   }
   const inputId = mode === 'create' ? 'acc-qris-input' : 'edit-qris-input';
@@ -6585,15 +7650,22 @@ function handleQrisFileDrop(event, mode) {
 }
 
 async function executeDeleteAccount(id, bankName) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus rekening ${bankName}?`)) return;
+  const ok = await showAppConfirm({
+    title: 'Hapus Rekening',
+    message: `Apakah Anda yakin ingin menghapus rekening ${bankName}?`,
+    confirmText: 'Ya, Hapus',
+    cancelText: 'Batal',
+    type: 'danger'
+  });
+  if (!ok) return;
   try {
     const res = await apiRequest(`/api/payments/accounts/${id}`, { method: 'DELETE' });
     if (res.success) {
-      alert(res.message);
+      showToast(res.message || 'Rekening berhasil dihapus.', 'success');
       renderAdminPaymentAccountsView();
     }
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'danger');
   }
 }
 
@@ -6960,48 +8032,82 @@ async function initHomepageQuotaInfo() {
     });
 
     if (waveNameEl) {
-      waveNameEl.innerHTML = `Tahun Pelajaran <strong>${activePeriod.name}</strong>`;
+      waveNameEl.innerHTML = `Informasi Kuota Penerimaan Tahun Pelajaran <strong>${activePeriod.name}</strong>`;
     }
 
     cardsContainer.innerHTML = schoolsList.map(school => {
-      let targetWaveName = '';
-      let remaining = 0;
-      let isAvailable = false;
+      let totalRemaining = 0;
+      let totalCapacity = 0;
+      const waveBreakdowns = [];
 
-      // Find first wave with available quota for this school (Kuota 1 -> Kuota 2 -> ...)
+      // Loop through all waves to get breakdown for Kuota 1, Kuota 2, Kuota 3, etc.
       for (const wave of availableWaves) {
         const sq = (wave.schoolQuotas || []).find(s => s.schoolId === school.schoolId);
-        if (sq && sq.quota > 0) {
-          const rem = sq.remainingQuota !== undefined ? sq.remainingQuota : Math.max(0, (sq.quota || 0) - (sq.verifiedCount || 0));
-          if (!sq.isFull && rem > 0) {
-            targetWaveName = wave.name;
-            remaining = rem;
-            isAvailable = true;
-            break;
-          }
+        if (sq) {
+          const quota = sq.quota || 0;
+          const rem = sq.remainingQuota !== undefined ? sq.remainingQuota : Math.max(0, quota - (sq.verifiedCount || 0));
+          const isFull = sq.isFull || rem <= 0;
+
+          totalCapacity += quota;
+          totalRemaining += rem;
+
+          waveBreakdowns.push({
+            waveName: wave.name,
+            quota: quota,
+            remaining: rem,
+            isFull: isFull,
+          });
         }
       }
 
       const initial = school.schoolInitial || school.schoolName.substring(0, 3).toUpperCase();
+      const hasAnyAvailable = totalRemaining > 0;
+
+      const waveRowsHtml = waveBreakdowns.map((wb, idx) => {
+        const isFull = wb.isFull || wb.remaining <= 0;
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'}; border-radius: 6px; border: 1px solid #f1f5f9; font-size: 0.84rem;">
+            <span style="font-weight: 700; color: #334155; display: flex; align-items: center; gap: 6px;">
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: ${isFull ? '#ef4444' : '#10b981'};"></span>
+              ${wb.waveName}
+            </span>
+            <span style="font-weight: 800; color: ${isFull ? '#dc2626' : '#059669'};">
+              ${isFull ? '<span style="font-size: 0.76rem; background: #fee2e2; color: #dc2626; padding: 2px 7px; border-radius: 4px;">Penuh (0)</span>' : `${wb.remaining} <span style="font-size: 0.74rem; font-weight: 600; color: #64748b;">/ ${wb.quota} Siswa</span>`}
+            </span>
+          </div>
+        `;
+      }).join('');
 
       return `
-        <div style="flex: 1 1 calc(25% - 14px); min-width: 180px; max-width: 240px; background: #ffffff; border: 1px solid ${!isAvailable ? '#fecaca' : '#e2e8f0'}; border-radius: 12px; padding: 18px 14px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-          <div style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; background: ${!isAvailable ? '#fee2e2' : '#eff6ff'}; color: ${!isAvailable ? '#dc2626' : '#2563eb'}; font-weight: 800; font-size: 1rem; margin-bottom: 10px;">
-            ${initial}
-          </div>
-          <div style="font-weight: 700; font-size: 0.95rem; color: #1e293b; margin-bottom: 10px; line-height: 1.3; min-height: 2.6em; display: flex; align-items: center; justify-content: center;">
-            ${school.schoolName}
-          </div>
-          ${!isAvailable ? `
-            <div style="display: inline-block; padding: 5px 12px; background: #fee2e2; color: #dc2626; border-radius: 6px; font-size: 0.8rem; font-weight: 700;">
-              <i class="fa-solid fa-circle-xmark"></i> Kuota Penuh
+        <div style="background: #ffffff; border: 1px solid ${hasAnyAvailable ? '#e2e8f0' : '#fecaca'}; border-radius: 16px; padding: 20px 18px 18px; box-shadow: 0 4px 14px rgba(0,0,0,0.04); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+              <div style="width: 46px; height: 46px; border-radius: 12px; background: ${hasAnyAvailable ? '#eff6ff' : '#fee2e2'}; color: ${hasAnyAvailable ? '#2563eb' : '#dc2626'}; font-weight: 800; font-size: 1.05rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px ${hasAnyAvailable ? 'rgba(37,99,235,0.12)' : 'rgba(220,38,38,0.12)'};">
+                ${initial}
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <h3 style="font-weight: 800; font-size: 1.02rem; color: #0f172a; margin: 0; line-height: 1.3;">
+                  ${school.schoolName}
+                </h3>
+              </div>
             </div>
-          ` : `
-            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-              <span style="font-size: 1.6rem; font-weight: 800; color: #059669; line-height: 1;">${remaining}</span>
-              <span style="font-size: 0.8rem; font-weight: 700; color: #475569;">Sisa ${targetWaveName}</span>
+
+            <!-- Rincian Kuota Tiap Gelombang (Kuota 1, Kuota 2, Kuota 3, dst) -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; margin-top: 10px;">
+              <div style="font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                <span>Sisa / Total Kuota</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                ${waveRowsHtml || '<div style="font-size: 0.8rem; color: #94a3b8; text-align: center; padding: 6px;">Tidak ada data gelombang</div>'}
+              </div>
             </div>
-          `}
+          </div>
+
+          <div style="margin-top: 16px;">
+            <a href="/register.html" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 9px 14px; font-size: 0.86rem; font-weight: 700; border-radius: 8px; gap: 6px; text-decoration: none; display: flex; align-items: center;">
+              <i class="fa-solid fa-user-plus"></i> Daftar ${initial}
+            </a>
+          </div>
         </div>
       `;
     }).join('');
@@ -7139,9 +8245,14 @@ async function handleOperationalResetSubmit(e) {
   const code = document.getElementById('reset-code-field').value.trim();
   const btn = document.getElementById('reset-exec-btn');
 
-  if (!confirm('PERINGATAN TERAKHIR: Apakah Anda yakin ingin membersihkan seluruh data registrasi & pembayaran transaksi?')) {
-    return;
-  }
+  const ok = await showAppConfirm({
+    title: 'Pembersihan Data Operasional',
+    message: 'PERINGATAN TERAKHIR: Apakah Anda yakin ingin membersihkan seluruh data registrasi & pembayaran transaksi? Tindakan ini tidak dapat dibatalkan.',
+    confirmText: 'Ya, Bersihkan Data',
+    cancelText: 'Batal',
+    type: 'danger'
+  });
+  if (!ok) return;
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengeksekusi pembersihan...';
@@ -7547,15 +8658,12 @@ function buildCardHTML(card) {
       <!-- IDENTITAS PESERTA & STATUS MUKIM -->
       <div style="padding:6px 10px;flex:1;display:flex;flex-direction:column;justify-content:space-between;">
         <div style="display:flex;gap:10px;align-items:flex-start;">
-          <!-- PAS FOTO -->
-          <div style="width:2.4cm;height:3.2cm;flex-shrink:0;background:#f1f5f9;border:1.2px solid #cbd5e1;border-radius:5px;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-            ${card.photo_url ? `
-              <img src="${card.photo_url}" alt="Pas Foto" style="width:100%;height:100%;object-fit:cover;">
-            ` : `
-              <div style="text-align:center;color:#94a3b8;font-size:7px;font-weight:700;">
-                PAS FOTO<br>3x4
-              </div>
-            `}
+          <!-- FOTO DUMMY KARAKTER ABU-ABU -->
+          <div style="width:2.4cm;height:3.2cm;flex-shrink:0;background:#e2e8f0;border:1.2px solid #cbd5e1;border-radius:5px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;">
+            <svg viewBox="0 0 80 95" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:54px;height:65px;margin-top:6px;">
+              <circle cx="40" cy="30" r="18" fill="#94a3b8" />
+              <path d="M12 85 C12 62, 24 54, 40 54 C56 54, 68 62, 68 85 Z" fill="#94a3b8" />
+            </svg>
           </div>
 
           <!-- DETAIL IDENTITAS -->

@@ -73,24 +73,14 @@ export class CbtService {
       eligibleCount - inProgressCount - completedCount,
     );
 
-    // 3. Hierarchical Master Tree (School -> Major -> ClassProgram -> CBTExam)
+    // 3. Flat list of Schools with their CBT exam status
     const schools = await this.prisma.school.findMany({
       orderBy: { name: 'asc' },
       include: {
-        majors: {
-          orderBy: { name: 'asc' },
+        cbtExam: {
           include: {
-            classPrograms: {
-              orderBy: { name: 'asc' },
-              include: {
-                cbtExam: {
-                  include: {
-                    _count: {
-                      select: { questions: true, attempts: true },
-                    },
-                  },
-                },
-              },
+            _count: {
+              select: { questions: true, attempts: true },
             },
           },
         },
@@ -101,24 +91,16 @@ export class CbtService {
       id: school.id,
       name: school.name,
       initial: school.initial,
-      majors: school.majors.map((major) => ({
-        id: major.id,
-        name: major.name,
-        classPrograms: major.classPrograms.map((cp) => ({
-          id: cp.id,
-          name: cp.name,
-          exam: cp.cbtExam
-            ? {
-                id: cp.cbtExam.id,
-                title: cp.cbtExam.title,
-                durationMinutes: cp.cbtExam.durationMinutes,
-                isActive: cp.cbtExam.isActive,
-                totalQuestions: cp.cbtExam._count.questions,
-                totalAttempts: cp.cbtExam._count.attempts,
-              }
-            : null,
-        })),
-      })),
+      exam: school.cbtExam
+        ? {
+            id: school.cbtExam.id,
+            title: school.cbtExam.title,
+            durationMinutes: school.cbtExam.durationMinutes,
+            isActive: school.cbtExam.isActive,
+            totalQuestions: school.cbtExam._count.questions,
+            totalAttempts: school.cbtExam._count.attempts,
+          }
+        : null,
     }));
 
     return {
@@ -133,17 +115,12 @@ export class CbtService {
   }
 
   /**
-   * Retrieves exam configuration and questions for a specific Class Program.
+   * Retrieves exam configuration and questions for a specific School (Lembaga).
    */
-  async getExamByProgram(classProgramId: string) {
-    const classProgram = await this.prisma.classProgram.findUnique({
-      where: { id: classProgramId },
+  async getExamBySchool(schoolId: string) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
       include: {
-        major: {
-          include: {
-            school: true,
-          },
-        },
         cbtExam: {
           include: {
             questions: {
@@ -159,44 +136,43 @@ export class CbtService {
       },
     });
 
-    if (!classProgram) {
-      throw new NotFoundException('Program Kelas tidak ditemukan.');
+    if (!school) {
+      throw new NotFoundException('Lembaga tidak ditemukan.');
     }
 
     return {
-      classProgram: {
-        id: classProgram.id,
-        name: classProgram.name,
-        majorName: classProgram.major.name,
-        schoolName: classProgram.major.school.name,
+      school: {
+        id: school.id,
+        name: school.name,
+        initial: school.initial,
       },
-      exam: classProgram.cbtExam,
+      exam: school.cbtExam,
     };
   }
 
   /**
-   * Creates a new CBT Exam configuration for a Class Program.
+   * Creates a new CBT Exam configuration for a School (Lembaga).
    */
   async createExam(dto: CreateCbtExamDto) {
-    const cp = await this.prisma.classProgram.findUnique({
-      where: { id: dto.classProgramId },
+    const school = await this.prisma.school.findUnique({
+      where: { id: dto.schoolId },
       include: { cbtExam: true },
     });
 
-    if (!cp) {
-      throw new NotFoundException('Program Kelas tidak ditemukan.');
+    if (!school) {
+      throw new NotFoundException('Lembaga tidak ditemukan.');
     }
 
-    if (cp.cbtExam) {
+    if (school.cbtExam) {
       throw new BadRequestException(
-        'Ujian CBT untuk Program Kelas ini sudah dibuat.',
+        'Ujian CBT untuk Lembaga ini sudah dibuat.',
       );
     }
 
     const exam = await this.prisma.cBTExam.create({
       data: {
-        classProgramId: dto.classProgramId,
-        title: dto.title || `Ujian CBT — ${cp.name}`,
+        schoolId: dto.schoolId,
+        title: dto.title || `Ujian CBT — ${school.name}`,
         description: dto.description,
         durationMinutes: dto.durationMinutes || 60,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
@@ -464,8 +440,6 @@ export class CbtService {
    */
   async getAdminResults(query: {
     schoolId?: string;
-    majorId?: string;
-    classProgramId?: string;
     attemptStatus?: string;
     gradingStatus?: string;
     search?: string;
@@ -474,11 +448,7 @@ export class CbtService {
       formStatus: FormStatus.VERIFIED,
     };
 
-    if (query.classProgramId) {
-      whereClause.classProgramId = query.classProgramId;
-    } else if (query.majorId) {
-      whereClause.classProgram = { majorId: query.majorId };
-    } else if (query.schoolId) {
+    if (query.schoolId) {
       whereClause.classProgram = { major: { schoolId: query.schoolId } };
     }
 
@@ -531,7 +501,6 @@ export class CbtService {
                 school: true,
               },
             },
-            cbtExam: true,
           },
         },
         cbtAttempt: {
@@ -557,7 +526,6 @@ export class CbtService {
         schoolName: r.classProgram.major.school.name,
         majorName: r.classProgram.major.name,
         classProgramName: r.classProgram.name,
-        hasExamConfigured: !!r.classProgram.cbtExam,
         attempt: attempt
           ? {
               id: attempt.id,
@@ -792,8 +760,6 @@ export class CbtService {
    */
   async getAdminVerifications(query: {
     schoolId?: string;
-    majorId?: string;
-    classProgramId?: string;
     verificationStatus?: string;
     search?: string;
   }) {
@@ -808,11 +774,7 @@ export class CbtService {
       },
     };
 
-    if (query.classProgramId) {
-      whereClause.classProgramId = query.classProgramId;
-    } else if (query.majorId) {
-      whereClause.classProgram = { majorId: query.majorId };
-    } else if (query.schoolId) {
+    if (query.schoolId) {
       whereClause.classProgram = { major: { schoolId: query.schoolId } };
     }
 
@@ -1023,13 +985,16 @@ export class CbtService {
           include: {
             major: {
               include: {
-                school: true,
-              },
-            },
-            cbtExam: {
-              include: {
-                _count: {
-                  select: { questions: true },
+                school: {
+                  include: {
+                    cbtExam: {
+                      include: {
+                        _count: {
+                          select: { questions: true },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -1069,7 +1034,7 @@ export class CbtService {
       };
     }
 
-    const exam = reg.classProgram.cbtExam;
+    const exam = reg.classProgram.major.school.cbtExam;
 
     if (!exam || !exam.isActive || exam._count.questions === 0) {
       return {
@@ -1086,7 +1051,7 @@ export class CbtService {
         majorName: reg.classProgram.major.name,
         classProgramName: reg.classProgram.name,
         message:
-          'Ujian Online belum tersedia untuk Program Kelas Anda. Silakan menunggu informasi dari panitia.',
+          'Ujian Online belum tersedia untuk Lembaga Anda. Silakan menunggu informasi dari panitia.',
       };
     }
 
@@ -1166,10 +1131,18 @@ export class CbtService {
       include: {
         classProgram: {
           include: {
-            cbtExam: {
+            major: {
               include: {
-                questions: {
-                  include: { options: true },
+                school: {
+                  include: {
+                    cbtExam: {
+                      include: {
+                        questions: {
+                          include: { options: true },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -1187,9 +1160,9 @@ export class CbtService {
       );
     }
 
-    const exam = reg.classProgram.cbtExam;
+    const exam = reg.classProgram.major.school.cbtExam;
     if (!exam || !exam.isActive || exam.questions.length === 0) {
-      throw new BadRequestException('Ujian belum tersedia untuk Program Kelas Anda.');
+      throw new BadRequestException('Ujian belum tersedia untuk Lembaga Anda.');
     }
 
     // If attempt already exists
@@ -1281,10 +1254,8 @@ export class CbtService {
           include: {
             exam: {
               include: {
-                classProgram: {
-                  include: {
-                    major: { include: { school: true } },
-                  },
+                school: {
+                  select: { name: true, initial: true },
                 },
               },
             },
@@ -1384,13 +1355,7 @@ export class CbtService {
       candidate: {
         name: candidateName,
         registrationNumber: reg.registrationNumber,
-        schoolName: attempt.exam.classProgram.major.school.name,
-        majorName: attempt.exam.classProgram.major.name,
-        classProgramName: attempt.exam.classProgram.name,
-      },
-      classProgram: {
-        id: attempt.exam.classProgram.id,
-        name: attempt.exam.classProgram.name,
+        schoolName: attempt.exam.school.name,
       },
       exam: {
         title: attempt.exam.title,
@@ -1513,9 +1478,6 @@ export class CbtService {
             exam: {
               include: {
                 questions: true,
-                classProgram: {
-                  include: { major: { include: { school: true } } },
-                },
               },
             },
             answers: {

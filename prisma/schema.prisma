@@ -13,6 +13,7 @@ enum Role {
   BENDAHARA
   ADMIN_BARCODE
   PEWAWANCARA
+  PETUGAS_TES_PRAKTIK
   PESERTA
 }
 
@@ -105,6 +106,8 @@ enum IncomeRange {
   SATU_SAMPAI_3JT
   TIGA_SAMPAI_5JT
   LIMA_SAMPAI_10JT
+  SEPULUH_SAMPAI_20JT
+  LEBIH_DARI_20JT
   LEBIH_DARI_10JT
 }
 
@@ -123,6 +126,7 @@ enum DocumentType {
 model User {
   id             String    @id @default(uuid()) @db.VarChar(36)
   name           String    @db.VarChar(150)
+  username       String?   @unique @db.VarChar(50)
   email          String    @unique @db.VarChar(150)
   phoneNumber    String    @map("phone_number") @db.VarChar(30)
   passwordHash   String    @map("password_hash") @db.VarChar(255)
@@ -146,6 +150,8 @@ model User {
   assignedInterviews     Interview[]              @relation("AssignedInterviewer")
   checkedInInterviews    Interview[]              @relation("CheckedInByInterviews")
   finalVerifiedRegistrations Registration[]      @relation("FinalVerifiedRegistrations")
+  practicalTestsExaminer PracticalTest[]          @relation("ExaminerPracticalTests")
+  practicalScheduleExaminers PracticalScheduleExaminer[] @relation("ExaminerPracticalSchedules")
 
   @@map("users")
 }
@@ -163,6 +169,7 @@ model AcademicPeriod {
   interviewPackages  InterviewPackage[]
   interviewSchedules InterviewSchedule[]
   interviewAspectConfigs InterviewAspectConfig[]
+  practicalSchedules PracticalSchedule[]
 
   @@map("academic_periods")
 }
@@ -184,6 +191,7 @@ model AdmissionWave {
   registrations      Registration[]
   interviewSchedules InterviewSchedule[]
   schoolQuotas       AdmissionWaveSchoolQuota[]
+  practicalSchedules PracticalSchedule[]
 
   @@map("admission_waves")
 }
@@ -209,15 +217,18 @@ model School {
   slug        String   @unique @db.VarChar(100)
   initial     String?  @db.VarChar(20)
   description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
 
   majors                 Major[]
+  cbtExam                CBTExam?
   interviewQuestions     InterviewQuestion[]
   interviewPackages      InterviewPackage[]
   interviewSchedules     InterviewSchedule[]
   interviewAspectConfigs InterviewAspectConfig[]
   admissionWaveQuotas    AdmissionWaveSchoolQuota[]
+  practicalSchedules     PracticalSchedule[]
 
   @@map("schools")
 }
@@ -235,6 +246,7 @@ model Major {
   interviewPackages      InterviewPackage[]
   interviewSchedules     InterviewSchedule[]
   interviewAspectConfigs InterviewAspectConfig[]
+  practicalSchedules     PracticalSchedule[]
 
   @@unique([schoolId, name])
   @@map("majors")
@@ -257,11 +269,11 @@ model ClassProgram {
 
   major                  Major                   @relation(fields: [majorId], references: [id], onDelete: Cascade)
   registrations          Registration[]
-  cbtExam                CBTExam?
   interviewQuestions     InterviewQuestion[]
   interviewPackages      InterviewPackage[]
   interviewSchedules     InterviewSchedule[]
   interviewAspectConfigs InterviewAspectConfig[]
+  practicalSchedules     PracticalSchedule[]
 
   @@unique([majorId, name])
   @@map("class_programs")
@@ -319,6 +331,7 @@ model Registration {
   checkIn               CheckIn?
   cbtAttempt            CBTAttempt?
   interview             Interview?
+  practicalTest         PracticalTest?
 
   @@index([userId])
   @@index([classProgramId])
@@ -427,7 +440,7 @@ model StudentDetail {
   waterSource             String?      @map("water_source") @db.VarChar(50)
   phoneOwnership          String?      @map("phone_ownership") @db.VarChar(50)
   studentPhone            String?      @map("student_phone") @db.VarChar(30)
-  internetAccess          String?      @map("internet_access") @db.VarChar(30)
+  internetAccess          String?      @map("internet_access") @db.VarChar(100)
 
   // Section G: Data Media Sosial
   socialEmail             String?      @map("social_email") @db.VarChar(100)
@@ -437,7 +450,7 @@ model StudentDetail {
   socialTiktok            String?      @map("social_tiktok") @db.VarChar(100)
 
   // Section H: Riwayat Kesehatan
-  smokingStatus           String?      @map("smoking_status") @db.VarChar(20)
+  smokingStatus           String?      @map("smoking_status") @db.VarChar(50)
   diseaseHistory          String?      @map("disease_history") @db.Text
   allergyHistory          String?      @map("allergy_history") @db.Text
   surgeryHistory          String?      @map("surgery_history") @db.Text
@@ -445,7 +458,7 @@ model StudentDetail {
   eyeMinusRight           String?      @map("eye_minus_right") @db.VarChar(20)
   eyeCylLeft              String?      @map("eye_cyl_left") @db.VarChar(20)
   eyeCylRight             String?      @map("eye_cyl_right") @db.VarChar(20)
-  colorBlindStatus        String?      @map("color_blind_status") @db.VarChar(20)
+  colorBlindStatus        String?      @map("color_blind_status") @db.VarChar(50)
 
   // Section Data Tambahan
   heightCm                Int?         @map("height_cm")
@@ -649,7 +662,7 @@ enum CBTVerificationStatus {
 
 model CBTExam {
   id              String         @id @default(uuid()) @db.VarChar(36)
-  classProgramId  String         @unique @map("class_program_id") @db.VarChar(36)
+  schoolId        String         @unique @map("school_id") @db.VarChar(36)
   title           String?        @db.VarChar(200)
   description     String?        @db.Text
   durationMinutes Int            @default(60) @map("duration_minutes")
@@ -657,7 +670,7 @@ model CBTExam {
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
-  classProgram    ClassProgram   @relation(fields: [classProgramId], references: [id], onDelete: Cascade)
+  school          School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   questions       CBTQuestion[]
   attempts        CBTAttempt[]
 
@@ -1101,4 +1114,98 @@ model RegistrationFlowStep {
   @@index([sortOrder])
   @@map("registration_flow_steps")
 }
+
+enum PracticalScheduleStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PracticalTestStatus {
+  NOT_SCHEDULED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model PracticalSchedule {
+  id               String                  @id @default(uuid()) @db.VarChar(36)
+  name             String?                 @map("name") @db.VarChar(150)
+  academicPeriodId String?                 @map("academic_period_id") @db.VarChar(36)
+  admissionWaveId  String?                 @map("admission_wave_id") @db.VarChar(36)
+  schoolId         String?                 @map("school_id") @db.VarChar(36)
+  majorId          String?                 @map("major_id") @db.VarChar(36)
+  classProgramId   String?                 @map("class_program_id") @db.VarChar(36)
+  scheduleDate     DateTime                @map("schedule_date") @db.Date
+  startTime        String                  @map("start_time") @db.VarChar(10)
+  endTime          String                  @map("end_time") @db.VarChar(10)
+  roomLocation     String                  @map("room_location") @db.VarChar(100)
+  quota            Int                     @default(10)
+  notes            String?                 @db.Text
+  status           PracticalScheduleStatus @default(ACTIVE)
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  academicPeriod   AcademicPeriod?                 @relation(fields: [academicPeriodId], references: [id], onDelete: SetNull)
+  admissionWave    AdmissionWave?                  @relation(fields: [admissionWaveId], references: [id], onDelete: SetNull)
+  school           School?                         @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  major            Major?                          @relation(fields: [majorId], references: [id], onDelete: SetNull)
+  classProgram     ClassProgram?                   @relation(fields: [classProgramId], references: [id], onDelete: SetNull)
+  examiners        PracticalScheduleExaminer[]
+  tests            PracticalTest[]
+
+  @@index([academicPeriodId])
+  @@index([admissionWaveId])
+  @@index([schoolId])
+  @@index([majorId])
+  @@index([classProgramId])
+  @@map("practical_schedules")
+}
+
+model PracticalScheduleExaminer {
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  scheduleId      String   @map("schedule_id") @db.VarChar(36)
+  examinerUserId  String   @map("examiner_user_id") @db.VarChar(36)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  schedule        PracticalSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  examiner        User              @relation("ExaminerPracticalSchedules", fields: [examinerUserId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, examinerUserId])
+  @@map("practical_schedule_examiners")
+}
+
+model PracticalTest {
+  id              String              @id @default(uuid()) @db.VarChar(36)
+  registrationId  String              @unique @map("registration_id") @db.VarChar(36)
+  scheduleId      String?             @map("schedule_id") @db.VarChar(36)
+  examinerId      String?             @map("examiner_id") @db.VarChar(36)
+  examinerName    String?             @map("examiner_name") @db.VarChar(150)
+  status          PracticalTestStatus @default(NOT_SCHEDULED)
+  startedAt       DateTime?           @map("started_at")
+  completedAt     DateTime?           @map("completed_at")
+  btqScore        Int?                @map("btq_score") // 1: Belum bisa, 2: Bisa, 3: Bisa melakukan, butuh Kontrol, 4: Mampu Secara Mandiri & Istiqomah
+  btqNotes        String?             @map("btq_notes") @db.Text
+  wudhuScore      Int?                @map("wudhu_score") // 1: Belum bisa, 2: Bisa, 3: Bisa melakukan, butuh Kontrol, 4: Mampu Secara Mandiri & Istiqomah
+  wudhuNotes      String?             @map("wudhu_notes") @db.Text
+  salatScore      Int?                @map("salat_score") // 1: Belum bisa, 2: Bisa, 3: Bisa melakukan, butuh Kontrol, 4: Mampu Secara Mandiri & Istiqomah
+  salatNotes      String?             @map("salat_notes") @db.Text
+  totalScore      Decimal?            @map("total_score") @db.Decimal(5, 2)
+  generalNotes    String?             @map("general_notes") @db.Text
+  testedAt        DateTime?           @map("tested_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  registration    Registration        @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  schedule        PracticalSchedule?  @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  examiner        User?               @relation("ExaminerPracticalTests", fields: [examinerId], references: [id], onDelete: SetNull)
+
+  @@index([registrationId])
+  @@index([scheduleId])
+  @@index([examinerId])
+  @@index([status])
+  @@map("practical_tests")
+}
+
 

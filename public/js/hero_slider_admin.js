@@ -767,9 +767,16 @@
   };
 
   window.deleteHeroSlider = async function (id, title) {
-    if (!confirm(`Apakah Anda yakin ingin menghapus slider "${title}"?`)) {
-      return;
-    }
+    const ok = typeof window.showAppConfirm === 'function'
+      ? await window.showAppConfirm({
+          title: 'Hapus Hero Slider',
+          message: `Apakah Anda yakin ingin menghapus slider "${title}"?`,
+          confirmText: 'Ya, Hapus Slider',
+          cancelText: 'Batal',
+          type: 'danger'
+        })
+      : confirm(`Apakah Anda yakin ingin menghapus slider "${title}"?`);
+    if (!ok) return;
 
     try {
       const res = await apiRequest(`/api/hero-sliders/${id}`, 'DELETE');
@@ -1257,7 +1264,16 @@
   };
 
   window.deleteFlowStep = async function (id, title) {
-    if (!confirm(`Hapus langkah "${title}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+    const ok = typeof window.showAppConfirm === 'function'
+      ? await window.showAppConfirm({
+          title: 'Hapus Langkah Alur',
+          message: `Hapus langkah "${title}"? Tindakan ini tidak dapat dibatalkan.`,
+          confirmText: 'Ya, Hapus Langkah',
+          cancelText: 'Batal',
+          type: 'danger'
+        })
+      : confirm(`Hapus langkah "${title}"? Tindakan ini tidak dapat dibatalkan.`);
+    if (!ok) return;
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const res = await fetch(`/api/registration-flow/${id}`, {

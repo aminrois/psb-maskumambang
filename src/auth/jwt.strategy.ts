@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export interface JwtPayload {
   sub: string;
+  username?: string | null;
   email: string;
   role: string;
   sessionVersion: number;

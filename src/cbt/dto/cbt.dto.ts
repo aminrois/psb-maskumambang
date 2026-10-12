@@ -16,7 +16,7 @@ import { CBTQuestionType } from '@prisma/client';
 export class CreateCbtExamDto {
   @IsString()
   @IsNotEmpty()
-  classProgramId!: string;
+  schoolId!: string;
 
   @IsString()
   @IsOptional()

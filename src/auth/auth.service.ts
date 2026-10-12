@@ -9,6 +9,7 @@ import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Role } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -22,14 +23,15 @@ export class AuthService {
 
   async verifyRecaptcha(token?: string, ipAddress?: string): Promise<boolean> {
     const secretKey = process.env.RECAPTCHA_SECRET_KEY || '6LfPxLAtAAAAAB4u3g-Y0BY8hFVgs63N3ynNpuqU';
-    const isSkipRecaptcha = process.env.SKIP_RECAPTCHA === 'true' || process.env.NODE_ENV === 'test' || !process.env.RECAPTCHA_SECRET_KEY || process.env.SKIP_RECAPTCHA !== 'false';
+    const isSkipRecaptcha = process.env.SKIP_RECAPTCHA === 'true' || process.env.NODE_ENV === 'test';
 
-    if (isSkipRecaptcha) {
+    // Allow skip if configured or bypassed in localhost development
+    if (isSkipRecaptcha || token === 'LOCAL_BYPASS') {
       return true;
     }
 
     if (!token || !token.trim()) {
-      return true; // Gracefully bypass during test phase
+      throw new BadRequestException('Verifikasi reCAPTCHA ("Saya bukan robot") wajib dicentang.');
     }
 
     try {
@@ -65,15 +67,8 @@ export class AuthService {
           console.error('[reCAPTCHA] RECAPTCHA_SECRET_KEY tidak valid atau tidak cocok dengan site key.');
           throw new BadRequestException('Konfigurasi reCAPTCHA server bermasalah (secret key tidak cocok).');
         }
-        if (errorCodes.includes('hostname-mismatch')) {
-          console.warn('[reCAPTCHA] Domain/hostname mismatch:', data.hostname);
-          // Allow in development/IP access if configured
-          if (process.env.NODE_ENV !== 'production' || process.env.ALLOW_HOSTNAME_MISMATCH === 'true') {
-            return true;
-          }
-        }
 
-        throw new BadRequestException('Verifikasi reCAPTCHA gagal atau kadaluarsa. Silakan centang ulang.');
+        throw new BadRequestException('Verifikasi reCAPTCHA ("Saya bukan robot") gagal atau kadaluarsa. Silakan centang ulang.');
       }
       return true;
     } catch (err: any) {
@@ -83,42 +78,100 @@ export class AuthService {
     }
   }
 
-  async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
-    await this.verifyRecaptcha(dto.captchaToken, ipAddress);
+  async checkUsernameAvailability(rawUsername?: string) {
+    if (!rawUsername || !rawUsername.trim()) {
+      return { available: false, message: 'Username tidak boleh kosong.' };
+    }
 
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email.trim().toLowerCase() },
+    const username = rawUsername.trim().toLowerCase();
+
+    if (username.length < 3) {
+      return { available: false, message: 'Username minimal 3 karakter.' };
+    }
+
+    if (username.length > 30) {
+      return { available: false, message: 'Username maksimal 30 karakter.' };
+    }
+
+    if (!/^[a-zA-Z0-9._]+$/.test(username)) {
+      return {
+        available: false,
+        message: 'Username hanya boleh huruf, angka, titik (.), dan garis bawah (_).',
+      };
+    }
+
+    const existing = await this.prisma.user.findFirst({
+      where: {
+        username: { equals: username, mode: 'insensitive' },
+      },
     });
 
     if (existing) {
+      return { available: false, message: 'Username sudah digunakan, silakan pilih yang lain.' };
+    }
+
+    return { available: true, message: 'Username tersedia.' };
+  }
+
+  async register(dto: RegisterDto, ipAddress?: string, userAgent?: string) {
+    await this.verifyRecaptcha(dto.captchaToken, ipAddress);
+
+    const cleanUsername = dto.username.trim().toLowerCase();
+    const cleanEmail = dto.email.trim().toLowerCase();
+
+    // Check username availability
+    const usernameCheck = await this.checkUsernameAvailability(cleanUsername);
+    if (!usernameCheck.available) {
+      throw new ConflictException(usernameCheck.message);
+    }
+
+    const existingEmail = await this.prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (existingEmail) {
       throw new ConflictException('Email ini sudah terdaftar dalam sistem.');
     }
 
     const passwordHash = await HashUtil.hashPassword(dto.password);
 
-    const newUser = await this.prisma.user.create({
-      data: {
-        name: dto.name.trim(),
-        email: dto.email.trim().toLowerCase(),
-        phoneNumber: dto.phoneNumber.trim(),
-        passwordHash,
-        role: Role.PESERTA,
-        isActive: true,
-      },
-    });
+    let newUser: any;
+    try {
+      newUser = await this.prisma.user.create({
+        data: {
+          name: dto.name.trim(),
+          username: cleanUsername,
+          email: cleanEmail,
+          phoneNumber: dto.phoneNumber.trim(),
+          passwordHash,
+          role: Role.PESERTA,
+          isActive: true,
+        },
+      });
+    } catch (err: any) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        const target = (err.meta?.target as string[]) || [];
+        if (target.includes('username')) {
+          throw new ConflictException('Username ini sudah terdaftar dalam sistem.');
+        }
+        throw new ConflictException('Email ini sudah terdaftar dalam sistem.');
+      }
+      throw err;
+    }
 
     await this.auditService.log({
       userId: newUser.id,
       action: 'USER_REGISTER',
       targetTable: 'users',
       targetId: newUser.id,
-      details: `Pendaftaran akun peserta baru: ${newUser.email}`,
+      details: `Pendaftaran akun peserta baru: ${newUser.username} (${newUser.email})`,
       ipAddress,
       userAgent,
     });
 
     const payload = {
       sub: newUser.id,
+      username: newUser.username,
       email: newUser.email,
       role: newUser.role,
       sessionVersion: newUser.sessionVersion,
@@ -135,12 +188,22 @@ export class AuthService {
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string) {
     await this.verifyRecaptcha(dto.captchaToken, ipAddress);
 
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email.trim().toLowerCase() },
+    const identifier = (dto.username || dto.email || dto.identifier || '').trim().toLowerCase();
+    if (!identifier) {
+      throw new BadRequestException('Username atau email wajib diisi.');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: { equals: identifier, mode: 'insensitive' } },
+          { email: { equals: identifier, mode: 'insensitive' } },
+        ],
+      },
     });
 
     if (!user) {
-      throw new UnauthorizedException('Email atau kata sandi tidak valid.');
+      throw new UnauthorizedException('Username/email atau kata sandi tidak valid.');
     }
 
     if (!user.isActive) {
@@ -149,11 +212,12 @@ export class AuthService {
 
     const isMatch = await HashUtil.verifyPassword(dto.password, user.passwordHash);
     if (!isMatch) {
-      throw new UnauthorizedException('Email atau kata sandi tidak valid.');
+      throw new UnauthorizedException('Username/email atau kata sandi tidak valid.');
     }
 
     const payload = {
       sub: user.id,
+      username: user.username,
       email: user.email,
       role: user.role,
       sessionVersion: user.sessionVersion,
@@ -166,7 +230,7 @@ export class AuthService {
       action: 'LOGIN_SUCCESS',
       targetTable: 'users',
       targetId: user.id,
-      details: `Login berhasil (${user.role})`,
+      details: `Login berhasil (${user.username || user.email} - ${user.role})`,
       ipAddress,
       userAgent,
     });

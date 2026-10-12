@@ -88,6 +88,24 @@
             style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
         </div>
         <div class="form-group" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label"
+              style="font-size: 0.875rem; font-weight: 600; color: var(--text-main); margin: 0;">Username</label>
+            <span id="username-feedback" style="font-size: 0.8rem; font-weight: 600; display: none;"></span>
+          </div>
+          <div style="position: relative;">
+            <input type="text" id="reg-username" class="form-control" placeholder="Contoh: santri_fauzi26" required
+              autocomplete="username" autocapitalize="none" spellcheck="false"
+              style="width: 100%; padding: 11px 36px 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+            <span id="username-spinner" style="display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 0.85rem; color: var(--text-muted);">
+              <i class="fa-solid fa-spinner fa-spin"></i>
+            </span>
+          </div>
+          <small style="display: block; margin-top: 4px; font-size: 0.75rem; color: var(--text-muted);">
+            Digunakan untuk masuk/login akun (huruf kecil, angka, titik, underscore, min. 3 karakter).
+          </small>
+        </div>
+        <div class="form-group" style="margin-bottom: 16px;">
           <label class="form-label"
             style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">Alamat
             Email</label>
@@ -110,7 +128,8 @@
           <input type="text" id="reg-phone" class="form-control" placeholder="Contoh: 081234567890" required
             style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
         </div>
-        <div class="form-group" style="margin-bottom: 20px; display: flex; justify-content: center;">
+
+        <div id="recaptcha-wrapper" style="margin-bottom: 20px; display: flex; justify-content: center;">
           <div class="g-recaptcha" data-sitekey="6LfPxLAtAAAAAMaeu-yp0yoozI6IiQkshQaKJgAd"></div>
         </div>
 
@@ -132,11 +151,22 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=20260911_fullform_v5"></script>
+  <script src="/js/app.js?v=20261010_rc"></script>
   <script>
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    let usernameDebounceTimer = null;
+    let isUsernameAvailable = false;
+    let lastCheckedUsername = '';
+
     document.addEventListener('DOMContentLoaded', () => {
       initTheme();
       loadBrandingInfo();
+      setupUsernameChecker();
+
+      if (isLocalhost) {
+        const rc = document.getElementById('recaptcha-wrapper');
+        if (rc) rc.style.display = 'none';
+      }
 
       const form = document.getElementById('register-form');
       if (form) {
@@ -144,15 +174,135 @@
       }
     });
 
+    function setupUsernameChecker() {
+      const input = document.getElementById('reg-username');
+      const feedback = document.getElementById('username-feedback');
+      const spinner = document.getElementById('username-spinner');
+      if (!input) return;
+
+      input.addEventListener('input', () => {
+        const val = input.value.trim().toLowerCase();
+        clearTimeout(usernameDebounceTimer);
+
+        if (!val) {
+          feedback.style.display = 'none';
+          spinner.style.display = 'none';
+          input.style.borderColor = 'var(--input-border)';
+          isUsernameAvailable = false;
+          return;
+        }
+
+        if (val.length < 3) {
+          feedback.style.display = 'inline-block';
+          feedback.style.color = '#ef4444';
+          feedback.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Min. 3 karakter';
+          input.style.borderColor = '#ef4444';
+          spinner.style.display = 'none';
+          isUsernameAvailable = false;
+          return;
+        }
+
+        if (!/^[a-zA-Z0-9._]+$/.test(val)) {
+          feedback.style.display = 'inline-block';
+          feedback.style.color = '#ef4444';
+          feedback.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Karakter tidak valid';
+          input.style.borderColor = '#ef4444';
+          spinner.style.display = 'none';
+          isUsernameAvailable = false;
+          return;
+        }
+
+        spinner.style.display = 'inline-block';
+        feedback.style.display = 'none';
+
+        usernameDebounceTimer = setTimeout(async () => {
+          await verifyUsername(val);
+        }, 400);
+      });
+
+      input.addEventListener('blur', async () => {
+        const val = input.value.trim().toLowerCase();
+        if (val && val.length >= 3 && /^[a-zA-Z0-9._]+$/.test(val) && val !== lastCheckedUsername) {
+          await verifyUsername(val);
+        }
+      });
+    }
+
+    async function verifyUsername(username) {
+      const input = document.getElementById('reg-username');
+      const feedback = document.getElementById('username-feedback');
+      const spinner = document.getElementById('username-spinner');
+      if (!input || !feedback) return;
+
+      try {
+        const res = await apiRequest(`/api/auth/check-username?username=${encodeURIComponent(username)}`, {
+          method: 'GET',
+        });
+        lastCheckedUsername = username;
+        if (spinner) spinner.style.display = 'none';
+        feedback.style.display = 'inline-block';
+
+        if (res.available) {
+          isUsernameAvailable = true;
+          feedback.style.color = '#10b981';
+          feedback.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${res.message || 'Username tersedia'}`;
+          input.style.borderColor = '#10b981';
+        } else {
+          isUsernameAvailable = false;
+          feedback.style.color = '#ef4444';
+          feedback.innerHTML = `<i class="fa-solid fa-circle-xmark"></i> ${res.message || 'Sudah digunakan'}`;
+          input.style.borderColor = '#ef4444';
+        }
+      } catch (err) {
+        if (spinner) spinner.style.display = 'none';
+        console.error('Gagal mengecek username:', err);
+      }
+    }
+
     async function handleRegisterSubmit(e) {
       if (e) e.preventDefault();
 
+      const name = document.getElementById('reg-name').value.trim();
+      const username = document.getElementById('reg-username').value.trim().toLowerCase();
+      const email = document.getElementById('reg-email').value.trim().toLowerCase();
+      const password = document.getElementById('reg-password').value;
+      const phoneNumber = document.getElementById('reg-phone').value.trim();
+
+      if (!username || username.length < 3) {
+        showBannerAlert('register-alert', 'Username minimal 3 karakter.', 'danger');
+        document.getElementById('reg-username').focus();
+        return;
+      }
+
+      if (!/^[a-zA-Z0-9._]+$/.test(username)) {
+        showBannerAlert('register-alert', 'Username hanya boleh huruf, angka, titik (.), dan garis bawah (_).', 'danger');
+        document.getElementById('reg-username').focus();
+        return;
+      }
+
+      // Check if already checked and taken
+      if (!isUsernameAvailable && lastCheckedUsername === username) {
+        showBannerAlert('register-alert', 'Username sudah digunakan oleh pendaftar lain. Silakan pilih username lain.', 'danger');
+        document.getElementById('reg-username').focus();
+        return;
+      }
+
       let captchaToken = '';
-      if (typeof grecaptcha !== 'undefined' && grecaptcha.getResponse) {
-        try {
-          captchaToken = grecaptcha.getResponse();
-        } catch (err) {
-          captchaToken = '';
+      const recaptchaWrapper = document.getElementById('recaptcha-wrapper');
+      const isRecaptchaHidden = recaptchaWrapper && recaptchaWrapper.style.display === 'none';
+      if (isLocalhost || isRecaptchaHidden) {
+        captchaToken = 'LOCAL_BYPASS';
+      } else {
+        if (typeof grecaptcha !== 'undefined' && grecaptcha.getResponse) {
+          try {
+            captchaToken = grecaptcha.getResponse();
+          } catch (err) {
+            captchaToken = '';
+          }
+        }
+        if (!captchaToken) {
+          showBannerAlert('register-alert', 'Silakan centang verifikasi "Saya bukan robot" (reCAPTCHA) terlebih dahulu.', 'danger');
+          return;
         }
       }
 
@@ -163,14 +313,9 @@
       }
 
       try {
-        const name = document.getElementById('reg-name').value.trim();
-        const email = document.getElementById('reg-email').value.trim();
-        const password = document.getElementById('reg-password').value;
-        const phoneNumber = document.getElementById('reg-phone').value.trim();
-
         const res = await apiRequest('/api/auth/register', {
           method: 'POST',
-          body: { name, email, password, phoneNumber, captchaToken },
+          body: { name, username, email, password, phoneNumber, captchaToken },
         });
 
         if (res.success && res.data) {
@@ -200,11 +345,11 @@
           }, 1000);
         } else {
           showBannerAlert('register-alert', res.message || 'Gagal membuat akun.', 'danger');
-          if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+          if (typeof grecaptcha !== 'undefined' && grecaptcha.reset) grecaptcha.reset();
         }
       } catch (err) {
         showBannerAlert('register-alert', err.message || 'Gagal membuat akun.', 'danger');
-        if (typeof grecaptcha !== 'undefined') grecaptcha.reset();
+        if (typeof grecaptcha !== 'undefined' && grecaptcha.reset) grecaptcha.reset();
       } finally {
         if (btn) {
           btn.disabled = false;

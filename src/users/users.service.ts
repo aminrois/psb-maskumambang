@@ -72,6 +72,7 @@ export class UsersService {
       const q = search.trim();
       where.OR = [
         { name: { contains: q, mode: 'insensitive' } },
+        { username: { contains: q, mode: 'insensitive' } },
         { email: { contains: q, mode: 'insensitive' } },
         { phoneNumber: { contains: q, mode: 'insensitive' } },
       ];
@@ -83,6 +84,7 @@ export class UsersService {
         select: {
           id: true,
           name: true,
+          username: true,
           email: true,
           phoneNumber: true,
           role: true,

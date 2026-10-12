@@ -15,6 +15,7 @@ async function main() {
   const defaultUsers = [
     {
       name: 'Super Administrator',
+      username: 'rois',
       email: 'rois@maskumambang.ac.id',
       phoneNumber: '081234567890',
       password: 'rois123',
@@ -22,6 +23,7 @@ async function main() {
     },
     {
       name: 'Super Admin',
+      username: 'admin',
       email: 'admin@lomba.id',
       phoneNumber: '081234567899',
       password: 'admin123',
@@ -29,6 +31,7 @@ async function main() {
     },
     {
       name: 'Admin Maskumambang',
+      username: 'admin_maskumambang',
       email: 'admin@maskumambang.ac.id',
       phoneNumber: '081234567898',
       password: 'admin123',
@@ -36,6 +39,7 @@ async function main() {
     },
     {
       name: 'Bendahara Panitia',
+      username: 'bendahara',
       email: 'bendahara@lomba.id',
       phoneNumber: '081234567891',
       password: 'bendahara123',
@@ -43,6 +47,7 @@ async function main() {
     },
     {
       name: 'Ahmad Fauzi (Peserta Demo)',
+      username: 'peserta',
       email: 'peserta@lomba.id',
       phoneNumber: '081234567892',
       password: 'peserta123',
@@ -50,10 +55,27 @@ async function main() {
     },
     {
       name: 'Ust. H. Ahmad Dahlan, Lc.',
+      username: 'pewawancara',
       email: 'pewawancara@lomba.id',
       phoneNumber: '081234567895',
       password: 'pewawancara123',
       role: Role.PEWAWANCARA,
+    },
+    {
+      name: 'Ustadz Penguji Praktik',
+      username: 'penguji_praktik',
+      email: 'praktik@maskumambang.ac.id',
+      phoneNumber: '081234567896',
+      password: 'praktik123',
+      role: Role.PETUGAS_TES_PRAKTIK,
+    },
+    {
+      name: 'Petugas Tes Praktik Demo',
+      username: 'praktik',
+      email: 'praktik@lomba.id',
+      phoneNumber: '081234567897',
+      password: 'praktik123',
+      role: Role.PETUGAS_TES_PRAKTIK,
     },
   ];
 
@@ -63,12 +85,14 @@ async function main() {
       where: { email: u.email },
       update: {
         name: u.name,
+        username: u.username,
         phoneNumber: u.phoneNumber,
         role: u.role,
         isActive: true,
       },
       create: {
         name: u.name,
+        username: u.username,
         email: u.email,
         phoneNumber: u.phoneNumber,
         passwordHash,

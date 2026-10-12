@@ -1056,7 +1056,16 @@ async function handleSaveSchedule(e) {
 }
 
 async function handleDeleteSchedule(scheduleId) {
-  if (!confirm('Apakah Anda yakin ingin menghapus jadwal wawancara ini? Data penugasan terkait akan dibatalkan.')) return;
+  const ok = typeof window.showAppConfirm === 'function'
+    ? await window.showAppConfirm({
+        title: 'Hapus Jadwal Wawancara',
+        message: 'Apakah Anda yakin ingin menghapus jadwal wawancara ini? Data penugasan terkait akan dibatalkan.',
+        confirmText: 'Ya, Hapus Jadwal',
+        cancelText: 'Batal',
+        type: 'danger'
+      })
+    : confirm('Apakah Anda yakin ingin menghapus jadwal wawancara ini? Data penugasan terkait akan dibatalkan.');
+  if (!ok) return;
 
   try {
     const res = await apiRequest(`/api/interview/admin/schedules/${scheduleId}`, 'DELETE');

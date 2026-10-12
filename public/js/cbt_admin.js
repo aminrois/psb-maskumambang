@@ -107,95 +107,68 @@ async function renderCbtAdminDashboard() {
 
         </div>
 
-        <!-- Ujian Berdasarkan Program Kelas (Tree / Hierarchy) -->
+        <!-- Status Ujian Per Lembaga -->
         <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-sm);">
           <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
               <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-heading); margin: 0; display: flex; align-items: center; gap: 8px;">
                 <i class="fa-solid fa-sitemap" style="color: var(--primary-600);"></i>
-                Status Ujian Berdasarkan Program Kelas
+                Status Ujian Per Lembaga
               </h3>
-              <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.85rem;">Struktur: Sekolah &bull; Jurusan &bull; Program Kelas</p>
+              <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.85rem;">1 Lembaga = 1 Set Soal CBT (berlaku untuk semua jurusan di lembaga tersebut)</p>
             </div>
           </div>
 
           ${structure.length === 0 ? `
             <div style="text-align: center; padding: 30px; color: var(--text-muted);">
-              Belum ada data Master Sekolah/Jurusan/Program Kelas.
+              Belum ada data Master Lembaga.
             </div>
           ` : `
-            <div class="cbt-tree-container" style="display: flex; flex-direction: column; gap: 16px;">
-              ${structure.map(school => `
-                <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-body);">
-                  
-                  <!-- School Header -->
-                  <div style="background: var(--bg-card); padding: 14px 18px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
-                    <div style="display: flex; align-items: center; gap: 10px; font-weight: 800; color: var(--text-heading); font-size: 1rem;">
-                      <i class="fa-solid fa-school" style="color: var(--primary-600);"></i>
-                      <span>${school.name}</span>
-                      ${school.initial ? `<span class="badge badge-secondary" style="font-size: 0.7rem;">${school.initial}</span>` : ''}
-                    </div>
-                  </div>
-
-                  <!-- Majors List -->
-                  <div style="padding: 12px 18px;">
-                    ${school.majors.length === 0 ? `
-                      <div style="font-size: 0.85rem; color: var(--text-dim); padding: 8px 0;">Belum ada jurusan pada sekolah ini.</div>
-                    ` : school.majors.map(major => `
-                      <div style="margin-bottom: 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px 16px;">
-                        
-                        <div style="font-weight: 700; color: var(--primary-600); font-size: 0.9rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                          <i class="fa-solid fa-code-branch"></i>
-                          <span>${major.name}</span>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                  <tr style="border-bottom: 2px solid var(--border-subtle); color: var(--text-muted); text-align: left; background: var(--bg-body);">
+                    <th style="padding: 10px 12px; width: 30%;">Lembaga</th>
+                    <th style="padding: 10px 12px; width: 20%;">Jumlah Soal</th>
+                    <th style="padding: 10px 12px; width: 20%;">Durasi Ujian</th>
+                    <th style="padding: 10px 12px; width: 20%;">Status</th>
+                    <th style="padding: 10px 12px; width: 10%; text-align: right;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${structure.map(school => `
+                    <tr style="border-bottom: 1px solid var(--border-subtle);">
+                      <td style="padding: 10px 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <i class="fa-solid fa-school" style="color: var(--primary-600);"></i>
+                          <div>
+                            <div style="font-weight: 700; color: var(--text-heading);">${school.name}</div>
+                            ${school.initial ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${school.initial}</div>` : ''}
+                          </div>
                         </div>
-
-                        <!-- Class Programs Table -->
-                        <div style="overflow-x: auto;">
-                          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                            <thead>
-                              <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); text-align: left;">
-                                <th style="padding: 6px 8px; width: 35%;">Program Kelas</th>
-                                <th style="padding: 6px 8px; width: 20%;">Jumlah Soal</th>
-                                <th style="padding: 6px 8px; width: 20%;">Durasi Ujian</th>
-                                <th style="padding: 6px 8px; width: 15%;">Status Ujian</th>
-                                <th style="padding: 6px 8px; width: 10%; text-align: right;">Aksi</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              ${major.classPrograms.length === 0 ? `
-                                <tr><td colspan="5" style="padding: 10px; color: var(--text-dim); text-align: center;">Belum ada program kelas pada jurusan ini.</td></tr>
-                              ` : major.classPrograms.map(cp => `
-                                <tr style="border-bottom: 1px solid var(--border-subtle);">
-                                  <td style="padding: 8px; font-weight: 600; color: var(--text-heading);">
-                                    <i class="fa-solid fa-caret-right" style="color: var(--primary-500); margin-right: 6px;"></i>
-                                    ${cp.name}
-                                  </td>
-                                  <td style="padding: 8px; color: var(--text-main);">
-                                    ${cp.exam ? `<strong>${cp.exam.totalQuestions}</strong> Soal` : '<span style="color: var(--text-dim);">-</span>'}
-                                  </td>
-                                  <td style="padding: 8px; color: var(--text-main);">
-                                    ${cp.exam ? `<strong>${cp.exam.durationMinutes}</strong> Menit` : '<span style="color: var(--text-dim);">-</span>'}
-                                  </td>
-                                  <td style="padding: 8px;">
-                                    ${cp.exam ? (cp.exam.isActive ? '<span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-check"></i> Aktif</span>' : '<span class="badge badge-secondary" style="font-size: 0.75rem;"><i class="fa-solid fa-pause"></i> Nonaktif</span>') : '<span class="badge badge-warning" style="font-size: 0.75rem;">Belum dibuat</span>'}
-                                  </td>
-                                  <td style="padding: 8px; text-align: right;">
-                                    <button type="button" class="btn btn-xs btn-primary" onclick="openCbtManageDirectly('${school.id}', '${major.id}', '${cp.id}')" style="white-space: nowrap;">
-                                      <i class="fa-solid fa-gear"></i> Kelola
-                                    </button>
-                                  </td>
-                                </tr>
-                              `).join('')}
-                            </tbody>
-                          </table>
-                        </div>
-
-                      </div>
-                    `).join('')}
-                  </div>
-
-                </div>
-              `).join('')}
+                      </td>
+                      <td style="padding: 10px 12px; color: var(--text-main);">
+                        ${school.exam ? `<strong>${school.exam.totalQuestions}</strong> Soal` : '<span style="color: var(--text-dim);">-</span>'}
+                      </td>
+                      <td style="padding: 10px 12px; color: var(--text-main);">
+                        ${school.exam ? `<strong>${school.exam.durationMinutes}</strong> Menit` : '<span style="color: var(--text-dim);">-</span>'}
+                      </td>
+                      <td style="padding: 10px 12px;">
+                        ${school.exam 
+                          ? (school.exam.isActive 
+                            ? '<span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-check"></i> Aktif</span>' 
+                            : '<span class="badge badge-secondary" style="font-size: 0.75rem;"><i class="fa-solid fa-pause"></i> Nonaktif</span>') 
+                          : '<span class="badge badge-warning" style="font-size: 0.75rem;">Belum dibuat</span>'}
+                      </td>
+                      <td style="padding: 10px 12px; text-align: right;">
+                        <button type="button" class="btn btn-xs btn-primary" onclick="openCbtManageDirectly('${school.id}')" style="white-space: nowrap;">
+                          <i class="fa-solid fa-gear"></i> Kelola
+                        </button>
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
             </div>
           `}
         </div>
@@ -216,18 +189,16 @@ async function renderCbtAdminDashboard() {
   }
 }
 
-function openCbtManageDirectly(schoolId, majorId, programId) {
+function openCbtManageDirectly(schoolId) {
   window.cbtAdminState.selectedSchoolId = schoolId;
-  window.cbtAdminState.selectedMajorId = majorId;
-  window.cbtAdminState.selectedProgramId = programId;
-  window.location.hash = `#cbt-manage/${programId}`;
+  window.location.hash = `#cbt-manage/${schoolId}`;
 }
 
 // ============================================================================
 // 2. KELOLA UJIAN & SOAL (CASCADING FILTER + CRUD)
 // ============================================================================
 
-async function renderCbtManageView(paramProgramId) {
+async function renderCbtManageView(paramSchoolId) {
   const container = document.getElementById('main-view-slot');
   if (!container) return;
 
@@ -249,41 +220,15 @@ async function renderCbtManageView(paramProgramId) {
 
     const structure = window.cbtAdminState.cachedStructure || [];
     if (structure.length === 0) {
-      container.innerHTML = '<div class="alert alert-warning">Belum ada struktur master data sekolah/jurusan.</div>';
+      container.innerHTML = '<div class="alert alert-warning">Belum ada struktur master data lembaga/sekolah.</div>';
       return;
     }
 
-    // Auto-select initial values if paramProgramId is provided
-    if (paramProgramId) {
-      for (const s of structure) {
-        for (const m of s.majors) {
-          for (const cp of m.classPrograms) {
-            if (cp.id === paramProgramId) {
-              window.cbtAdminState.selectedSchoolId = s.id;
-              window.cbtAdminState.selectedMajorId = m.id;
-              window.cbtAdminState.selectedProgramId = cp.id;
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    // If still no school selected, default to first school
-    if (!window.cbtAdminState.selectedSchoolId && structure.length > 0) {
+    // Auto-select initial school if paramSchoolId is provided
+    if (paramSchoolId && structure.some(s => s.id === paramSchoolId)) {
+      window.cbtAdminState.selectedSchoolId = paramSchoolId;
+    } else if (!window.cbtAdminState.selectedSchoolId || !structure.some(s => s.id === window.cbtAdminState.selectedSchoolId)) {
       window.cbtAdminState.selectedSchoolId = structure[0].id;
-    }
-
-    // If still no major selected, default to first major of selected school
-    const currentSchool = structure.find(s => s.id === window.cbtAdminState.selectedSchoolId) || structure[0];
-    if (currentSchool && (!window.cbtAdminState.selectedMajorId || !currentSchool.majors.some(m => m.id === window.cbtAdminState.selectedMajorId))) {
-      window.cbtAdminState.selectedMajorId = currentSchool.majors[0]?.id || '';
-    }
-
-    // If still no program selected, default to first program of selected major
-    const currentMajor = currentSchool?.majors.find(m => m.id === window.cbtAdminState.selectedMajorId) || currentSchool?.majors[0];
-    if (currentMajor && (!window.cbtAdminState.selectedProgramId || !currentMajor.classPrograms.some(p => p.id === window.cbtAdminState.selectedProgramId))) {
-      window.cbtAdminState.selectedProgramId = currentMajor.classPrograms[0]?.id || '';
     }
 
     container.innerHTML = `
@@ -293,7 +238,7 @@ async function renderCbtManageView(paramProgramId) {
         <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
           <div>
             <h2 style="font-size: 1.6rem; color: var(--text-heading); margin: 0; font-weight: 800;">Kelola Ujian & Soal</h2>
-            <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.875rem;">Konfigurasi ujian, durasi, dan bank soal per Program Kelas</p>
+            <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.875rem;">Konfigurasi ujian, durasi, dan bank soal per Lembaga (1 Soal untuk seluruh jurusan dalam 1 Lembaga)</p>
           </div>
           <div>
             <a href="#cbt-dashboard" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
@@ -302,58 +247,37 @@ async function renderCbtManageView(paramProgramId) {
           </div>
         </div>
 
-        <!-- Cascading Filter Section -->
+        <!-- School Filter Section -->
         <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
           <div style="font-weight: 700; color: var(--text-heading); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-filter" style="color: var(--primary-600);"></i>
-            Pilih Struktur Program Kelas:
+            <i class="fa-solid fa-school" style="color: var(--primary-600);"></i>
+            Pilih Lembaga / Unit Sekolah:
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;">
-            
-            <div class="form-group">
-              <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: block;">Sekolah</label>
-              <select id="cbt-filter-school" class="form-select" onchange="onCbtSchoolFilterChange(this.value)" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+          <div style="max-width: 400px;">
+            <div class="form-group" style="margin: 0;">
+              <select id="cbt-filter-school" class="form-select" onchange="onCbtSchoolFilterChange(this.value)" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-weight: 600;">
                 ${structure.map(s => `
-                  <option value="${s.id}" ${s.id === window.cbtAdminState.selectedSchoolId ? 'selected' : ''}>${s.name}</option>
+                  <option value="${s.id}" ${s.id === window.cbtAdminState.selectedSchoolId ? 'selected' : ''}>${s.name} ${s.initial ? `(${s.initial})` : ''}</option>
                 `).join('')}
               </select>
             </div>
-
-            <div class="form-group">
-              <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: block;">Jurusan</label>
-              <select id="cbt-filter-major" class="form-select" onchange="onCbtMajorFilterChange(this.value)" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                ${(currentSchool?.majors || []).map(m => `
-                  <option value="${m.id}" ${m.id === window.cbtAdminState.selectedMajorId ? 'selected' : ''}>${m.name}</option>
-                `).join('')}
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: block;">Program Kelas</label>
-              <select id="cbt-filter-program" class="form-select" onchange="onCbtProgramFilterChange(this.value)" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                ${(currentMajor?.classPrograms || []).map(cp => `
-                  <option value="${cp.id}" ${cp.id === window.cbtAdminState.selectedProgramId ? 'selected' : ''}>${cp.name}</option>
-                `).join('')}
-              </select>
-            </div>
-
           </div>
         </div>
 
         <!-- Main Configuration Area -->
-        <div id="cbt-program-config-slot">
-          <!-- Injected by loadCbtProgramExamDetails() -->
+        <div id="cbt-school-config-slot">
+          <!-- Injected by loadCbtSchoolExamDetails() -->
         </div>
 
       </div>
     `;
 
-    if (window.cbtAdminState.selectedProgramId) {
-      await loadCbtProgramExamDetails(window.cbtAdminState.selectedProgramId);
+    if (window.cbtAdminState.selectedSchoolId) {
+      await loadCbtSchoolExamDetails(window.cbtAdminState.selectedSchoolId);
     } else {
-      document.getElementById('cbt-program-config-slot').innerHTML = `
-        <div class="alert alert-info">Pilihlah Program Kelas untuk mengelola Ujian CBT.</div>
+      document.getElementById('cbt-school-config-slot').innerHTML = `
+        <div class="alert alert-info">Pilihlah Lembaga untuk mengelola Ujian CBT.</div>
       `;
     }
 
@@ -364,68 +288,24 @@ async function renderCbtManageView(paramProgramId) {
 
 function onCbtSchoolFilterChange(schoolId) {
   window.cbtAdminState.selectedSchoolId = schoolId;
-  const structure = window.cbtAdminState.cachedStructure || [];
-  const school = structure.find(s => s.id === schoolId);
-  const majorSelect = document.getElementById('cbt-filter-major');
-  const programSelect = document.getElementById('cbt-filter-program');
-
-  if (school && school.majors.length > 0) {
-    window.cbtAdminState.selectedMajorId = school.majors[0].id;
-    majorSelect.innerHTML = school.majors.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-
-    const firstMajor = school.majors[0];
-    if (firstMajor && firstMajor.classPrograms.length > 0) {
-      window.cbtAdminState.selectedProgramId = firstMajor.classPrograms[0].id;
-      programSelect.innerHTML = firstMajor.classPrograms.map(cp => `<option value="${cp.id}">${cp.name}</option>`).join('');
-      loadCbtProgramExamDetails(window.cbtAdminState.selectedProgramId);
-    } else {
-      window.cbtAdminState.selectedProgramId = '';
-      programSelect.innerHTML = '<option value="">(Tidak ada Program Kelas)</option>';
-      document.getElementById('cbt-program-config-slot').innerHTML = '<div class="alert alert-warning">Tidak ada Program Kelas pada Jurusan ini.</div>';
-    }
-  } else {
-    window.cbtAdminState.selectedMajorId = '';
-    window.cbtAdminState.selectedProgramId = '';
-    majorSelect.innerHTML = '<option value="">(Tidak ada Jurusan)</option>';
-    programSelect.innerHTML = '<option value="">(Tidak ada Program Kelas)</option>';
-    document.getElementById('cbt-program-config-slot').innerHTML = '<div class="alert alert-warning">Tidak ada Jurusan pada Sekolah ini.</div>';
-  }
+  loadCbtSchoolExamDetails(schoolId);
 }
 
-function onCbtMajorFilterChange(majorId) {
-  window.cbtAdminState.selectedMajorId = majorId;
-  const structure = window.cbtAdminState.cachedStructure || [];
-  const school = structure.find(s => s.id === window.cbtAdminState.selectedSchoolId);
-  const major = school?.majors.find(m => m.id === majorId);
-  const programSelect = document.getElementById('cbt-filter-program');
+// Backward compatibility helper
+function onCbtMajorFilterChange() {}
+function onCbtProgramFilterChange() {}
 
-  if (major && major.classPrograms.length > 0) {
-    window.cbtAdminState.selectedProgramId = major.classPrograms[0].id;
-    programSelect.innerHTML = major.classPrograms.map(cp => `<option value="${cp.id}">${cp.name}</option>`).join('');
-    loadCbtProgramExamDetails(window.cbtAdminState.selectedProgramId);
-  } else {
-    window.cbtAdminState.selectedProgramId = '';
-    programSelect.innerHTML = '<option value="">(Tidak ada Program Kelas)</option>';
-    document.getElementById('cbt-program-config-slot').innerHTML = '<div class="alert alert-warning">Tidak ada Program Kelas pada Jurusan ini.</div>';
-  }
-}
-
-function onCbtProgramFilterChange(programId) {
-  window.cbtAdminState.selectedProgramId = programId;
-  loadCbtProgramExamDetails(programId);
-}
-
-async function loadCbtProgramExamDetails(classProgramId) {
-  const slot = document.getElementById('cbt-program-config-slot');
+async function loadCbtSchoolExamDetails(schoolId) {
+  const slot = document.getElementById('cbt-school-config-slot');
   if (!slot) return;
 
   slot.innerHTML = '<div style="text-align: center; padding: 30px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat konfigurasi ujian...</div>';
 
   try {
-    const res = await apiRequest(`/api/cbt/admin/exams/by-program/${classProgramId}`);
-    if (!res.success || !res.data) throw new Error(res.message || 'Gagal memuat data ujian Program Kelas.');
+    const res = await apiRequest(`/api/cbt/admin/exams/by-school/${schoolId}`);
+    if (!res.success || !res.data) throw new Error(res.message || 'Gagal memuat data ujian Lembaga.');
 
-    const { classProgram, exam } = res.data;
+    const { school, exam } = res.data;
     window.cbtAdminState.currentExam = exam;
 
     if (!exam) {
@@ -437,9 +317,9 @@ async function loadCbtProgramExamDetails(classProgramId) {
           </div>
           <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--text-heading); margin-bottom: 6px;">Ujian CBT Belum Dibuat</h3>
           <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 500px; margin: 0 auto 20px;">
-            Program Kelas <strong>${classProgram.schoolName} &bull; ${classProgram.majorName} &bull; ${classProgram.name}</strong> belum memiliki konfigurasi ujian online.
+            Lembaga <strong>${school.name}</strong> belum memiliki konfigurasi ujian online. 1 set soal ujian ini akan berlaku untuk semua jurusan di bawah lembaga ini.
           </p>
-          <button type="button" class="btn btn-primary" onclick="openCreateExamModal('${classProgram.id}', '${classProgram.name.replace(/'/g, "\\'")}')" style="display: inline-flex; align-items: center; gap: 8px;">
+          <button type="button" class="btn btn-primary" onclick="openCreateExamModal('${school.id}', '${school.name.replace(/'/g, "\\'")}')" style="display: inline-flex; align-items: center; gap: 8px;">
             <i class="fa-solid fa-plus"></i> Buat Ujian CBT Sekarang
           </button>
         </div>
@@ -456,9 +336,9 @@ async function loadCbtProgramExamDetails(classProgramId) {
       <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
           <div>
-            <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary-600); text-transform: uppercase;">Konfigurasi CBT — ${classProgram.name}</div>
-            <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text-heading); margin: 2px 0;">${exam.title || `Ujian CBT ${classProgram.name}`}</h3>
-            <div style="font-size: 0.85rem; color: var(--text-muted);">${classProgram.schoolName} &bull; ${classProgram.majorName}</div>
+            <div style="font-size: 0.8rem; font-weight: 700; color: var(--primary-600); text-transform: uppercase;">Konfigurasi CBT Lembaga</div>
+            <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text-heading); margin: 2px 0;">${exam.title || `Ujian CBT ${school.name}`}</h3>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">${school.name}</div>
           </div>
           <div>
             ${exam.isActive ? '<span class="badge badge-success" style="font-size: 0.85rem; padding: 6px 12px;"><i class="fa-solid fa-circle-check"></i> Ujian Aktif</span>' : '<span class="badge badge-secondary" style="font-size: 0.85rem; padding: 6px 12px;"><i class="fa-solid fa-pause"></i> Ujian Nonaktif</span>'}
@@ -509,7 +389,7 @@ async function loadCbtProgramExamDetails(classProgramId) {
               <i class="fa-solid fa-clipboard-question" style="color: var(--primary-600);"></i>
               Daftar Soal Ujian (${questions.length})
             </h3>
-            <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.85rem;">Soal hanya akan muncul pada ujian Program Kelas ini</p>
+            <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.85rem;">Soal berlaku untuk semua peserta di lembaga <strong>${school.name}</strong></p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button type="button" class="btn btn-sm btn-secondary" onclick="downloadQuestionTemplate()" style="display: inline-flex; align-items: center; gap: 6px;">
@@ -596,19 +476,22 @@ async function loadCbtProgramExamDetails(classProgramId) {
   }
 }
 
+// Backward compatibility
+const loadCbtProgramExamDetails = loadCbtSchoolExamDetails;
+
 // ----------------------------------------------------------------------------
 // EXAM SETTINGS & QUESTION MODALS
 // ----------------------------------------------------------------------------
 
-function openCreateExamModal(classProgramId, programName) {
+function openCreateExamModal(schoolId, schoolName) {
   const bodyHtml = `
-    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 18px;">Program Kelas: <strong>${programName}</strong></p>
+    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 18px;">Lembaga: <strong>${schoolName}</strong></p>
 
-    <form onsubmit="handleCreateExamSubmit(event, '${classProgramId}')">
+    <form onsubmit="handleCreateExamSubmit(event, '${schoolId}')">
       
       <div class="form-group" style="margin-bottom: 14px;">
         <label class="form-label" style="font-weight: 600; font-size: 0.875rem; margin-bottom: 4px; display: block;">Judul Ujian</label>
-        <input type="text" id="new-exam-title" class="form-control" value="Ujian CBT — ${programName}" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        <input type="text" id="new-exam-title" class="form-control" value="Ujian CBT — ${schoolName}" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
       </div>
 
       <div class="form-group" style="margin-bottom: 14px;">
@@ -637,7 +520,7 @@ function openCreateExamModal(classProgramId, programName) {
   openModal('Buat Ujian CBT Baru', bodyHtml);
 }
 
-async function handleCreateExamSubmit(e, classProgramId) {
+async function handleCreateExamSubmit(e, schoolId) {
   e.preventDefault();
   const btn = document.getElementById('btn-submit-create-exam');
   btn.disabled = true;
@@ -650,14 +533,14 @@ async function handleCreateExamSubmit(e, classProgramId) {
   try {
     const res = await apiRequest('/api/cbt/admin/exams', {
       method: 'POST',
-      body: { classProgramId, title, durationMinutes, isActive },
+      body: { schoolId, title, durationMinutes, isActive },
     });
     if (res.success) {
       showToast('Ujian CBT berhasil dibuat!', 'success');
       closeModal();
       // Invalidate cached structure to update badge
       window.cbtAdminState.cachedStructure = [];
-      loadCbtProgramExamDetails(classProgramId);
+      loadCbtSchoolExamDetails(schoolId);
     } else {
       showToast(res.message || 'Gagal membuat ujian CBT.', 'danger');
     }
@@ -686,7 +569,7 @@ async function handleSaveExamSettings(e, examId) {
     if (res.success) {
       showToast('Pengaturan ujian berhasil disimpan!', 'success');
       window.cbtAdminState.cachedStructure = [];
-      loadCbtProgramExamDetails(window.cbtAdminState.selectedProgramId);
+      loadCbtSchoolExamDetails(window.cbtAdminState.selectedSchoolId);
     } else {
       showToast(res.message || 'Gagal menyimpan pengaturan.', 'danger');
     }
@@ -884,7 +767,7 @@ async function handleSaveQuestionSubmit(e, examId, editQuestionId = null) {
     if (res.success) {
       showToast(editQuestionId ? 'Soal berhasil diperbarui!' : 'Soal berhasil ditambahkan!', 'success');
       closeModal();
-      loadCbtProgramExamDetails(window.cbtAdminState.selectedProgramId);
+      loadCbtSchoolExamDetails(window.cbtAdminState.selectedSchoolId);
     } else {
       showToast(res.message || 'Gagal menyimpan soal.', 'danger');
     }
@@ -971,13 +854,22 @@ function openEditQuestionModal(questionId) {
 }
 
 async function handleDeleteQuestion(questionId) {
-  if (!confirm('Apakah Anda yakin ingin menghapus soal ini?')) return;
+  const ok = typeof window.showAppConfirm === 'function'
+    ? await window.showAppConfirm({
+        title: 'Hapus Soal CBT',
+        message: 'Apakah Anda yakin ingin menghapus butir soal ujian ini?',
+        confirmText: 'Ya, Hapus Soal',
+        cancelText: 'Batal',
+        type: 'danger'
+      })
+    : confirm('Apakah Anda yakin ingin menghapus soal ini?');
+  if (!ok) return;
 
   try {
     const res = await apiRequest(`/api/cbt/admin/questions/${questionId}`, { method: 'DELETE' });
     if (res.success) {
       showToast('Soal berhasil dihapus.', 'success');
-      loadCbtProgramExamDetails(window.cbtAdminState.selectedProgramId);
+      loadCbtSchoolExamDetails(window.cbtAdminState.selectedSchoolId);
     } else {
       showToast(res.message || 'Gagal menghapus soal.', 'danger');
     }
@@ -1760,9 +1652,9 @@ async function handleProcessImportQuestions(examId) {
     if (res.success) {
       showToast(`Berhasil mengimpor ${questions.length} butir soal!`, 'success');
       closeModal();
-      // Reload exam questions using current active classProgramId
-      if (window.cbtAdminState && window.cbtAdminState.selectedProgramId) {
-        loadCbtProgramExamDetails(window.cbtAdminState.selectedProgramId);
+      // Reload exam questions using current active schoolId
+      if (window.cbtAdminState && window.cbtAdminState.selectedSchoolId) {
+        loadCbtSchoolExamDetails(window.cbtAdminState.selectedSchoolId);
       } else {
         renderCbtManageView();
       }
@@ -2454,6 +2346,8 @@ window.openCbtManageDirectly = openCbtManageDirectly;
 window.onCbtSchoolFilterChange = onCbtSchoolFilterChange;
 window.onCbtMajorFilterChange = onCbtMajorFilterChange;
 window.onCbtProgramFilterChange = onCbtProgramFilterChange;
+window.loadCbtSchoolExamDetails = loadCbtSchoolExamDetails;
+window.loadCbtProgramExamDetails = loadCbtProgramExamDetails;
 window.openCreateExamModal = openCreateExamModal;
 window.handleCreateExamSubmit = handleCreateExamSubmit;
 window.handleSaveExamSettings = handleSaveExamSettings;

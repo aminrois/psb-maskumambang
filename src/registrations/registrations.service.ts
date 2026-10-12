@@ -172,65 +172,33 @@ export class RegistrationsService {
       return true;
     };
 
-    if (waveId) {
-      const w = await this.prisma.admissionWave.findUnique({
-        where: { id: waveId },
-        include: { schoolQuotas: true },
-      });
-      if (!w || !w.isActive) {
-        throw new BadRequestException('Gelombang pendaftaran yang dipilih sedang tidak aktif.');
+    // Always resolve strictly to the earliest active wave with available quota in sequence (Kuota 1 -> Kuota 2 -> ...)
+    const allActiveWaves = await this.prisma.admissionWave.findMany({
+      where: {
+        academicPeriodId: periodId || undefined,
+        isActive: true,
+      },
+      include: { schoolQuotas: true },
+      orderBy: [{ waveNumber: 'asc' }, { startDate: 'asc' }],
+    });
+
+    let autoAssignedWave: any = null;
+    for (const candidate of allActiveWaves) {
+      if (await checkWaveAvailability(candidate)) {
+        autoAssignedWave = candidate;
+        break;
       }
+    }
 
-      const isAvailable = await checkWaveAvailability(w);
+    if (!autoAssignedWave) {
+      throw new BadRequestException(
+        `Kuota pendaftaran untuk ${schoolName} sudah terpenuhi di semua kuota/gelombang yang aktif. Silakan hubungi panitia.`,
+      );
+    }
 
-      if (!isAvailable) {
-        // Auto-advance: find the next active wave in the same period that has quota (even if startDate is upcoming)
-        const allActiveWaves = await this.prisma.admissionWave.findMany({
-          where: {
-            academicPeriodId: w.academicPeriodId,
-            isActive: true,
-            id: { not: waveId },
-          },
-          include: { schoolQuotas: true },
-          orderBy: [{ waveNumber: 'asc' }, { startDate: 'asc' }],
-        });
-
-        let nextWave: any = null;
-        for (const candidate of allActiveWaves) {
-          if (await checkWaveAvailability(candidate)) {
-            nextWave = candidate;
-            break;
-          }
-        }
-
-        if (!nextWave) {
-          throw new BadRequestException(
-            `Kuota pendaftaran untuk ${schoolName} sudah terpenuhi di semua kuota/gelombang yang aktif. Silakan hubungi panitia.`,
-          );
-        }
-        waveId = nextWave.id;
-      }
-
-      if (periodId && w.academicPeriodId !== periodId) {
-        periodId = w.academicPeriodId;
-      }
-    } else if (periodId) {
-      // Find active waves in period and pick the first with available quota
-      const allActiveWaves = await this.prisma.admissionWave.findMany({
-        where: {
-          academicPeriodId: periodId,
-          isActive: true,
-        },
-        include: { schoolQuotas: true },
-        orderBy: [{ waveNumber: 'asc' }, { startDate: 'asc' }],
-      });
-
-      for (const candidate of allActiveWaves) {
-        if (await checkWaveAvailability(candidate)) {
-          waveId = candidate.id;
-          break;
-        }
-      }
+    waveId = autoAssignedWave.id;
+    if (autoAssignedWave.academicPeriodId) {
+      periodId = autoAssignedWave.academicPeriodId;
     }
 
     // Boarding status
@@ -524,6 +492,9 @@ export class RegistrationsService {
       achievements: undefined, // Handled separately
     };
 
+    const boardingStatus = dataToSave.boardingStatus;
+    delete dataToSave.boardingStatus;
+
     // Remove undefined keys
     Object.keys(dataToSave).forEach(key => dataToSave[key] === undefined && delete dataToSave[key]);
 
@@ -538,15 +509,26 @@ export class RegistrationsService {
         },
       });
 
-      // Update IndividualParticipant summary if name provided
-      if (dto.fullName) {
+      // Update IndividualParticipant summary if name/gender/school/phone provided
+      const ipUpdate: any = {};
+      if (dto.fullName) ipUpdate.fullName = dto.fullName.trim();
+      if (dto.gender) ipUpdate.gender = dto.gender;
+      if (dto.previousSchoolName) ipUpdate.schoolName = dto.previousSchoolName.trim();
+      if (dto.studentPhone || dto.primaryContactWhatsapp) {
+        ipUpdate.whatsappNumber = (dto.studentPhone || dto.primaryContactWhatsapp || '').trim();
+      }
+
+      if (Object.keys(ipUpdate).length > 0) {
         await tx.individualParticipant.updateMany({
           where: { registrationId: regId },
-          data: {
-            fullName: dto.fullName.trim(),
-            gender: dto.gender || undefined,
-            schoolName: dto.previousSchoolName ? dto.previousSchoolName.trim() : undefined,
-          },
+          data: ipUpdate,
+        });
+      }
+
+      if (boardingStatus) {
+        await tx.registration.update({
+          where: { id: regId },
+          data: { boardingStatus },
         });
       }
 
@@ -629,9 +611,9 @@ export class RegistrationsService {
 
     // 1. Strict Validation: Identitas Calon Santri
     if (!merged.fullName?.trim()) throw new BadRequestException('Nama Lengkap calon santri wajib diisi.');
-    if (!merged.nik?.trim()) throw new BadRequestException('NIK calon santri wajib diisi.');
-    if (!merged.familyCardNumber?.trim()) throw new BadRequestException('Nomor Kartu Keluarga (KK) wajib diisi.');
-    if (!merged.nisn?.trim()) throw new BadRequestException('NISN calon santri wajib diisi.');
+    if (!merged.nik?.trim() || !/^\d{16}$/.test(merged.nik.trim())) throw new BadRequestException('NIK calon santri harus terdiri dari tepat 16 digit angka.');
+    if (!merged.familyCardNumber?.trim() || !/^\d{16}$/.test(merged.familyCardNumber.trim())) throw new BadRequestException('Nomor Kartu Keluarga (KK) harus terdiri dari tepat 16 digit angka.');
+    if (!merged.nisn?.trim() || !/^\d{10}$/.test(merged.nisn.trim())) throw new BadRequestException('NISN calon santri harus terdiri dari tepat 10 digit angka.');
     if (!merged.birthCertificateNumber?.trim()) throw new BadRequestException('Nomor Akta Kelahiran wajib diisi.');
     if (!merged.gender) throw new BadRequestException('Jenis Kelamin calon santri wajib dipilih.');
     if (!merged.birthPlace?.trim()) throw new BadRequestException('Tempat Lahir calon santri wajib diisi.');
@@ -696,19 +678,12 @@ export class RegistrationsService {
       throw new BadRequestException('Keterangan Kebutuhan Khusus wajib diisi jika memiliki kebutuhan khusus.');
     }
 
-    // 9. Strict Validation: Dokumen Wajib
+    // 9. Strict Validation: Dokumen Wajib (Hanya KK dan Akta Kelahiran)
     const docTypes = reg.documents.map(d => d.documentType);
     const requiredDocs: DocumentType[] = [
       DocumentType.FAMILY_CARD,
       DocumentType.BIRTH_CERTIFICATE,
-      DocumentType.FATHER_ID_CARD,
-      DocumentType.MOTHER_ID_CARD,
-      DocumentType.PHOTO,
     ];
-
-    if (merged.hasGuardian === true) {
-      requiredDocs.push(DocumentType.GUARDIAN_ID_CARD);
-    }
 
     const missingDocs = requiredDocs.filter(d => !docTypes.includes(d));
     if (missingDocs.length > 0) {
@@ -735,6 +710,9 @@ export class RegistrationsService {
       updatedAt: undefined,
       achievements: undefined,
     };
+    const boardingStatus = dataToSave.boardingStatus;
+    delete dataToSave.boardingStatus;
+
     Object.keys(dataToSave).forEach(key => dataToSave[key] === undefined && delete dataToSave[key]);
 
     await this.prisma.$transaction(async (tx) => {
@@ -765,22 +743,32 @@ export class RegistrationsService {
       }
 
       // Update Individual summary
+      const ipUpdate: any = {
+        fullName: merged.fullName.trim(),
+        gender: merged.gender,
+        schoolName: merged.previousSchoolName?.trim() || undefined,
+      };
+      if (merged.studentPhone || merged.primaryContactWhatsapp) {
+        ipUpdate.whatsappNumber = (merged.studentPhone || merged.primaryContactWhatsapp || '').trim();
+      }
+
       await tx.individualParticipant.updateMany({
         where: { registrationId: regId },
-        data: {
-          fullName: merged.fullName.trim(),
-          gender: merged.gender,
-          schoolName: merged.previousSchoolName?.trim() || undefined,
-        },
+        data: ipUpdate,
       });
 
       // Update registration status to SUBMITTED
+      const regUpdateData: any = {
+        formStatus: FormStatus.SUBMITTED,
+        submittedAt: new Date(),
+      };
+      if (boardingStatus) {
+        regUpdateData.boardingStatus = boardingStatus;
+      }
+
       await tx.registration.update({
         where: { id: regId },
-        data: {
-          formStatus: FormStatus.SUBMITTED,
-          submittedAt: new Date(),
-        },
+        data: regUpdateData,
       });
     });
 
@@ -1059,14 +1047,32 @@ export class RegistrationsService {
         },
         skip,
         take: perPage,
-        orderBy: { submittedAt: 'desc' },
+        orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
       }),
       this.prisma.registration.count({ where }),
     ]);
 
+    const statusPriority: Record<string, number> = {
+      SUBMITTED: 1,
+      UNDER_REVIEW: 1,
+      REVISION_REQUIRED: 2,
+      DRAFT: 3,
+      VERIFIED: 4,
+      LOCKED: 5,
+    };
+
+    const sortedItems = [...items].sort((a, b) => {
+      const pA = statusPriority[a.formStatus] ?? 99;
+      const pB = statusPriority[b.formStatus] ?? 99;
+      if (pA !== pB) return pA - pB;
+      const timeA = new Date(a.submittedAt || a.updatedAt || a.createdAt).getTime();
+      const timeB = new Date(b.submittedAt || b.updatedAt || b.createdAt).getTime();
+      return timeB - timeA;
+    });
+
     return {
       success: true,
-      data: items.map(reg => this.formatRegistrationResponse(reg)),
+      data: sortedItems.map(reg => this.formatRegistrationResponse(reg)),
       pagination: {
         total,
         page,
@@ -1353,6 +1359,14 @@ export class RegistrationsService {
           },
         },
         cbtAttempt: true,
+        practicalTest: {
+          include: {
+            schedule: true,
+            examiner: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
         interview: {
           include: {
             schedule: true,
@@ -1425,6 +1439,22 @@ export class RegistrationsService {
           },
         },
         cbtAttempt: true,
+        practicalTest: {
+          include: {
+            schedule: true,
+            examiner: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        interview: {
+          include: {
+            schedule: true,
+            interviewer: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
       },
     });
 
@@ -1503,6 +1533,9 @@ export class RegistrationsService {
             take: 1,
           },
           checkIn: true,
+          cbtAttempt: true,
+          practicalTest: true,
+          interview: true,
         },
         skip,
         take: perPage,

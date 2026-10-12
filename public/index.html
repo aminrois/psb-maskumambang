@@ -622,107 +622,6 @@
     }
 
     /* ===========================
-       COUNTDOWN SECTION - CLEAN LIGHT ELEGANT
-    =========================== */
-    .countdown-section {
-      padding: 50px 20px 20px;
-      max-width: 880px;
-      margin: 0 auto;
-    }
-
-    .hero-countdown-box {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 24px;
-      padding: 28px 32px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
-      text-align: center;
-    }
-
-    .countdown-header {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
-      color: #4f46e5;
-      padding: 6px 18px;
-      border-radius: 9999px;
-      font-size: 0.82rem;
-      font-weight: 800;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-      margin-bottom: 22px;
-    }
-
-    .countdown-icon {
-      color: #4f46e5;
-    }
-
-    .countdown-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      max-width: 580px;
-      margin: 0 auto;
-    }
-
-    .countdown-card {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 16px 8px;
-      text-align: center;
-      transition: all 0.2s ease;
-    }
-
-    .countdown-card:hover {
-      background: #eef2ff;
-      border-color: #818cf8;
-      transform: translateY(-2px);
-    }
-
-    .countdown-value {
-      font-size: clamp(1.8rem, 3.8vw, 2.4rem);
-      font-weight: 900;
-      color: #0f172a;
-      line-height: 1;
-      font-variant-numeric: tabular-nums;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-    }
-
-    .countdown-label {
-      font-size: 0.72rem;
-      font-weight: 800;
-      color: #64748b;
-      letter-spacing: 1px;
-      margin-top: 6px;
-      text-transform: uppercase;
-    }
-
-    @media (max-width: 480px) {
-      .countdown-section {
-        padding: 36px 16px 16px;
-      }
-
-      .hero-countdown-box {
-        padding: 20px 16px;
-      }
-
-      .countdown-grid {
-        gap: 8px;
-      }
-
-      .countdown-card {
-        padding: 12px 4px;
-      }
-
-      .countdown-value {
-        font-size: 1.5rem;
-      }
-    }
-
-    /* ===========================
        ALUR PENDAFTARAN SECTION - REFINED 6 STEPS
     =========================== */
     .flow-section {
@@ -883,50 +782,17 @@
     </div>
   </section>
 
-  <!-- ===== COUNTDOWN SECTION ===== -->
-  <section class="countdown-section">
-    <!-- Live Countdown Widget -->
-    <div class="hero-countdown-box" id="hero-countdown-box">
-      <div class="countdown-header">
-        <i class="fa-solid fa-hourglass-half countdown-icon"></i>
-        <span id="countdown-title-text">HITUNG MUNDUR PENUTUPAN PENDAFTARAN</span>
-      </div>
-      <div class="countdown-grid" id="countdown-timer-grid">
-        <div class="countdown-card">
-          <div class="countdown-value" id="cd-days">00</div>
-          <div class="countdown-label">HARI</div>
-        </div>
-        <div class="countdown-card">
-          <div class="countdown-value" id="cd-hours">00</div>
-          <div class="countdown-label">JAM</div>
-        </div>
-        <div class="countdown-card">
-          <div class="countdown-value" id="cd-minutes">00</div>
-          <div class="countdown-label">MENIT</div>
-        </div>
-        <div class="countdown-card">
-          <div class="countdown-value" id="cd-seconds">00</div>
-          <div class="countdown-label">DETIK</div>
-        </div>
-      </div>
-      <div id="countdown-expired-msg"
-        style="display: none; padding: 10px; font-size: 1.1rem; font-weight: 800; color: #fca5a5; text-align: center;">
-        Pendaftaran Resmi Ditutup
-      </div>
-    </div>
-  </section>
-
   <!-- ===== QUOTA INFO SECTION ===== -->
-  <section id="quota-info-section" style="padding: 28px 20px 0; display: none;">
-    <div style="max-width: 900px; margin: 0 auto;">
-      <div style="text-align: center; margin-bottom: 16px;">
-        <div style="display: inline-block; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 4px 14px; border-radius: 9999px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+  <section id="quota-info-section" style="padding: 36px 20px 10px; display: none; background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);">
+    <div style="max-width: 1100px; margin: 0 auto;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-flex; align-items: center; gap: 6px; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; padding: 5px 16px; border-radius: 9999px; font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;">
           <i class="fa-solid fa-user-graduate"></i> Ketersediaan Kuota
         </div>
-        <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">Sisa Kuota Penerimaan Santri Baru</h3>
-        <p id="quota-info-wave-name" style="font-size: 0.85rem; color: #64748b; margin: 0;"></p>
+        <h2 style="font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 800; color: #0f172a; margin: 0 0 6px 0;">Sisa Kuota Penerimaan Santri Baru</h2>
+        <p id="quota-info-wave-name" style="font-size: 0.92rem; color: #64748b; margin: 0;"></p>
       </div>
-      <div id="quota-info-cards" style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;"></div>
+      <div id="quota-info-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; justify-content: center;"></div>
     </div>
   </section>
 
@@ -988,12 +854,11 @@
     </div>
   </footer>
 
-  <script src="/js/app.js?v=20260911_fullform_v5"></script>
+  <script src="/js/app.js?v=20261009_v2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       initTheme();
       loadBrandingInfo();
-      initHomepageCountdown();
       initHomepageQuotaInfo();
       initHeroSliderCarousel();
       initFlowSteps();

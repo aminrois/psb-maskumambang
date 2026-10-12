@@ -14,6 +14,7 @@ import { Role } from '@prisma/client';
 import {
   CreateSchoolDto,
   UpdateSchoolDto,
+  ReorderSchoolsDto,
   CreateMajorDto,
   UpdateMajorDto,
   CreateClassProgramDto,
@@ -48,18 +49,32 @@ export class CompetitionsController {
 
   // --- Super Admin Management Endpoints ---
 
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.BENDAHARA)
   @Get('categories')
   async getAllCategories() {
     const categories = await this.competitionsService.getAllCategories();
     return { success: true, data: categories };
   }
 
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.BENDAHARA)
   @Get('schools')
   async getAllSchools() {
     const schools = await this.competitionsService.getAllCategories();
     return { success: true, data: schools };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Patch('schools/reorder')
+  async reorderSchools(@Body() dto: ReorderSchoolsDto) {
+    const result = await this.competitionsService.reorderSchools(dto.schoolIds);
+    return { success: true, message: result.message };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Patch('categories/reorder')
+  async reorderCategories(@Body() dto: ReorderSchoolsDto) {
+    const result = await this.competitionsService.reorderSchools(dto.schoolIds);
+    return { success: true, message: result.message };
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
@@ -199,7 +214,7 @@ export class CompetitionsController {
     return { success: true, data: period };
   }
 
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.BENDAHARA)
   @Get('periods')
   async getAllPeriods() {
     const periods = await this.competitionsService.getAllPeriods();
@@ -248,14 +263,14 @@ export class CompetitionsController {
     return { success: true, data: waves };
   }
 
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.BENDAHARA)
   @Get('waves')
   async getAllWaves() {
     const waves = await this.competitionsService.getAllWaves();
     return { success: true, data: waves };
   }
 
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.BENDAHARA)
   @Get('waves/by-period/:periodId')
   async getWavesByPeriod(@Param('periodId') periodId: string) {
     const waves = await this.competitionsService.getWavesByPeriod(periodId);

@@ -30,3 +30,7 @@ yarn-error.log*
 
 # Coverage
 coverage/
+scratch/deploy_to_live.py
+scratch/*.py
+scratch/*.js
+scratch/*.ts

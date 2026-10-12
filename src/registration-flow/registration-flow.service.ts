@@ -18,7 +18,7 @@ const DEFAULT_STEPS = [
     stepNumber: '02',
     title: 'Pilih Jenjang & Isi Biodata',
     description:
-      'Tentukan jenjang pendidikan yang dituju (MI, MTs, SMP, MA, SMA) dan lengkapi data formulir pendaftaran santri baru.',
+      'Tentukan jenjang pendidikan yang dituju (MI, MTs, MA, SMA) dan lengkapi data formulir pendaftaran santri baru.',
     icon: 'fa-school',
     badgeColor: '#7c3aed',
     isActive: true,
@@ -38,7 +38,7 @@ const DEFAULT_STEPS = [
     stepNumber: '04',
     title: 'Unggah Berkas Persyaratan',
     description:
-      'Unggah dokumen pendukung seperti Kartu Keluarga, Akta Kelahiran, Pas Foto terbaru, dan dokumen rapor.',
+      'Unggah dokumen pendukung seperti Kartu Keluarga, Akta Kelahiran, KTP Orang Tua, dan dokumen rapor.',
     icon: 'fa-folder-open',
     badgeColor: '#d97706',
     isActive: true,
@@ -46,9 +46,9 @@ const DEFAULT_STEPS = [
   },
   {
     stepNumber: '05',
-    title: 'Tes Seleksi CBT & Wawancara',
+    title: 'Tes Seleksi Akademik, Praktik & Wawancara',
     description:
-      'Mengikuti ujian seleksi masuk berbasis komputer (CBT) serta sesi wawancara santri dan orang tua/wali.',
+      'Mengikuti ujian seleksi akademik, pengetahuan umum, baca tulis Al-Quran, wudhu & salat',
     icon: 'fa-graduation-cap',
     badgeColor: '#8b5cf6',
     isActive: true,
@@ -68,7 +68,7 @@ const DEFAULT_STEPS = [
 
 @Injectable()
 export class RegistrationFlowService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * Seed default steps if table is empty

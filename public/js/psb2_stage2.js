@@ -293,17 +293,26 @@ async function togglePeriodStatus(id) {
 }
 
 async function executeDeletePeriod(id, name) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus periode "${name}"?`)) return;
+  const ok = typeof window.showAppConfirm === 'function'
+    ? await window.showAppConfirm({
+        title: 'Hapus Periode Pendaftaran',
+        message: `Apakah Anda yakin ingin menghapus periode "${name}"?`,
+        confirmText: 'Ya, Hapus',
+        cancelText: 'Batal',
+        type: 'danger'
+      })
+    : confirm(`Apakah Anda yakin ingin menghapus periode "${name}"?`);
+  if (!ok) return;
   try {
     const res = await apiRequest(`/api/competitions/periods/${id}`, { method: 'DELETE' });
     if (res.success) {
       showToast('Periode berhasil dihapus.', 'success');
       renderAdminPeriodsView();
     } else {
-      alert(res.message || 'Gagal menghapus periode.');
+      showToast(res.message || 'Gagal menghapus periode.', 'danger');
     }
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'danger');
   }
 }
 
@@ -774,17 +783,26 @@ async function toggleWaveStatus(id) {
 }
 
 async function executeDeleteWave(id, name) {
-  if (!confirm(`Apakah Anda yakin ingin menghapus gelombang "${name}"?`)) return;
+  const ok = typeof window.showAppConfirm === 'function'
+    ? await window.showAppConfirm({
+        title: 'Hapus Gelombang Pendaftaran',
+        message: `Apakah Anda yakin ingin menghapus gelombang "${name}"?`,
+        confirmText: 'Ya, Hapus',
+        cancelText: 'Batal',
+        type: 'danger'
+      })
+    : confirm(`Apakah Anda yakin ingin menghapus gelombang "${name}"?`);
+  if (!ok) return;
   try {
     const res = await apiRequest(`/api/competitions/waves/${id}`, { method: 'DELETE' });
     if (res.success) {
       showToast('Gelombang berhasil dihapus.', 'success');
       renderAdminWavesView();
     } else {
-      alert(res.message || 'Gagal menghapus gelombang.');
+      showToast(res.message || 'Gagal menghapus gelombang.', 'danger');
     }
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'danger');
   }
 }
 
@@ -797,8 +815,26 @@ async function renderAdminVerificationView() {
   container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat antrean verifikasi berkas calon santri...</div>';
 
   try {
-    const res = await apiRequest('/api/registrations/admin/verification-list');
-    const items = res.success ? (res.data || []) : [];
+    const res = await apiRequest('/api/registrations/admin/verification-list?perPage=500');
+    let items = res.success ? (res.data || []) : [];
+
+    const statusPriority = {
+      SUBMITTED: 1,
+      UNDER_REVIEW: 1,
+      REVISION_REQUIRED: 2,
+      DRAFT: 3,
+      VERIFIED: 4,
+      LOCKED: 5,
+    };
+
+    items.sort((a, b) => {
+      const pA = statusPriority[a.formStatus] !== undefined ? statusPriority[a.formStatus] : 99;
+      const pB = statusPriority[b.formStatus] !== undefined ? statusPriority[b.formStatus] : 99;
+      if (pA !== pB) return pA - pB;
+      const timeA = new Date(a.submittedAt || a.updatedAt || a.createdAt || 0).getTime();
+      const timeB = new Date(b.submittedAt || b.updatedAt || b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
 
     container.innerHTML = `
       <div style="margin-bottom: 24px;">
@@ -906,10 +942,13 @@ async function openAdminVerificationDetailModal(regId) {
             <div style="margin-top: 4px;">Status Formulir: ${getFormStatusBadge(d.formStatus)}</div>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-sm btn-primary" onclick="openAdminEditStudentModal('${regId}')" title="Edit Data Calon Santri">
+              <i class="fa-solid fa-pen-to-square"></i> Edit Data Calon Santri
+            </button>
             <button type="button" class="btn btn-sm btn-secondary" onclick="printFullStudentForm('${regId}')">
               <i class="fa-solid fa-print"></i> Print Data
             </button>
-            <button type="button" class="btn btn-sm btn-primary" onclick="printFullStudentForm('${regId}')">
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="printFullStudentForm('${regId}')">
               <i class="fa-solid fa-file-pdf"></i> Download PDF
             </button>
           </div>
@@ -1104,8 +1143,11 @@ async function openAdminVerificationDetailModal(regId) {
               <i class="fa-solid fa-file-pdf"></i> Download PDF
             </button>
           </div>
-          <div style="display: flex; gap: 10px;">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+            <button type="button" class="btn btn-primary" onclick="openAdminEditStudentModal('${regId}')">
+              <i class="fa-solid fa-pen-to-square"></i> Edit Data Calon Santri
+            </button>
             <button type="button" class="btn btn-warning" onclick="openRequestRevisionModal('${regId}')">
               <i class="fa-solid fa-rotate-left"></i> Minta Revisi / Perbaikan
             </button>
@@ -1125,7 +1167,17 @@ async function openAdminVerificationDetailModal(regId) {
 }
 
 async function executeVerifyCandidate(regId) {
-  if (!confirm('Apakah Anda yakin data calon santri ini sudah LENGKAP dan BENAR? Status akan diubah menjadi VERIFIED.')) return;
+  const ok = typeof window.showAppConfirm === 'function'
+    ? await window.showAppConfirm({
+        title: 'Verifikasi Berkas Calon Santri',
+        message: 'Apakah Anda yakin data calon santri ini sudah LENGKAP dan BENAR? Status akan diubah menjadi VERIFIED dan santri siap mengikuti tahapan tes.',
+        confirmText: 'Ya, Verifikasi (VERIFIED)',
+        cancelText: 'Batal',
+        type: 'primary',
+        icon: 'fa-circle-check'
+      })
+    : confirm('Apakah Anda yakin data calon santri ini sudah LENGKAP dan BENAR? Status akan diubah menjadi VERIFIED.');
+  if (!ok) return;
   try {
     const res = await apiRequest(`/api/registrations/${regId}/verify`, { method: 'POST' });
     if (res.success) {
@@ -1133,10 +1185,10 @@ async function executeVerifyCandidate(regId) {
       closeModal();
       renderAdminVerificationView();
     } else {
-      alert(res.message || 'Gagal memverifikasi data.');
+      showToast(res.message || 'Gagal memverifikasi data.', 'danger');
     }
   } catch (err) {
-    alert(err.message);
+    showToast(err.message, 'danger');
   }
 }
 
@@ -1186,6 +1238,810 @@ async function executeRequestRevision(e, regId) {
 }
 
 // ============================================================================
+// MODAL EDIT DATA CALON SANTRI OLEH ADMIN / SUPER ADMIN (SINGLE PAGE FORM)
+// ============================================================================
+
+async function openAdminEditStudentModal(regId) {
+  openModal('Memuat Data...', '<div style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat form edit data calon santri...</div>', 'modal-xl');
+
+  try {
+    const res = await apiRequest(`/api/registrations/${regId}/form`);
+    if (!res.success || !res.data) throw new Error('Gagal memuat data formulir.');
+
+    const d = res.data;
+    const st = d.studentDetail || {};
+    const ip = d.individualParticipant || {};
+
+    const birthDateVal = st.birthDate ? new Date(st.birthDate).toISOString().split('T')[0] : '';
+    const fatherBirthVal = st.fatherBirthDate ? new Date(st.fatherBirthDate).toISOString().split('T')[0] : '';
+    const motherBirthVal = st.motherBirthDate ? new Date(st.motherBirthDate).toISOString().split('T')[0] : '';
+    const guardianBirthVal = st.guardianBirthDate ? new Date(st.guardianBirthDate).toISOString().split('T')[0] : '';
+
+    const modalBody = `
+      <div style="font-size: 0.9rem;">
+        
+        <!-- Header Banner & Quick Actions -->
+        <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-left: 4px solid var(--primary-600); box-shadow: var(--shadow-sm);">
+          <div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Edit Data Pendaftaran Calon Santri</div>
+            <div style="font-size: 1.2rem; font-weight: 800; color: var(--text-heading); margin-top: 2px;">
+              ${escapeHtml(st.fullName || ip.fullName || 'Calon Santri')} &mdash; <code style="color: var(--primary-600); font-weight: 800;">${d.registrationNumber}</code>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 3px;">
+              Pilihan: <strong>${escapeHtml(d.schoolName || '-')} &bull; ${escapeHtml(d.majorName || '-')} &bull; ${escapeHtml(d.classProgramName || '-')}</strong>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="openAdminVerificationDetailModal('${regId}')">
+              <i class="fa-solid fa-arrow-left"></i> Kembali ke Detail
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="document.getElementById('admin-edit-student-form').requestSubmit()" style="font-weight: 700;">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan
+            </button>
+          </div>
+        </div>
+
+        <form id="admin-edit-student-form" onsubmit="handleAdminSaveStudentData(event, '${regId}')">
+
+          <!-- SECTION A: IDENTITAS CALON SANTRI -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+            <h4 style="color: var(--primary-600); margin-top: 0; margin-bottom: 16px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;">A</span>
+              Identitas Calon Santri
+            </h4>
+            
+            <div class="form-group" style="margin-bottom: 14px;">
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nama Lengkap <span style="color: red;">*</span></label>
+              <input type="text" id="aedit-fullName" class="form-control" value="${escapeHtml(st.fullName || ip.fullName || '')}" required style="width: 100%; padding: 9px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">NIK (16 Digit)</label>
+                <input type="text" id="aedit-nik" class="form-control" maxlength="16" value="${escapeHtml(st.nik || '')}" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16)" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">No. Kartu Keluarga (KK)</label>
+                <input type="text" id="aedit-familyCardNumber" class="form-control" maxlength="16" value="${escapeHtml(st.familyCardNumber || '')}" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16)" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">NISN (10 Digit)</label>
+                <input type="text" id="aedit-nisn" class="form-control" maxlength="10" value="${escapeHtml(st.nisn || '')}" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">No. Akta Kelahiran</label>
+                <input type="text" id="aedit-birthCertificateNumber" class="form-control" value="${escapeHtml(st.birthCertificateNumber || '')}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Jenis Kelamin</label>
+                <select id="aedit-gender" class="form-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="L" ${(st.gender === 'L' || ip.gender === 'L') ? 'selected' : ''}>Laki-laki</option>
+                  <option value="P" ${(st.gender === 'P' || ip.gender === 'P') ? 'selected' : ''}>Perempuan</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir</label>
+                <input type="text" id="aedit-birthPlace" class="form-control" value="${escapeHtml(st.birthPlace || '')}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir</label>
+                <input type="date" id="aedit-birthDate" class="form-control" value="${birthDateVal}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Agama</label>
+                <input type="text" id="aedit-religion" class="form-control" value="${escapeHtml(st.religion || 'Islam')}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Golongan Darah</label>
+                <select id="aedit-bloodType" class="form-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="" ${!st.bloodType ? 'selected' : ''}>-- Pilih --</option>
+                  <option value="A" ${st.bloodType === 'A' ? 'selected' : ''}>A</option>
+                  <option value="B" ${st.bloodType === 'B' ? 'selected' : ''}>B</option>
+                  <option value="AB" ${st.bloodType === 'AB' ? 'selected' : ''}>AB</option>
+                  <option value="O" ${st.bloodType === 'O' ? 'selected' : ''}>O</option>
+                  <option value="-" ${st.bloodType === '-' ? 'selected' : ''}>Tidak Tahu / -</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Anak Ke-</label>
+                <input type="number" id="aedit-childOrder" class="form-control" min="1" max="30" value="${st.childOrder !== undefined && st.childOrder !== null ? st.childOrder : ''}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Jumlah Saudara</label>
+                <input type="number" id="aedit-siblingsCount" class="form-control" min="0" max="30" value="${st.siblingsCount !== undefined && st.siblingsCount !== null ? st.siblingsCount : ''}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Status Anak</label>
+                <select id="aedit-childStatus" class="form-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="KANDUNG" ${st.childStatus === 'KANDUNG' || !st.childStatus ? 'selected' : ''}>Anak Kandung</option>
+                  <option value="TIRI" ${st.childStatus === 'TIRI' ? 'selected' : ''}>Anak Tiri</option>
+                  <option value="ANGKAT" ${st.childStatus === 'ANGKAT' ? 'selected' : ''}>Anak Angkat</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Status Mukim</label>
+                <select id="aedit-boardingStatus" class="form-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="MUKIM" ${d.boardingStatus === 'MUKIM' || !d.boardingStatus ? 'selected' : ''}>MUKIM (Mondok)</option>
+                  <option value="NON_MUKIM" ${d.boardingStatus === 'NON_MUKIM' ? 'selected' : ''}>NON MUKIM (Laju)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION B: ALAMAT -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+            <h4 style="color: var(--primary-600); margin-top: 0; margin-bottom: 16px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;">B</span>
+              Alamat Tempat Tinggal
+            </h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Negara</label>
+                <input type="text" id="aedit-country" class="form-control" value="${escapeHtml(st.country || 'Indonesia')}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Provinsi</label>
+                <input type="text" id="aedit-province" class="form-control" value="${escapeHtml(st.province || '')}" placeholder="Nama Provinsi" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Kabupaten / Kota</label>
+                <input type="text" id="aedit-cityDistrict" class="form-control" value="${escapeHtml(st.cityDistrict || '')}" placeholder="Nama Kab/Kota" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Kecamatan</label>
+                <input type="text" id="aedit-subDistrict" class="form-control" value="${escapeHtml(st.subDistrict || '')}" placeholder="Nama Kecamatan" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Desa / Kelurahan</label>
+                <input type="text" id="aedit-village" class="form-control" value="${escapeHtml(st.village || '')}" placeholder="Nama Desa/Kelurahan" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">RT / RW</label>
+                <div style="display: flex; gap: 6px;">
+                  <input type="text" id="aedit-rt" class="form-control" placeholder="RT" value="${escapeHtml(st.rt || '')}" style="flex: 1; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="aedit-rw" class="form-control" placeholder="RW" value="${escapeHtml(st.rw || '')}" style="flex: 1; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Kode Pos</label>
+                <input type="text" id="aedit-postalCode" class="form-control" maxlength="10" value="${escapeHtml(st.postalCode || '')}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Alamat Lengkap (Dusun, Jalan, No Rumah)</label>
+              <textarea id="aedit-fullAddress" class="form-control" rows="2" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">${escapeHtml(st.fullAddress || '')}</textarea>
+            </div>
+          </div>
+
+          <!-- SECTION C: ASAL SEKOLAH -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+            <h4 style="color: var(--primary-600); margin-top: 0; margin-bottom: 16px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;">C</span>
+              Data Asal Sekolah
+            </h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Nama Sekolah Asal</label>
+                <input type="text" id="aedit-previousSchoolName" class="form-control" value="${escapeHtml(st.previousSchoolName || ip.schoolName || '')}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Jenjang Sekolah Asal</label>
+                <select id="aedit-previousSchoolLevel" class="form-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">-- Pilih Jenjang --</option>
+                  <option value="TK" ${st.previousSchoolLevel === 'TK' ? 'selected' : ''}>TK / PAUD / RA</option>
+                  <option value="SD_MI" ${st.previousSchoolLevel === 'SD_MI' ? 'selected' : ''}>SD / MI</option>
+                  <option value="SMP_MTS" ${st.previousSchoolLevel === 'SMP_MTS' ? 'selected' : ''}>SMP / MTs</option>
+                  <option value="SMA_MA_SMK" ${st.previousSchoolLevel === 'SMA_MA_SMK' ? 'selected' : ''}>SMA / MA / SMK</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">NPSN Sekolah Asal</label>
+                <input type="text" id="aedit-previousSchoolNpsn" class="form-control" value="${escapeHtml(st.previousSchoolNpsn || '')}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Tahun Lulus</label>
+                <input type="text" id="aedit-graduationYear" class="form-control" value="${escapeHtml(st.graduationYear || '')}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">No. Ijazah / SKL</label>
+                <input type="text" id="aedit-diplomaNumber" class="form-control" value="${escapeHtml(st.diplomaNumber || '')}" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Alamat Sekolah Asal</label>
+              <textarea id="aedit-previousSchoolAddress" class="form-control" rows="2" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">${escapeHtml(st.previousSchoolAddress || '')}</textarea>
+            </div>
+          </div>
+
+          <!-- SECTION D: ORANG TUA & KONDISI RUMAH TANGGA -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+            <h4 style="color: var(--primary-600); margin-top: 0; margin-bottom: 16px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;">D</span>
+              Data Orang Tua Kandung & Kondisi Rumah Tangga
+            </h4>
+            
+            <!-- DATA AYAH -->
+            <div style="background: var(--bg-body); padding: 14px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid var(--primary-600);">
+              <h5 style="color: var(--primary-600); margin-top: 0; margin-bottom: 12px; font-size: 0.95rem;"><i class="fa-solid fa-user-tie"></i> Data Ayah Kandung</h5>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 10px;">
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Nama Lengkap Ayah</label>
+                  <input type="text" id="aedit-fatherName" class="form-control" value="${escapeHtml(st.fatherName || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Status Ayah</label>
+                  <select id="aedit-fatherStatus" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                    <option value="MASIH_HIDUP" ${st.fatherStatus === 'MASIH_HIDUP' || !st.fatherStatus ? 'selected' : ''}>Masih Hidup</option>
+                    <option value="SUDAH_MENINGGAL" ${st.fatherStatus === 'SUDAH_MENINGGAL' ? 'selected' : ''}>Sudah Meninggal</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">NIK Ayah (16 digit)</label>
+                  <input type="text" id="aedit-fatherNik" class="form-control" maxlength="16" value="${escapeHtml(st.fatherNik || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Tempat Lahir Ayah</label>
+                  <input type="text" id="aedit-fatherBirthPlace" class="form-control" value="${escapeHtml(st.fatherBirthPlace || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Tgl Lahir Ayah</label>
+                  <input type="date" id="aedit-fatherBirthDate" class="form-control" value="${fatherBirthVal}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Pendidikan Ayah</label>
+                  <select id="aedit-fatherEducation" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                    <option value="">-- Pilih Pendidikan --</option>
+                    ${PSB_EDUCATION_OPTIONS.map(o => `<option value="${o.value}" ${st.fatherEducation === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Pekerjaan Ayah</label>
+                  <input type="text" id="aedit-fatherOccupation" class="form-control" value="${escapeHtml(st.fatherOccupation || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Penghasilan Ayah</label>
+                  <select id="aedit-fatherMonthlyIncome" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                    <option value="">-- Pilih Penghasilan --</option>
+                    ${PSB_INCOME_OPTIONS.map(o => `<option value="${o.value}" ${st.fatherMonthlyIncome === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">No. WhatsApp Ayah</label>
+                  <input type="text" id="aedit-fatherWhatsapp" class="form-control" value="${escapeHtml(st.fatherWhatsapp || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+              </div>
+            </div>
+
+            <!-- DATA IBU -->
+            <div style="background: var(--bg-body); padding: 14px; border-radius: 8px; margin-bottom: 16px; border-left: 3px solid #ec4899;">
+              <h5 style="color: #db2777; margin-top: 0; margin-bottom: 12px; font-size: 0.95rem;"><i class="fa-solid fa-person-dress"></i> Data Ibu Kandung</h5>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 10px;">
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Nama Lengkap Ibu</label>
+                  <input type="text" id="aedit-motherName" class="form-control" value="${escapeHtml(st.motherName || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Status Ibu</label>
+                  <select id="aedit-motherStatus" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                    <option value="MASIH_HIDUP" ${st.motherStatus === 'MASIH_HIDUP' || !st.motherStatus ? 'selected' : ''}>Masih Hidup</option>
+                    <option value="SUDAH_MENINGGAL" ${st.motherStatus === 'SUDAH_MENINGGAL' ? 'selected' : ''}>Sudah Meninggal</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">NIK Ibu (16 digit)</label>
+                  <input type="text" id="aedit-motherNik" class="form-control" maxlength="16" value="${escapeHtml(st.motherNik || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Tempat Lahir Ibu</label>
+                  <input type="text" id="aedit-motherBirthPlace" class="form-control" value="${escapeHtml(st.motherBirthPlace || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Tgl Lahir Ibu</label>
+                  <input type="date" id="aedit-motherBirthDate" class="form-control" value="${motherBirthVal}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Pendidikan Ibu</label>
+                  <select id="aedit-motherEducation" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                    <option value="">-- Pilih Pendidikan --</option>
+                    ${PSB_EDUCATION_OPTIONS.map(o => `<option value="${o.value}" ${st.motherEducation === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Pekerjaan Ibu</label>
+                  <input type="text" id="aedit-motherOccupation" class="form-control" value="${escapeHtml(st.motherOccupation || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Penghasilan Ibu</label>
+                  <select id="aedit-motherMonthlyIncome" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                    <option value="">-- Pilih Penghasilan --</option>
+                    ${PSB_INCOME_OPTIONS.map(o => `<option value="${o.value}" ${st.motherMonthlyIncome === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">No. WhatsApp Ibu</label>
+                  <input type="text" id="aedit-motherWhatsapp" class="form-control" value="${escapeHtml(st.motherWhatsapp || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+              </div>
+            </div>
+
+            <!-- KONDISI RUMAH TANGGA -->
+            <div style="background: var(--bg-body); padding: 14px; border-radius: 8px;">
+              <h5 style="color: var(--primary-600); margin-top: 0; margin-bottom: 12px; font-size: 0.95rem;"><i class="fa-solid fa-house-user"></i> Kondisi Rumah Tangga</h5>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Status Pernikahan Orang Tua</label>
+                  <select id="aedit-parentsMaritalStatus" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                    <option value="Bersama (Utuh)" ${st.parentsMaritalStatus === 'Bersama (Utuh)' || !st.parentsMaritalStatus ? 'selected' : ''}>Bersama (Utuh)</option>
+                    <option value="Bercerai" ${st.parentsMaritalStatus === 'Bercerai' ? 'selected' : ''}>Bercerai</option>
+                    <option value="Pisah Ranjang" ${st.parentsMaritalStatus === 'Pisah Ranjang' ? 'selected' : ''}>Pisah Ranjang</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Hak Asuh Anak (jika cerai)</label>
+                  <input type="text" id="aedit-childCustody" class="form-control" value="${escapeHtml(st.childCustody || '')}" placeholder="Ayah / Ibu / Bersama" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Anak Tinggal Bersama</label>
+                  <input type="text" id="aedit-childLivingWith" class="form-control" value="${escapeHtml(st.childLivingWith || '')}" placeholder="Orang Tua / Ayah / Ibu / Wali" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- SECTION E: DATA WALI -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 8px;">
+              <h4 style="color: var(--primary-600); margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;">E</span>
+                Data Wali (Opsional / Jika Ada)
+              </h4>
+              <label style="font-size: 0.85rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="aedit-hasGuardian" ${st.hasGuardian ? 'checked' : ''} onchange="document.getElementById('aedit-guardian-box').style.display = this.checked ? 'block' : 'none';">
+                Memiliki Wali
+              </label>
+            </div>
+            
+            <div id="aedit-guardian-box" style="display: ${st.hasGuardian ? 'block' : 'none'};">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 12px;">
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Hubungan Wali</label>
+                  <input type="text" id="aedit-guardianRelation" class="form-control" value="${escapeHtml(st.guardianRelation || '')}" placeholder="Paman / Kakek / dll" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Nama Lengkap Wali</label>
+                  <input type="text" id="aedit-guardianName" class="form-control" value="${escapeHtml(st.guardianName || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">NIK Wali</label>
+                  <input type="text" id="aedit-guardianNik" class="form-control" maxlength="16" value="${escapeHtml(st.guardianNik || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Tempat Lahir Wali</label>
+                  <input type="text" id="aedit-guardianBirthPlace" class="form-control" value="${escapeHtml(st.guardianBirthPlace || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Tgl Lahir Wali</label>
+                  <input type="date" id="aedit-guardianBirthDate" class="form-control" value="${guardianBirthVal}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Pendidikan Wali</label>
+                  <select id="aedit-guardianEducation" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                    <option value="">-- Pilih Pendidikan --</option>
+                    ${PSB_EDUCATION_OPTIONS.map(o => `<option value="${o.value}" ${st.guardianEducation === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Pekerjaan Wali</label>
+                  <input type="text" id="aedit-guardianOccupation" class="form-control" value="${escapeHtml(st.guardianOccupation || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Penghasilan Wali</label>
+                  <select id="aedit-guardianMonthlyIncome" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                    <option value="">-- Pilih Penghasilan --</option>
+                    ${PSB_INCOME_OPTIONS.map(o => `<option value="${o.value}" ${st.guardianMonthlyIncome === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">WhatsApp Wali</label>
+                  <input type="text" id="aedit-guardianWhatsapp" class="form-control" value="${escapeHtml(st.guardianWhatsapp || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Alamat Lengkap Wali</label>
+                <textarea id="aedit-guardianAddress" class="form-control" rows="2" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">${escapeHtml(st.guardianAddress || '')}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION F: FASILITAS, MEDSOS & KONTAK UTAMA -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow-sm);">
+            <h4 style="color: var(--primary-600); margin-top: 0; margin-bottom: 16px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;">F</span>
+              Fasilitas, Media Sosial & Kontak Darurat
+            </h4>
+            
+            <h5 style="color: var(--text-heading); margin-top: 0; margin-bottom: 10px; font-size: 0.9rem;"><i class="fa-solid fa-house-chimney"></i> Tempat Tinggal & Fasilitas</h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 18px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Jarak ke Sekolah</label>
+                <select id="aedit-distanceToSchool" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="">-- Pilih Jarak --</option>
+                  ${PSB_DISTANCE_OPTIONS.map(o => `<option value="${o}" ${st.distanceToSchool === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Moda Transportasi</label>
+                <select id="aedit-transportationMode" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="">-- Pilih Transportasi --</option>
+                  ${PSB_TRANSPORT_OPTIONS.map(o => `<option value="${o}" ${st.transportationMode === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Kepemilikan Rumah</label>
+                <select id="aedit-homeOwnership" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="">-- Pilih Status Rumah --</option>
+                  ${PSB_HOME_OWNERSHIP_OPTIONS.map(o => `<option value="${o}" ${st.homeOwnership === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Daya Listrik</label>
+                <select id="aedit-electricityPower" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="">-- Pilih Daya Listrik --</option>
+                  ${PSB_ELECTRICITY_OPTIONS.map(o => `<option value="${o}" ${st.electricityPower === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Sumber Air</label>
+                <select id="aedit-waterSource" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="">-- Pilih Sumber Air --</option>
+                  ${PSB_WATER_OPTIONS.map(o => `<option value="${o}" ${st.waterSource === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Akses Internet</label>
+                <select id="aedit-internetAccess" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="">-- Pilih Akses Internet --</option>
+                  ${PSB_INTERNET_OPTIONS.map(o => `<option value="${o}" ${st.internetAccess === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Kepemilikan HP Santri</label>
+                <select id="aedit-phoneOwnership" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="">-- Pilih --</option>
+                  ${PSB_PHONE_OWNERSHIP_OPTIONS.map(o => `<option value="${o}" ${st.phoneOwnership === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">No. HP Santri</label>
+                <input type="text" id="aedit-studentPhone" class="form-control" value="${escapeHtml(st.studentPhone || ip.whatsappNumber || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+            </div>
+
+            <h5 style="color: var(--text-heading); margin-top: 0; margin-bottom: 10px; font-size: 0.9rem;"><i class="fa-solid fa-hashtag"></i> Media Sosial</h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Email</label>
+                <input type="email" id="aedit-socialEmail" class="form-control" value="${escapeHtml(st.socialEmail || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Facebook</label>
+                <input type="text" id="aedit-socialFacebook" class="form-control" value="${escapeHtml(st.socialFacebook || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Instagram</label>
+                <input type="text" id="aedit-socialInstagram" class="form-control" value="${escapeHtml(st.socialInstagram || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Twitter / X</label>
+                <input type="text" id="aedit-socialTwitter" class="form-control" value="${escapeHtml(st.socialTwitter || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">TikTok</label>
+                <input type="text" id="aedit-socialTiktok" class="form-control" value="${escapeHtml(st.socialTiktok || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+            </div>
+
+            <h5 style="color: var(--text-heading); margin-top: 0; margin-bottom: 10px; font-size: 0.9rem;"><i class="fa-solid fa-address-book"></i> Kontak Utama / Darurat</h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Nama Kontak Utama</label>
+                <input type="text" id="aedit-primaryContactName" class="form-control" value="${escapeHtml(st.primaryContactName || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Hubungan</label>
+                <input type="text" id="aedit-primaryContactRelation" class="form-control" value="${escapeHtml(st.primaryContactRelation || '')}" placeholder="Orang Tua / Wali / dll" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">No. WhatsApp</label>
+                <input type="text" id="aedit-primaryContactWhatsapp" class="form-control" value="${escapeHtml(st.primaryContactWhatsapp || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+            </div>
+
+          </div>
+
+          <!-- SECTION G: KESEHATAN & FISIK -->
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+            <h4 style="color: var(--primary-600); margin-top: 0; margin-bottom: 16px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 8px;">
+              <span style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;">G</span>
+              Riwayat Kesehatan & Kondisi Khusus
+            </h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Tinggi Badan (cm)</label>
+                <input type="number" id="aedit-heightCm" class="form-control" value="${st.heightCm || ''}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Berat Badan (kg)</label>
+                <input type="number" id="aedit-weightKg" class="form-control" value="${st.weightKg || ''}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Riwayat Merokok</label>
+                <select id="aedit-smokingStatus" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="">-- Pilih --</option>
+                  ${PSB_SMOKING_OPTIONS.map(o => `<option value="${o}" ${st.smokingStatus === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Status Buta Warna</label>
+                <select id="aedit-colorBlindStatus" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+                  <option value="">-- Pilih --</option>
+                  ${PSB_COLOR_BLIND_OPTIONS.map(o => `<option value="${o}" ${st.colorBlindStatus === o ? 'selected' : ''}>${o}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Mata Kiri Minus</label>
+                <input type="text" id="aedit-eyeMinusLeft" class="form-control" value="${escapeHtml(st.eyeMinusLeft || '')}" placeholder="Contoh: 0.5" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Mata Kiri Cyl</label>
+                <input type="text" id="aedit-eyeCylLeft" class="form-control" value="${escapeHtml(st.eyeCylLeft || '')}" placeholder="Contoh: 0.25" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Mata Kanan Minus</label>
+                <input type="text" id="aedit-eyeMinusRight" class="form-control" value="${escapeHtml(st.eyeMinusRight || '')}" placeholder="Contoh: 0.5" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Mata Kanan Cyl</label>
+                <input type="text" id="aedit-eyeCylRight" class="form-control" value="${escapeHtml(st.eyeCylRight || '')}" placeholder="Contoh: 0.25" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Riwayat Penyakit</label>
+                <input type="text" id="aedit-diseaseHistory" class="form-control" value="${escapeHtml(st.diseaseHistory || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Riwayat Alergi</label>
+                <input type="text" id="aedit-allergyHistory" class="form-control" value="${escapeHtml(st.allergyHistory || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Riwayat Operasi</label>
+                <input type="text" id="aedit-surgeryHistory" class="form-control" value="${escapeHtml(st.surgeryHistory || '')}" style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">
+              </div>
+            </div>
+
+            <div style="background: var(--bg-body); padding: 14px; border-radius: 8px;">
+              <label style="font-size: 0.85rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; margin-bottom: 8px;">
+                <input type="checkbox" id="aedit-hasSpecialNeeds" ${st.hasSpecialNeeds ? 'checked' : ''} onchange="document.getElementById('aedit-special-needs-desc').style.display = this.checked ? 'block' : 'none';">
+                Memiliki Kebutuhan Khusus / Disabilitas
+              </label>
+              <div id="aedit-special-needs-desc" style="display: ${st.hasSpecialNeeds ? 'block' : 'none'};">
+                <textarea id="aedit-specialNeedsDescription" class="form-control" rows="2" placeholder="Tuliskan keterangan kebutuhan khusus..." style="width: 100%; padding: 7px 10px; font-size: 0.85rem;">${escapeHtml(st.specialNeedsDescription || '')}</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- FOOTER ACTIONS -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-top: 2px solid var(--border-subtle); padding-top: 18px; margin-top: 10px; position: sticky; bottom: 0; background: var(--bg-card); z-index: 10;">
+            <button type="button" class="btn btn-secondary" onclick="openAdminVerificationDetailModal('${regId}')">
+              <i class="fa-solid fa-arrow-left"></i> Kembali ke Detail
+            </button>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-secondary" onclick="closeModal()">Tutup</button>
+              <button type="submit" id="btn-admin-save-student" class="btn btn-primary" style="padding: 11px 26px; font-weight: 700; font-size: 0.95rem;">
+                <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Data
+              </button>
+            </div>
+          </div>
+
+        </form>
+
+      </div>
+    `;
+
+    openModal(`Edit Data Calon Santri: ${d.registrationNumber}`, modalBody, 'modal-xl');
+  } catch (err) {
+    openModal('Error', `<div class="alert alert-danger">${err.message}</div>`);
+  }
+}
+
+async function handleAdminSaveStudentData(e, regId) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-admin-save-student');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+  }
+
+  const getV = (id) => {
+    const el = document.getElementById(id);
+    return el && el.value !== undefined ? el.value.trim() : undefined;
+  };
+  const getN = (id) => {
+    const v = document.getElementById(id)?.value;
+    return v !== '' && v !== undefined && v !== null && !isNaN(Number(v)) ? Number(v) : undefined;
+  };
+  const getC = (id) => document.getElementById(id)?.checked;
+
+  const payload = {
+    // Identitas
+    fullName: getV('aedit-fullName'),
+    nik: getV('aedit-nik') || undefined,
+    familyCardNumber: getV('aedit-familyCardNumber') || undefined,
+    nisn: getV('aedit-nisn') || undefined,
+    birthCertificateNumber: getV('aedit-birthCertificateNumber') || undefined,
+    gender: getV('aedit-gender') || undefined,
+    birthPlace: getV('aedit-birthPlace') || undefined,
+    birthDate: getV('aedit-birthDate') || undefined,
+    religion: getV('aedit-religion') || undefined,
+    bloodType: getV('aedit-bloodType') || undefined,
+    childOrder: getN('aedit-childOrder'),
+    siblingsCount: getN('aedit-siblingsCount'),
+    childStatus: getV('aedit-childStatus') || undefined,
+    boardingStatus: getV('aedit-boardingStatus') || undefined,
+
+    // Alamat
+    country: getV('aedit-country') || 'Indonesia',
+    province: getV('aedit-province') || undefined,
+    cityDistrict: getV('aedit-cityDistrict') || undefined,
+    subDistrict: getV('aedit-subDistrict') || undefined,
+    village: getV('aedit-village') || undefined,
+    rt: getV('aedit-rt') || undefined,
+    rw: getV('aedit-rw') || undefined,
+    postalCode: getV('aedit-postalCode') || undefined,
+    fullAddress: getV('aedit-fullAddress') || undefined,
+
+    // Asal Sekolah
+    previousSchoolName: getV('aedit-previousSchoolName') || undefined,
+    previousSchoolLevel: getV('aedit-previousSchoolLevel') || undefined,
+    previousSchoolNpsn: getV('aedit-previousSchoolNpsn') || undefined,
+    graduationYear: getV('aedit-graduationYear') || undefined,
+    diplomaNumber: getV('aedit-diplomaNumber') || undefined,
+    previousSchoolAddress: getV('aedit-previousSchoolAddress') || undefined,
+
+    // Ayah
+    fatherName: getV('aedit-fatherName') || undefined,
+    fatherStatus: getV('aedit-fatherStatus') || undefined,
+    fatherNik: getV('aedit-fatherNik') || undefined,
+    fatherBirthPlace: getV('aedit-fatherBirthPlace') || undefined,
+    fatherBirthDate: getV('aedit-fatherBirthDate') || undefined,
+    fatherEducation: getV('aedit-fatherEducation') || undefined,
+    fatherOccupation: getV('aedit-fatherOccupation') || undefined,
+    fatherMonthlyIncome: getV('aedit-fatherMonthlyIncome') || undefined,
+    fatherWhatsapp: getV('aedit-fatherWhatsapp') || undefined,
+
+    // Ibu
+    motherName: getV('aedit-motherName') || undefined,
+    motherStatus: getV('aedit-motherStatus') || undefined,
+    motherNik: getV('aedit-motherNik') || undefined,
+    motherBirthPlace: getV('aedit-motherBirthPlace') || undefined,
+    motherBirthDate: getV('aedit-motherBirthDate') || undefined,
+    motherEducation: getV('aedit-motherEducation') || undefined,
+    motherOccupation: getV('aedit-motherOccupation') || undefined,
+    motherMonthlyIncome: getV('aedit-motherMonthlyIncome') || undefined,
+    motherWhatsapp: getV('aedit-motherWhatsapp') || undefined,
+
+    // Kondisi RT
+    parentsMaritalStatus: getV('aedit-parentsMaritalStatus') || undefined,
+    childCustody: getV('aedit-childCustody') || undefined,
+    childLivingWith: getV('aedit-childLivingWith') || undefined,
+
+    // Wali
+    hasGuardian: getC('aedit-hasGuardian'),
+    guardianRelation: getC('aedit-hasGuardian') ? getV('aedit-guardianRelation') : undefined,
+    guardianName: getC('aedit-hasGuardian') ? getV('aedit-guardianName') : undefined,
+    guardianNik: getC('aedit-hasGuardian') ? getV('aedit-guardianNik') : undefined,
+    guardianBirthPlace: getC('aedit-hasGuardian') ? getV('aedit-guardianBirthPlace') : undefined,
+    guardianBirthDate: getC('aedit-hasGuardian') ? getV('aedit-guardianBirthDate') : undefined,
+    guardianEducation: getC('aedit-hasGuardian') ? getV('aedit-guardianEducation') : undefined,
+    guardianOccupation: getC('aedit-hasGuardian') ? getV('aedit-guardianOccupation') : undefined,
+    guardianMonthlyIncome: getC('aedit-hasGuardian') ? getV('aedit-guardianMonthlyIncome') : undefined,
+    guardianWhatsapp: getC('aedit-hasGuardian') ? getV('aedit-guardianWhatsapp') : undefined,
+    guardianAddress: getC('aedit-hasGuardian') ? getV('aedit-guardianAddress') : undefined,
+
+    // Fasilitas
+    distanceToSchool: getV('aedit-distanceToSchool') || undefined,
+    transportationMode: getV('aedit-transportationMode') || undefined,
+    homeOwnership: getV('aedit-homeOwnership') || undefined,
+    electricityPower: getV('aedit-electricityPower') || undefined,
+    waterSource: getV('aedit-waterSource') || undefined,
+    internetAccess: getV('aedit-internetAccess') || undefined,
+    phoneOwnership: getV('aedit-phoneOwnership') || undefined,
+    studentPhone: getV('aedit-studentPhone') || undefined,
+
+    // Medsos
+    socialEmail: getV('aedit-socialEmail') || undefined,
+    socialFacebook: getV('aedit-socialFacebook') || undefined,
+    socialInstagram: getV('aedit-socialInstagram') || undefined,
+    socialTwitter: getV('aedit-socialTwitter') || undefined,
+    socialTiktok: getV('aedit-socialTiktok') || undefined,
+
+    // Kontak
+    primaryContactName: getV('aedit-primaryContactName') || undefined,
+    primaryContactRelation: getV('aedit-primaryContactRelation') || undefined,
+    primaryContactWhatsapp: getV('aedit-primaryContactWhatsapp') || undefined,
+
+    // Kesehatan
+    heightCm: getN('aedit-heightCm'),
+    weightKg: getN('aedit-weightKg'),
+    smokingStatus: getV('aedit-smokingStatus') || undefined,
+    colorBlindStatus: getV('aedit-colorBlindStatus') || undefined,
+    eyeMinusLeft: getV('aedit-eyeMinusLeft') || undefined,
+    eyeCylLeft: getV('aedit-eyeCylLeft') || undefined,
+    eyeMinusRight: getV('aedit-eyeMinusRight') || undefined,
+    eyeCylRight: getV('aedit-eyeCylRight') || undefined,
+    diseaseHistory: getV('aedit-diseaseHistory') || undefined,
+    allergyHistory: getV('aedit-allergyHistory') || undefined,
+    surgeryHistory: getV('aedit-surgeryHistory') || undefined,
+    hasSpecialNeeds: getC('aedit-hasSpecialNeeds'),
+    specialNeedsDescription: getC('aedit-hasSpecialNeeds') ? getV('aedit-specialNeedsDescription') : undefined,
+  };
+
+  try {
+    const res = await apiRequest(`/api/registrations/${regId}/form/draft`, {
+      method: 'PUT',
+      body: payload,
+    });
+
+    if (res.success) {
+      showToast('Data calon santri berhasil diperbarui!', 'success');
+      // Re-open detail modal to show fresh updated data
+      await openAdminVerificationDetailModal(regId);
+      // Refresh background table if active
+      if (typeof filterVerificationTable === 'function' && document.getElementById('table-verification-list')) {
+        renderAdminVerificationView();
+      } else if (typeof updateUniversalTable === 'function' && document.getElementById('admin-registrations-table-slot')) {
+        renderAdminRegistrationsView();
+      }
+    } else {
+      alert(res.message || 'Gagal menyimpan perubahan.');
+    }
+  } catch (err) {
+    alert(err.message || 'Terjadi kesalahan: ' + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Data';
+    }
+  }
+}
+
+window.openAdminEditStudentModal = openAdminEditStudentModal;
+window.handleAdminSaveStudentData = handleAdminSaveStudentData;
+
+// ============================================================================
 // 4. FORMULIR PENDAFTARAN LENGKAP CALON SANTRI (PESERTA)
 // ============================================================================
 
@@ -1220,7 +2076,8 @@ const PSB_INCOME_OPTIONS = [
   { value: 'SATU_SAMPAI_3JT', label: 'Rp 1 - 3 Juta' },
   { value: 'TIGA_SAMPAI_5JT', label: 'Rp 3 - 5 Juta' },
   { value: 'LIMA_SAMPAI_10JT', label: 'Rp 5 - 10 Juta' },
-  { value: 'LEBIH_DARI_10JT', label: '> Rp 10 Juta' }
+  { value: 'SEPULUH_SAMPAI_20JT', label: 'Rp 10 - 20 Juta' },
+  { value: 'LEBIH_DARI_20JT', label: '> Rp 20 Juta' }
 ];
 
 const PSB_CHILD_STATUS_OPTIONS = [
@@ -1368,6 +2225,17 @@ function handleMaritalStatusChange(val) {
 }
 window.handleMaritalStatusChange = handleMaritalStatusChange;
 
+function handleColorBlindChange(val) {
+  const container = document.getElementById('eye-condition-container');
+  if (!container) return;
+  if (val && !val.includes('Normal')) {
+    container.style.display = 'block';
+  } else {
+    container.style.display = 'none';
+  }
+}
+window.handleColorBlindChange = handleColorBlindChange;
+
 async function renderPesertaFullFormView(regId) {
   const container = document.getElementById('main-view-slot');
   container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat formulir pendaftaran lengkap...</div>';
@@ -1380,21 +2248,41 @@ async function renderPesertaFullFormView(regId) {
     const st = d.studentDetail || {};
     const achs = d.achievements || [];
     const docs = d.documents || [];
-    const isReadOnly = d.formStatus === 'SUBMITTED' || d.formStatus === 'VERIFIED';
+    const isAdmin = (typeof state !== 'undefined' && state?.user?.role && ['SUPER_ADMIN', 'ADMIN'].includes(state.user.role));
+    const isReadOnly = !isAdmin && (d.formStatus === 'SUBMITTED' || d.formStatus === 'VERIFIED');
     const isRevision = d.formStatus === 'REVISION_REQUIRED';
 
     const isFatherDeceased = st.fatherStatus === 'SUDAH_MENINGGAL';
     const isGuardianMandatory = isFatherDeceased || !!st.hasGuardian;
     const isDivorced = st.parentsMaritalStatus === 'Bercerai';
-
+    const maxToday = new Date().toISOString().split('T')[0];
     const birthDateVal = st.birthDate ? new Date(st.birthDate).toISOString().split('T')[0] : '';
     const fatherBirthVal = st.fatherBirthDate ? new Date(st.fatherBirthDate).toISOString().split('T')[0] : '';
     const motherBirthVal = st.motherBirthDate ? new Date(st.motherBirthDate).toISOString().split('T')[0] : '';
     const guardianBirthVal = st.guardianBirthDate ? new Date(st.guardianBirthDate).toISOString().split('T')[0] : '';
 
+    const fatherIncomeVal = st.fatherMonthlyIncome || 'LEBIH_DARI_20JT';
+    const motherIncomeVal = st.motherMonthlyIncome || 'LEBIH_DARI_20JT';
+    const guardianIncomeVal = st.guardianMonthlyIncome || 'LEBIH_DARI_20JT';
+
     container.innerHTML = `
       <div style="max-width: 960px; margin: 0 auto;">
         
+        <!-- Admin Banner if in Admin/Super Admin mode -->
+        ${isAdmin ? `
+          <div class="alert alert-info" style="margin-bottom: 20px; background: rgba(14, 165, 233, 0.1); border: 1.5px solid #0284c7; border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <strong style="color: #0369a1;"><i class="fa-solid fa-user-shield"></i> Mode Admin: Edit Data Calon Santri</strong>
+              <div style="font-size: 0.85rem; color: #0284c7;">Sebagai Administrator/Super Admin, Anda memiliki hak akses penuh untuk mengedit dan memperbarui data pendaftaran calon santri ini.</div>
+            </div>
+            <div>
+              <button type="button" class="btn btn-sm btn-primary" onclick="handleSaveFormDraft('${regId}')">
+                <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan (Admin)
+              </button>
+            </div>
+          </div>
+        ` : ''}
+
         <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
             <a href="#detail/${regId}" style="color: var(--text-muted); text-decoration: none; font-size: 0.875rem; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px;">
@@ -1473,18 +2361,18 @@ async function renderPesertaFullFormView(regId) {
             <div class="form-grid-2" style="margin-bottom: 14px;">
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Calon Santri (No. KTP/KIA) <span style="color: red;">*</span></label>
-                <input type="text" id="ff-nik" class="form-control" placeholder="16 digit NIK" value="${escapeHtml(st.nik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="text" id="ff-nik" class="form-control" placeholder="16 digit NIK" maxlength="16" minlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16)" value="${escapeHtml(st.nik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nomor Kartu Keluarga (KK) <span style="color: red;">*</span></label>
-                <input type="text" id="ff-familyCardNumber" class="form-control" placeholder="16 digit Nomor KK" value="${escapeHtml(st.familyCardNumber || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="text" id="ff-familyCardNumber" class="form-control" placeholder="16 digit Nomor KK" maxlength="16" minlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16)" value="${escapeHtml(st.familyCardNumber || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
             </div>
 
             <div class="form-grid-2" style="margin-bottom: 14px;">
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NISN <span style="color: red;">*</span></label>
-                <input type="text" id="ff-nisn" class="form-control" placeholder="10 digit NISN" value="${escapeHtml(st.nisn || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="text" id="ff-nisn" class="form-control" placeholder="10 digit NISN" maxlength="10" minlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)" value="${escapeHtml(st.nisn || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Nomor Akta Kelahiran <span style="color: red;">*</span></label>
@@ -1506,7 +2394,7 @@ async function renderPesertaFullFormView(regId) {
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir</label>
-                <input type="date" id="ff-birthDate" class="form-control" value="${birthDateVal}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <input type="date" id="ff-birthDate" class="form-control" value="${birthDateVal}" max="${maxToday}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               </div>
             </div>
 
@@ -1693,7 +2581,7 @@ async function renderPesertaFullFormView(regId) {
               <div class="form-grid-3" style="margin-bottom: 14px;">
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Ayah</label>
-                  <input type="text" id="ff-fatherNik" class="form-control" value="${escapeHtml(st.fatherNik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-fatherNik" class="form-control" placeholder="16 digit NIK" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16)" value="${escapeHtml(st.fatherNik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir Ayah</label>
@@ -1701,7 +2589,7 @@ async function renderPesertaFullFormView(regId) {
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir Ayah</label>
-                  <input type="date" id="ff-fatherBirthDate" class="form-control" value="${fatherBirthVal}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="date" id="ff-fatherBirthDate" class="form-control" value="${fatherBirthVal}" max="${maxToday}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
               </div>
 
@@ -1719,7 +2607,7 @@ async function renderPesertaFullFormView(regId) {
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Penghasilan Ayah / Bln</label>
                   <select id="ff-fatherMonthlyIncome" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                     ${PSB_INCOME_OPTIONS.map(opt => `
-                      <option value="${opt.value}" ${st.fatherMonthlyIncome === opt.value ? 'selected' : ''}>${opt.label}</option>
+                      <option value="${opt.value}" ${fatherIncomeVal === opt.value ? 'selected' : ''}>${opt.label}</option>
                     `).join('')}
                   </select>
                 </div>
@@ -1753,7 +2641,7 @@ async function renderPesertaFullFormView(regId) {
               <div class="form-grid-3" style="margin-bottom: 14px;">
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Ibu</label>
-                  <input type="text" id="ff-motherNik" class="form-control" value="${escapeHtml(st.motherNik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-motherNik" class="form-control" placeholder="16 digit NIK" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16)" value="${escapeHtml(st.motherNik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tempat Lahir Ibu</label>
@@ -1761,7 +2649,7 @@ async function renderPesertaFullFormView(regId) {
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir Ibu</label>
-                  <input type="date" id="ff-motherBirthDate" class="form-control" value="${motherBirthVal}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="date" id="ff-motherBirthDate" class="form-control" value="${motherBirthVal}" max="${maxToday}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
               </div>
 
@@ -1779,7 +2667,7 @@ async function renderPesertaFullFormView(regId) {
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Penghasilan Ibu / Bln</label>
                   <select id="ff-motherMonthlyIncome" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                     ${PSB_INCOME_OPTIONS.map(opt => `
-                      <option value="${opt.value}" ${st.motherMonthlyIncome === opt.value ? 'selected' : ''}>${opt.label}</option>
+                      <option value="${opt.value}" ${motherIncomeVal === opt.value ? 'selected' : ''}>${opt.label}</option>
                     `).join('')}
                   </select>
                 </div>
@@ -1837,9 +2725,9 @@ async function renderPesertaFullFormView(regId) {
                 <span style="width: 26px; height: 26px; border-radius: 50%; background: var(--primary-600); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800;">E</span>
                 Data Wali Calon Santri <span id="guardian-req-asterisk" style="color: red; ${isFatherDeceased ? '' : 'display: none;'}">*</span>
               </h3>
-              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 600;">
-                <input type="checkbox" id="ff-hasGuardian" onchange="toggleGuardianSection(this.checked)" ${isGuardianMandatory ? 'checked' : ''} ${isFatherDeceased ? 'disabled' : ''} ${isReadOnly ? 'disabled' : ''} style="width: 16px; height: 16px;">
-                <span>Memiliki Wali Selain Orang Tua</span>
+              <label style="display: inline-flex !important; align-items: center !important; gap: 8px !important; cursor: pointer; font-size: 0.875rem; font-weight: 600; width: auto; margin: 0; color: var(--text-heading); user-select: none;">
+                <input type="checkbox" id="ff-hasGuardian" onchange="toggleGuardianSection(this.checked)" ${isGuardianMandatory ? 'checked' : ''} ${isFatherDeceased ? 'disabled' : ''} ${isReadOnly ? 'disabled' : ''} style="width: 18px; height: 18px; margin: 0 !important; cursor: pointer; accent-color: var(--primary-600); flex-shrink: 0;">
+                <span style="line-height: 1.2;">Memiliki Wali Selain Orang Tua</span>
               </label>
             </div>
 
@@ -1859,7 +2747,7 @@ async function renderPesertaFullFormView(regId) {
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">NIK Wali</label>
-                  <input type="text" id="ff-guardianNik" class="form-control" value="${escapeHtml(st.guardianNik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="text" id="ff-guardianNik" class="form-control" placeholder="16 digit NIK" maxlength="16" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 16)" value="${escapeHtml(st.guardianNik || '')}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
               </div>
 
@@ -1870,7 +2758,7 @@ async function renderPesertaFullFormView(regId) {
                 </div>
                 <div class="form-group">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Tanggal Lahir Wali</label>
-                  <input type="date" id="ff-guardianBirthDate" class="form-control" value="${guardianBirthVal}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="date" id="ff-guardianBirthDate" class="form-control" value="${guardianBirthVal}" max="${maxToday}" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                 </div>
               </div>
 
@@ -1888,7 +2776,7 @@ async function renderPesertaFullFormView(regId) {
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Penghasilan / Bln</label>
                   <select id="ff-guardianMonthlyIncome" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                     ${PSB_INCOME_OPTIONS.map(opt => `
-                      <option value="${opt.value}" ${st.guardianMonthlyIncome === opt.value ? 'selected' : ''}>${opt.label}</option>
+                      <option value="${opt.value}" ${guardianIncomeVal === opt.value ? 'selected' : ''}>${opt.label}</option>
                     `).join('')}
                   </select>
                 </div>
@@ -2041,7 +2929,7 @@ async function renderPesertaFullFormView(regId) {
               </div>
               <div class="form-group">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Status Buta Warna</label>
-                <select id="ff-colorBlindStatus" class="form-select" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <select id="ff-colorBlindStatus" class="form-select" onchange="handleColorBlindChange(this.value)" ${isReadOnly ? 'disabled' : ''} style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                   ${PSB_COLOR_BLIND_OPTIONS.map(opt => `
                     <option value="${opt}" ${st.colorBlindStatus === opt ? 'selected' : ''}>${opt}</option>
                   `).join('')}
@@ -2049,10 +2937,10 @@ async function renderPesertaFullFormView(regId) {
               </div>
             </div>
 
-            <!-- KONDISI MATA -->
-            <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; border: 1px solid var(--border-subtle);">
+            <!-- KONDISI MATA (Otomatis tersembunyi jika Normal) -->
+            <div id="eye-condition-container" style="${(st.colorBlindStatus && !st.colorBlindStatus.includes('Normal')) || Boolean(st.eyeMinusLeft || st.eyeCylLeft || st.eyeMinusRight || st.eyeCylRight) ? 'display: block;' : 'display: none;'} background: var(--bg-body); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; border: 1px solid var(--border-subtle);">
               <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 8px; color: var(--text-heading);">
-                <i class="fa-solid fa-eye" style="color: var(--primary-600); margin-right: 4px;"></i> Riwayat Mata (Minus & Silinder) - Kosongkan jika Normal
+                <i class="fa-solid fa-eye" style="color: var(--primary-600); margin-right: 4px;"></i> Riwayat Mata (Minus & Silinder)
               </label>
               <div class="form-grid-2">
                 <div style="background: var(--bg-card); padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
@@ -2099,10 +2987,10 @@ async function renderPesertaFullFormView(regId) {
               </div>
             </div>
 
-            <div style="border-top: 1px solid var(--border-subtle); padding-top: 12px;">
-              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.875rem; font-weight: 600;">
-                <input type="checkbox" id="ff-hasSpecialNeeds" onchange="toggleSpecialNeedsField(this.checked)" ${st.hasSpecialNeeds ? 'checked' : ''} ${isReadOnly ? 'disabled' : ''} style="width: 16px; height: 16px;">
-                <span>Memiliki Kebutuhan Khusus / Disabilitas</span>
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 14px; margin-top: 6px;">
+              <label style="display: inline-flex !important; align-items: center !important; gap: 8px !important; cursor: pointer; font-size: 0.875rem; font-weight: 600; width: auto; margin: 0; color: var(--text-heading); user-select: none;">
+                <input type="checkbox" id="ff-hasSpecialNeeds" onchange="toggleSpecialNeedsField(this.checked)" ${st.hasSpecialNeeds ? 'checked' : ''} ${isReadOnly ? 'disabled' : ''} style="width: 18px; height: 18px; margin: 0 !important; cursor: pointer; accent-color: var(--primary-600); flex-shrink: 0;">
+                <span style="line-height: 1.2;">Memiliki Kebutuhan Khusus / Disabilitas</span>
               </label>
               <div id="special-needs-container" style="${st.hasSpecialNeeds ? '' : 'display: none;'} margin-top: 10px;">
                 <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 4px;">Keterangan Kebutuhan Khusus <span style="color:red;">*</span></label>
@@ -2167,10 +3055,9 @@ async function renderPesertaFullFormView(regId) {
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
               ${renderDocUploadCard(regId, 'FAMILY_CARD', 'Kartu Keluarga (KK)', true, docs, isReadOnly)}
               ${renderDocUploadCard(regId, 'BIRTH_CERTIFICATE', 'Akta Kelahiran', true, docs, isReadOnly)}
-              ${renderDocUploadCard(regId, 'FATHER_ID_CARD', 'KTP Ayah', true, docs, isReadOnly)}
-              ${renderDocUploadCard(regId, 'MOTHER_ID_CARD', 'KTP Ibu', true, docs, isReadOnly)}
-              ${renderDocUploadCard(regId, 'GUARDIAN_ID_CARD', 'KTP Wali', false, docs, isReadOnly, 'Wajib jika memiliki wali')}
-              ${renderDocUploadCard(regId, 'PHOTO', 'Pas Foto Berwarna (3x4)', true, docs, isReadOnly)}
+              ${renderDocUploadCard(regId, 'FATHER_ID_CARD', 'KTP Ayah', false, docs, isReadOnly, 'Opsional')}
+              ${renderDocUploadCard(regId, 'MOTHER_ID_CARD', 'KTP Ibu', false, docs, isReadOnly, 'Opsional')}
+              ${renderDocUploadCard(regId, 'GUARDIAN_ID_CARD', 'KTP Wali', false, docs, isReadOnly, 'Opsional')}
               ${renderDocUploadCard(regId, 'DIPLOMA_OR_SKL', 'Ijazah / SKL', false, docs, isReadOnly, 'Opsional jika belum terbit')}
               ${renderDocUploadCard(regId, 'REPORT_CARD', 'Rapor Nilai Terakhir', false, docs, isReadOnly, 'Opsional')}
               ${renderDocUploadCard(regId, 'ACHIEVEMENT_CERTIFICATE', 'Sertifikat Prestasi', false, docs, isReadOnly, 'Opsional')}
@@ -2182,13 +3069,19 @@ async function renderPesertaFullFormView(regId) {
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 18px 24px; box-shadow: var(--shadow-sm); position: sticky; bottom: 16px; z-index: 10;">
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button type="button" class="btn btn-secondary" onclick="handleSaveFormDraft('${regId}')">
-                  <i class="fa-solid fa-floppy-disk"></i> Simpan Sementara
+                  <i class="fa-solid fa-floppy-disk"></i> ${isAdmin ? 'Simpan Perubahan' : 'Simpan Sementara'}
                 </button>
               </div>
               <div>
-                <button type="button" class="btn btn-primary" style="padding: 12px 24px; font-weight: 700;" onclick="handleFinalFormSubmit('${regId}')">
-                  <i class="fa-solid fa-paper-plane"></i> ${isRevision ? 'Kirim Data Final Ulang' : 'Kirim Data Final'}
-                </button>
+                ${isAdmin ? `
+                  <button type="button" class="btn btn-primary" style="padding: 12px 24px; font-weight: 700;" onclick="handleSaveFormDraft('${regId}')">
+                    <i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan Data (Admin)
+                  </button>
+                ` : `
+                  <button type="button" class="btn btn-primary" style="padding: 12px 24px; font-weight: 700;" onclick="handleFinalFormSubmit('${regId}')">
+                    <i class="fa-solid fa-paper-plane"></i> ${isRevision ? 'Kirim Data Final Ulang' : 'Kirim Data Final'}
+                  </button>
+                `}
               </div>
             </div>
           ` : `
@@ -2571,7 +3464,16 @@ async function uploadFormDocument(regId, docType, input, label = '', isRequired 
 }
 
 async function deleteFormDocument(regId, docId, docType, label = '', isRequired = false, note = '') {
-  if (!confirm('Apakah Anda yakin ingin menghapus dokumen ini?')) return;
+  const ok = typeof window.showAppConfirm === 'function'
+    ? await window.showAppConfirm({
+        title: 'Hapus Dokumen',
+        message: 'Apakah Anda yakin ingin menghapus file dokumen persyaratan ini?',
+        confirmText: 'Ya, Hapus Dokumen',
+        cancelText: 'Batal',
+        type: 'danger'
+      })
+    : confirm('Apakah Anda yakin ingin menghapus dokumen ini?');
+  if (!ok) return;
   try {
     const res = await apiRequest(`/api/registrations/${regId}/documents/${docId}`, {
       method: 'DELETE',
@@ -2750,14 +3652,232 @@ function gatherFormData() {
   };
 }
 
+function clearFormError(el) {
+  if (!el) return;
+  el.style.borderColor = '';
+  el.style.boxShadow = '';
+  const parent = el.closest('.form-group') || el.parentElement;
+  if (parent) {
+    const existingMsg = parent.querySelector('.psb-field-error-msg');
+    if (existingMsg) existingMsg.remove();
+  }
+}
+
+function clearAllFormErrors() {
+  document.querySelectorAll('.psb-field-error-msg').forEach(el => el.remove());
+  document.querySelectorAll('#psb-full-form input, #psb-full-form select, #psb-full-form textarea').forEach(el => {
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+  });
+}
+
+function setFormError(idOrEl, message) {
+  const el = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
+  if (!el) return;
+
+  el.style.borderColor = '#ef4444';
+  el.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.15)';
+
+  const parent = el.closest('.form-group') || el.parentElement;
+  if (parent) {
+    let msgEl = parent.querySelector('.psb-field-error-msg');
+    if (!msgEl) {
+      msgEl = document.createElement('div');
+      msgEl.className = 'psb-field-error-msg';
+      msgEl.style.cssText = 'color: #dc2626; font-size: 0.78rem; font-weight: 600; margin-top: 4px; display: flex; align-items: center; gap: 4px;';
+      parent.appendChild(msgEl);
+    }
+    msgEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> <span>${message}</span>`;
+  }
+
+  // Auto clear error when candidate modifies the input
+  const clearHandler = () => {
+    clearFormError(el);
+    el.removeEventListener('input', clearHandler);
+    el.removeEventListener('change', clearHandler);
+  };
+  el.addEventListener('input', clearHandler);
+  el.addEventListener('change', clearHandler);
+}
+
+function validateFullFormClient(payload, isDraft = false) {
+  clearAllFormErrors();
+  let firstInvalidEl = null;
+  let errorCount = 0;
+
+  const markError = (id, msg) => {
+    setFormError(id, msg);
+    errorCount++;
+    const el = document.getElementById(id);
+    if (!firstInvalidEl && el) {
+      firstInvalidEl = el;
+    }
+  };
+
+  const isFilled = (val) => val !== undefined && val !== null && String(val).trim() !== '';
+
+  // 1. Strict Digit Rules: NIK (16), KK (16), NISN (10)
+  const cleanNik = String(payload.nik || '').replace(/[^0-9]/g, '').trim();
+  if (isFilled(payload.nik)) {
+    if (cleanNik.length !== 16) {
+      markError('ff-nik', 'NIK harus terdiri dari tepat 16 digit angka.');
+    }
+  } else if (!isDraft) {
+    markError('ff-nik', 'NIK calon santri wajib diisi (16 digit angka).');
+  }
+
+  const cleanKk = String(payload.familyCardNumber || '').replace(/[^0-9]/g, '').trim();
+  if (isFilled(payload.familyCardNumber)) {
+    if (cleanKk.length !== 16) {
+      markError('ff-familyCardNumber', 'Nomor KK harus terdiri dari tepat 16 digit angka.');
+    }
+  } else if (!isDraft) {
+    markError('ff-familyCardNumber', 'Nomor Kartu Keluarga (KK) wajib diisi (16 digit angka).');
+  }
+
+  const cleanNisn = String(payload.nisn || '').replace(/[^0-9]/g, '').trim();
+  if (isFilled(payload.nisn)) {
+    if (cleanNisn.length !== 10) {
+      markError('ff-nisn', 'NISN harus terdiri dari tepat 10 digit angka.');
+    }
+  } else if (!isDraft) {
+    markError('ff-nisn', 'NISN calon santri wajib diisi (10 digit angka).');
+  }
+
+  // Parents / Guardian NIK (16 digit if filled)
+  if (isFilled(payload.fatherNik) && String(payload.fatherNik).replace(/[^0-9]/g, '').trim().length !== 16) {
+    markError('ff-fatherNik', 'NIK Ayah harus terdiri dari 16 digit angka.');
+  }
+  if (isFilled(payload.motherNik) && String(payload.motherNik).replace(/[^0-9]/g, '').trim().length !== 16) {
+    markError('ff-motherNik', 'NIK Ibu harus terdiri dari 16 digit angka.');
+  }
+  if (isFilled(payload.guardianNik) && String(payload.guardianNik).replace(/[^0-9]/g, '').trim().length !== 16) {
+    markError('ff-guardianNik', 'NIK Wali harus terdiri dari 16 digit angka.');
+  }
+
+  // For Draft saving: allow empty fields, only reject invalid digit formats
+  if (isDraft) {
+    if (errorCount > 0 && firstInvalidEl) {
+      firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      try { firstInvalidEl.focus(); } catch (e) {}
+      showToast('Periksa kembali data NIK / KK / NISN bertanda merah.', 'warning');
+      return false;
+    }
+    return true;
+  }
+
+  // 2. Strict Validations for Final Submission:
+  // Section A: Identitas Calon Santri
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  if (!isFilled(payload.fullName)) markError('ff-fullName', 'Nama Lengkap calon santri wajib diisi.');
+  if (!isFilled(payload.birthCertificateNumber)) markError('ff-birthCertificateNumber', 'Nomor Akta Kelahiran wajib diisi.');
+  if (!isFilled(payload.gender)) markError('ff-gender', 'Jenis Kelamin wajib dipilih.');
+  if (!isFilled(payload.birthPlace)) markError('ff-birthPlace', 'Tempat Lahir wajib diisi.');
+  if (!isFilled(payload.birthDate)) {
+    markError('ff-birthDate', 'Tanggal Lahir wajib diisi.');
+  } else if (payload.birthDate > todayDateStr) {
+    markError('ff-birthDate', 'Tanggal lahir tidak boleh melebihi tanggal hari ini.');
+  }
+  if (isFilled(payload.fatherBirthDate) && payload.fatherBirthDate > todayDateStr) {
+    markError('ff-fatherBirthDate', 'Tanggal lahir Ayah tidak boleh melebihi tanggal hari ini.');
+  }
+  if (isFilled(payload.motherBirthDate) && payload.motherBirthDate > todayDateStr) {
+    markError('ff-motherBirthDate', 'Tanggal lahir Ibu tidak boleh melebihi tanggal hari ini.');
+  }
+  if (isFilled(payload.guardianBirthDate) && payload.guardianBirthDate > todayDateStr) {
+    markError('ff-guardianBirthDate', 'Tanggal lahir Wali tidak boleh melebihi tanggal hari ini.');
+  }
+  if (!isFilled(payload.religion)) markError('ff-religion', 'Agama wajib diisi.');
+  if (payload.childOrder === undefined || payload.childOrder === null || payload.childOrder === '') markError('ff-childOrder', 'Anak Ke- wajib diisi.');
+  if (payload.siblingsCount === undefined || payload.siblingsCount === null || payload.siblingsCount === '') markError('ff-siblingsCount', 'Jumlah Saudara Kandung wajib diisi.');
+  if (!isFilled(payload.childStatus)) markError('ff-childStatus', 'Status Anak wajib dipilih.');
+
+  // Section B: Alamat
+  if (!isFilled(payload.country)) markError('ff-country', 'Negara tempat tinggal wajib diisi.');
+  if (!isFilled(payload.fullAddress)) markError('ff-fullAddress', 'Alamat Lengkap wajib diisi.');
+  if (payload.country === 'Indonesia') {
+    if (!isFilled(payload.province)) markError('ff-province-select', 'Provinsi wajib dipilih.');
+    if (!isFilled(payload.cityDistrict)) markError('ff-regency-select', 'Kabupaten/Kota wajib dipilih.');
+    if (!isFilled(payload.subDistrict)) markError('ff-district-select', 'Kecamatan wajib dipilih.');
+    if (!isFilled(payload.village)) markError('ff-village-select', 'Kelurahan/Desa wajib dipilih.');
+    if (!isFilled(payload.rt)) markError('ff-rt', 'RT wajib diisi.');
+    if (!isFilled(payload.rw)) markError('ff-rw', 'RW wajib diisi.');
+    if (!isFilled(payload.postalCode)) markError('ff-postalCode', 'Kode Pos wajib diisi.');
+  }
+
+  // Section C: Asal Sekolah
+  if (!isFilled(payload.previousSchoolName)) markError('ff-previousSchoolName', 'Nama Sekolah Asal wajib diisi.');
+  if (!isFilled(payload.previousSchoolLevel)) markError('ff-previousSchoolLevel', 'Jenjang Sekolah Asal wajib dipilih.');
+  if (!isFilled(payload.previousSchoolAddress)) markError('ff-previousSchoolAddress', 'Alamat Sekolah Asal wajib diisi.');
+  if (!isFilled(payload.graduationYear)) markError('ff-graduationYear', 'Tahun Lulus wajib diisi.');
+
+  // Section D: Orang Tua
+  if (!isFilled(payload.fatherName)) markError('ff-fatherName', 'Nama Lengkap Ayah wajib diisi.');
+  if (!isFilled(payload.fatherStatus)) markError('ff-fatherStatus', 'Status Ayah wajib dipilih.');
+  if (payload.fatherStatus !== 'SUDAH_MENINGGAL') {
+    if (!isFilled(payload.fatherEducation)) markError('ff-fatherEducation', 'Pendidikan Ayah wajib dipilih.');
+    if (!isFilled(payload.fatherOccupation)) markError('ff-fatherOccupation-select', 'Pekerjaan Ayah wajib dipilih.');
+  }
+
+  if (!isFilled(payload.motherName)) markError('ff-motherName', 'Nama Lengkap Ibu wajib diisi.');
+  if (!isFilled(payload.motherStatus)) markError('ff-motherStatus', 'Status Ibu wajib dipilih.');
+  if (payload.motherStatus !== 'SUDAH_MENINGGAL') {
+    if (!isFilled(payload.motherEducation)) markError('ff-motherEducation', 'Pendidikan Ibu wajib dipilih.');
+    if (!isFilled(payload.motherOccupation)) markError('ff-motherOccupation-select', 'Pekerjaan Ibu wajib dipilih.');
+  }
+
+  // Section D3: Kondisi Rumah Tangga
+  if (payload.parentsMaritalStatus === 'Bercerai') {
+    if (!isFilled(payload.childCustody)) markError('ff-childCustody', 'Hak Asuh Anak wajib dipilih.');
+    if (!isFilled(payload.childLivingWith)) markError('ff-childLivingWith', 'Tempat Tinggal Anak wajib dipilih.');
+  }
+
+  // Section E: Data Wali
+  const isFatherDead = payload.fatherStatus === 'SUDAH_MENINGGAL';
+  if (isFatherDead || payload.hasGuardian) {
+    if (!isFilled(payload.guardianName)) markError('ff-guardianName', 'Nama Lengkap Wali wajib diisi.');
+    if (!isFilled(payload.guardianRelation)) markError('ff-guardianRelation', 'Hubungan Wali wajib diisi.');
+    if (!isFilled(payload.guardianOccupation)) markError('ff-guardianOccupation-select', 'Pekerjaan Wali wajib dipilih.');
+  }
+
+  // Section H: Kebutuhan Khusus
+  if (payload.hasSpecialNeeds) {
+    if (!isFilled(payload.specialNeedsDescription)) markError('ff-specialNeedsDescription', 'Keterangan Kebutuhan Khusus wajib diisi.');
+  }
+
+  // Section I: Kontak Utama
+  if (!isFilled(payload.primaryContactName)) markError('ff-primaryContactName', 'Nama Kontak Utama wajib diisi.');
+  if (!isFilled(payload.primaryContactWhatsapp)) {
+    markError('ff-primaryContactWhatsapp', 'Nomor WhatsApp Utama wajib diisi.');
+  } else if (!/^[0-9+]{9,16}$/.test(payload.primaryContactWhatsapp.trim())) {
+    markError('ff-primaryContactWhatsapp', 'Nomor WhatsApp tidak valid (minimal 10 digit angka).');
+  }
+
+  if (errorCount > 0 && firstInvalidEl) {
+    firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    try { firstInvalidEl.focus(); } catch (e) {}
+    showToast(`Terdapat ${errorCount} kolom yang belum lengkap atau tidak valid (ditandai warna merah).`, 'danger');
+    return false;
+  }
+
+  return true;
+}
+
 async function handleSaveFormDraft(regId) {
   const payload = gatherFormData();
+
+  // Validate draft format (e.g. NIK digits)
+  if (!validateFullFormClient(payload, true)) {
+    return;
+  }
+
   try {
     const res = await apiRequest(`/api/registrations/${regId}/form/draft`, {
       method: 'PUT',
       body: payload,
     });
     if (res.success) {
+      clearAllFormErrors();
       showToast('Draft formulir berhasil disimpan!', 'success');
     } else {
       showToast(res.message || 'Gagal menyimpan draft.', 'danger');
@@ -2768,17 +3888,32 @@ async function handleSaveFormDraft(regId) {
 }
 
 async function handleFinalFormSubmit(regId) {
-  if (!confirm('Pastikan seluruh data dan dokumen persyaratan yang Anda masukkan sudah LENGKAP dan BENAR.\n\nSetelah dikirim, data tidak dapat diubah kembali kecuali panitia meminta revisi.\n\nLanjutkan kirim final?')) {
+  const payload = gatherFormData();
+
+  // Validate full form before submit
+  if (!validateFullFormClient(payload, false)) {
     return;
   }
 
-  const payload = gatherFormData();
+  const ok = typeof window.showAppConfirm === 'function'
+    ? await window.showAppConfirm({
+        title: 'Kirim Final Formulir Pendaftaran',
+        message: 'Pastikan seluruh data dan dokumen persyaratan yang Anda masukkan sudah LENGKAP dan BENAR.\n\nSetelah dikirim, data tidak dapat diubah kembali kecuali panitia meminta revisi.\n\nLanjutkan kirim final?',
+        confirmText: 'Ya, Kirim Formulir Final',
+        cancelText: 'Periksa Kembali',
+        type: 'primary',
+        icon: 'fa-paper-plane'
+      })
+    : confirm('Pastikan seluruh data dan dokumen persyaratan yang Anda masukkan sudah LENGKAP dan BENAR.\n\nSetelah dikirim, data tidak dapat diubah kembali kecuali panitia meminta revisi.\n\nLanjutkan kirim final?');
+  if (!ok) return;
+
   try {
     const res = await apiRequest(`/api/registrations/${regId}/form/submit`, {
       method: 'POST',
       body: payload,
     });
     if (res.success) {
+      clearAllFormErrors();
       showToast('Formulir pendaftaran berhasil dikirim!', 'success');
       renderPesertaFullFormView(regId);
     } else {
@@ -2907,6 +4042,8 @@ function formatIncome(val) {
     'SATU_SAMPAI_3JT': 'Rp 1.000.000 - Rp 3.000.000',
     'TIGA_SAMPAI_5JT': 'Rp 3.000.000 - Rp 5.000.000',
     'LIMA_SAMPAI_10JT': 'Rp 5.000.000 - Rp 10.000.000',
+    'SEPULUH_SAMPAI_20JT': 'Rp 10.000.000 - Rp 20.000.000',
+    'LEBIH_DARI_20JT': '> Rp 20.000.000',
     'LEBIH_DARI_10JT': '> Rp 10.000.000',
   };
   if (map[val]) return map[val];

@@ -19,6 +19,7 @@ import {
   ParentStatus,
   EducationLevel,
   IncomeRange,
+  BoardingStatus,
 } from '@prisma/client';
 
 export class AchievementItemDto {
@@ -110,6 +111,10 @@ export class SaveFormDraftDto {
   @IsOptional()
   @IsEnum(ChildStatus)
   childStatus?: ChildStatus;
+
+  @IsOptional()
+  @IsEnum(BoardingStatus)
+  boardingStatus?: BoardingStatus;
 
   // Section B: Alamat
   @IsOptional()
@@ -412,7 +417,7 @@ export class SaveFormDraftDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(30)
+  @MaxLength(100)
   internetAccess?: string;
 
   // Section G: Data Media Sosial
@@ -444,7 +449,7 @@ export class SaveFormDraftDto {
   // Section H: Riwayat Kesehatan
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(50)
   smokingStatus?: string;
 
   @IsOptional()
@@ -481,7 +486,7 @@ export class SaveFormDraftDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(50)
   colorBlindStatus?: string;
 
   // Section Data Tambahan

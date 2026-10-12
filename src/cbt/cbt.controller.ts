@@ -40,9 +40,9 @@ export class CbtController {
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
-  @Get('admin/exams/by-program/:classProgramId')
-  async getExamByProgram(@Param('classProgramId') classProgramId: string) {
-    const data = await this.cbtService.getExamByProgram(classProgramId);
+  @Get('admin/exams/by-school/:schoolId')
+  async getExamBySchool(@Param('schoolId') schoolId: string) {
+    const data = await this.cbtService.getExamBySchool(schoolId);
     return { success: true, data };
   }
 
@@ -109,16 +109,12 @@ export class CbtController {
   @Get('admin/results')
   async getAdminResults(
     @Query('schoolId') schoolId?: string,
-    @Query('majorId') majorId?: string,
-    @Query('classProgramId') classProgramId?: string,
     @Query('attemptStatus') attemptStatus?: string,
     @Query('gradingStatus') gradingStatus?: string,
     @Query('search') search?: string,
   ) {
     const data = await this.cbtService.getAdminResults({
       schoolId,
-      majorId,
-      classProgramId,
       attemptStatus,
       gradingStatus,
       search,
@@ -157,15 +153,11 @@ export class CbtController {
   @Get('admin/verifications')
   async getAdminVerifications(
     @Query('schoolId') schoolId?: string,
-    @Query('majorId') majorId?: string,
-    @Query('classProgramId') classProgramId?: string,
     @Query('verificationStatus') verificationStatus?: string,
     @Query('search') search?: string,
   ) {
     const data = await this.cbtService.getAdminVerifications({
       schoolId,
-      majorId,
-      classProgramId,
       verificationStatus,
       search,
     });

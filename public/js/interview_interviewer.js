@@ -886,9 +886,17 @@ async function handleFinishInterview(interviewId) {
     return;
   }
 
-  if (!confirm('Apakah Anda yakin ingin menyelesaikan wawancara ini? Lembar penilaian akan dikunci dan hasil diserahkan ke Super Admin.')) {
-    return;
-  }
+  const ok = typeof window.showAppConfirm === 'function'
+    ? await window.showAppConfirm({
+        title: 'Selesaikan Wawancara',
+        message: 'Apakah Anda yakin ingin menyelesaikan wawancara ini? Lembar penilaian akan dikunci dan hasil diserahkan ke Super Admin.',
+        confirmText: 'Ya, Selesaikan Wawancara',
+        cancelText: 'Batal',
+        type: 'primary',
+        icon: 'fa-clipboard-check'
+      })
+    : confirm('Apakah Anda yakin ingin menyelesaikan wawancara ini? Lembar penilaian akan dikunci dan hasil diserahkan ke Super Admin.');
+  if (!ok) return;
 
   try {
     payload.isComplete = true;

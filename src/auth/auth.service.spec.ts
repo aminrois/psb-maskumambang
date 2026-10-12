@@ -16,6 +16,7 @@ describe('AuthService', () => {
   const mockPrisma = {
     user: {
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
     },
   };
@@ -51,13 +52,45 @@ describe('AuthService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('checkUsernameAvailability', () => {
+    it('should return available false if username already exists', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({ id: '1', username: 'existing_user' });
+      const res = await service.checkUsernameAvailability('existing_user');
+      expect(res.available).toBe(false);
+      expect(res.message).toContain('sudah digunakan');
+    });
+
+    it('should return available true if username is available', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(null);
+      const res = await service.checkUsernameAvailability('new_user');
+      expect(res.available).toBe(true);
+      expect(res.message).toContain('tersedia');
+    });
+  });
+
   describe('register', () => {
+    it('should throw ConflictException if username already exists', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({ id: '1', username: 'existing' });
+
+      await expect(
+        service.register({
+          name: 'Test',
+          username: 'existing',
+          email: 'unique@lomba.id',
+          phoneNumber: '0812345',
+          password: 'password123',
+        }),
+      ).rejects.toThrow(ConflictException);
+    });
+
     it('should throw ConflictException if email exists', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(null);
       mockPrisma.user.findUnique.mockResolvedValue({ id: '1', email: 'existing@lomba.id' });
 
       await expect(
         service.register({
           name: 'Test',
+          username: 'validuser',
           email: 'existing@lomba.id',
           phoneNumber: '0812345',
           password: 'password123',
@@ -66,10 +99,12 @@ describe('AuthService', () => {
     });
 
     it('should create new user and return safe user object and token', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue(null);
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.user.create.mockResolvedValue({
         id: 'new-uuid',
         name: 'Ahmad Fauzi',
+        username: 'ahmadfauzi',
         email: 'ahmad@lomba.id',
         phoneNumber: '0812345678',
         passwordHash: 'hashed_password',
@@ -79,6 +114,7 @@ describe('AuthService', () => {
 
       const res = await service.register({
         name: 'Ahmad Fauzi',
+        username: 'ahmadfauzi',
         email: 'ahmad@lomba.id',
         phoneNumber: '0812345678',
         password: 'password123',
@@ -86,6 +122,7 @@ describe('AuthService', () => {
 
       expect(res).toBeDefined();
       expect(res.user.email).toBe('ahmad@lomba.id');
+      expect(res.user.username).toBe('ahmadfauzi');
       expect(res.accessToken).toBe('mock_jwt_token');
       expect((res.user as any).passwordHash).toBeUndefined();
     });
@@ -93,29 +130,31 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('should throw UnauthorizedException on invalid user', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.login({ email: 'notfound@lomba.id', password: 'password123' }),
+        service.login({ username: 'notfound', password: 'password123' }),
       ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException on inactive user', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findFirst.mockResolvedValue({
         id: '1',
+        username: 'inactive_user',
         email: 'inactive@lomba.id',
         isActive: false,
       });
 
       await expect(
-        service.login({ email: 'inactive@lomba.id', password: 'password123' }),
+        service.login({ username: 'inactive_user', password: 'password123' }),
       ).rejects.toThrow(UnauthorizedException);
     });
 
     it('should return accessToken on valid credentials', async () => {
       const hash = await HashUtil.hashPassword('validpass123');
-      mockPrisma.user.findUnique.mockResolvedValue({
+      mockPrisma.user.findFirst.mockResolvedValue({
         id: 'user-123',
+        username: 'user123',
         email: 'user@lomba.id',
         passwordHash: hash,
         role: Role.PESERTA,
@@ -123,10 +162,11 @@ describe('AuthService', () => {
         sessionVersion: 1,
       });
 
-      const res = await service.login({ email: 'user@lomba.id', password: 'validpass123' });
+      const res = await service.login({ username: 'user123', password: 'validpass123' });
       expect(res).toBeDefined();
       expect(res.accessToken).toBe('mock_jwt_token');
       expect(res.user.email).toBe('user@lomba.id');
+      expect(res.user.username).toBe('user123');
       expect((res.user as any).passwordHash).toBeUndefined();
     });
   });
