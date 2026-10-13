@@ -5347,9 +5347,11 @@ window.executeDeleteWave = executeDeleteWave;
 window.renderAdminVerificationView = renderAdminVerificationView;
 window.openAdminVerificationDetailModal = openAdminVerificationDetailModal;
 window.openVerificationDetailModal = openAdminVerificationDetailModal;
-window.submitAdminVerification = submitAdminVerification;
+window.executeVerifyCandidate = executeVerifyCandidate;
+window.submitAdminVerification = executeVerifyCandidate; // Alias for compatibility
 window.openRequestRevisionModal = openRequestRevisionModal;
-window.submitAdminRevision = submitAdminRevision;
+window.executeRequestRevision = executeRequestRevision;
+window.submitAdminRevision = executeRequestRevision; // Alias for compatibility
 window.filterVerificationTable = filterVerificationTable;
 
 window.renderPesertaFullFormView = renderPesertaFullFormView;

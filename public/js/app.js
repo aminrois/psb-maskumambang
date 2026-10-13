@@ -8968,8 +8968,10 @@ window.executeDeleteLevel = executeDeleteLevel;
 window.toggleCatStatus = toggleCatStatus;
 
 // Super Admin master cabang lomba handlers
-window.openCreateBranchModal = openCreateBranchModal;
-window.submitCreateBranch = submitCreateBranch;
+window.openCreateBranchModalForMajor = openCreateBranchModalForMajor;
+window.submitCreateBranchForMajor = submitCreateBranchForMajor;
+window.openCreateBranchModal = openCreateBranchModalForMajor; // Alias for compatibility
+window.submitCreateBranch = submitCreateBranchForMajor; // Alias for compatibility
 window.openEditBranchModal = openEditBranchModal;
 window.submitEditBranch = submitEditBranch;
 window.executeDeleteBranch = executeDeleteBranch;
