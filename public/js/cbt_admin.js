@@ -306,7 +306,8 @@ async function loadCbtSchoolExamDetails(schoolId) {
     if (!res.success || !res.data) throw new Error(res.message || 'Gagal memuat data ujian Lembaga.');
 
     const { school, exam } = res.data;
-    window.cbtAdminState.currentExam = exam;
+    window.cbtAdminState.currentSchool = school;
+    window.cbtAdminState.currentExam = exam ? { ...exam, school } : null;
 
     if (!exam) {
       // Belum dibuat
@@ -435,11 +436,7 @@ async function loadCbtSchoolExamDetails(schoolId) {
                       <div class="cbt-question-preview" style="font-weight: 500; color: var(--text-heading); margin-bottom: 4px; line-height: 1.4; max-height: 100px; overflow-y: auto;">${q.question}</div>
                       ${q.type === 'MULTIPLE_CHOICE' ? `
                         <div style="display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.75rem; margin-top: 6px;">
-                          ${(q.options || []).map((opt, oIdx) => `
-                            <span style="padding: 2px 8px; border-radius: 4px; background: ${opt.isCorrect ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-body)'}; color: ${opt.isCorrect ? '#15803d' : 'var(--text-muted)'}; border: 1px solid ${opt.isCorrect ? '#22c55e' : 'var(--border-subtle)'}; font-weight: ${opt.isCorrect ? '700' : '500'};">
-                              ${String.fromCharCode(65 + oIdx)}. ${escapeHtml(opt.content)} ${opt.isCorrect ? '✓' : ''}
-                            </span>
-                          `).join('')}
+                          ${(q.options || []).map((opt, oIdx) => renderAdminOptionBadge(opt, oIdx)).join('')}
                         </div>
                       ` : `
                         <div style="font-size: 0.75rem; color: #6366f1; font-weight: 600; margin-top: 4px;">
@@ -470,6 +467,8 @@ async function loadCbtSchoolExamDetails(schoolId) {
 
       </div>
     `;
+
+    renderKaTeXInElement(slot);
 
   } catch (err) {
     slot.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
@@ -582,6 +581,181 @@ async function handleSaveExamSettings(e, examId) {
 }
 
 // ----------------------------------------------------------------------------
+// CBT RICH TEXT & IMAGE UTILITIES
+// ----------------------------------------------------------------------------
+
+function sanitizeCbtHtml(html) {
+  if (!html) return '';
+  if (!/<[a-z][\s\S]*>/i.test(html)) {
+    return escapeHtml(html);
+  }
+
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+
+  // Remove dangerous tags
+  const forbiddenTags = ['script', 'style', 'iframe', 'object', 'embed', 'link', 'meta', 'applet', 'base'];
+  forbiddenTags.forEach(tag => {
+    temp.querySelectorAll(tag).forEach(el => el.remove());
+  });
+
+  // Remove inline event handlers and dangerous protocols
+  temp.querySelectorAll('*').forEach(el => {
+    Array.from(el.attributes).forEach(attr => {
+      const name = attr.name.toLowerCase();
+      const val = attr.value.trim().toLowerCase();
+      if (name.startsWith('on') || val.startsWith('javascript:') || val.startsWith('data:text/html')) {
+        el.removeAttribute(attr.name);
+      }
+    });
+
+    if (el.tagName === 'IMG') {
+      el.loading = 'lazy';
+      el.classList.add('cbt-zoomable-img');
+      el.title = 'Klik untuk memperbesar gambar';
+      el.setAttribute('onclick', 'event.stopPropagation(); if (typeof window.showImageZoomModal === "function") window.showImageZoomModal(this.src);');
+    }
+  });
+
+  return temp.innerHTML;
+}
+
+window.sanitizeCbtHtml = sanitizeCbtHtml;
+window.renderCbtRichContent = sanitizeCbtHtml;
+
+function showImageZoomModal(src, title = 'Pratinjau Gambar') {
+  if (typeof openModal === 'function') {
+    openModal(title, `
+      <div style="text-align: center; padding: 10px;">
+        <img src="${src}" alt="Gambar Soal / Pilihan" style="max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: var(--radius-md, 8px); box-shadow: var(--shadow-md);">
+        <div style="margin-top: 14px; display: flex; justify-content: center; gap: 10px;">
+          <a href="${src}" target="_blank" class="btn btn-sm btn-outline-secondary" style="display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Gambar Penuh
+          </a>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal()">Tutup</button>
+        </div>
+      </div>
+    `, 'modal-lg');
+  } else {
+    window.open(src, '_blank');
+  }
+}
+
+window.showImageZoomModal = showImageZoomModal;
+
+function renderKaTeXInElement(container) {
+  if (!container || typeof window.katex === 'undefined') return;
+  const formulas = container.querySelectorAll('.ql-formula');
+  formulas.forEach(el => {
+    const tex = el.getAttribute('data-value');
+    if (tex && !el.getAttribute('data-rendered')) {
+      try {
+        window.katex.render(tex, el, { throwOnError: false, displayMode: false });
+        el.setAttribute('data-rendered', 'true');
+      } catch (err) {
+        console.warn('KaTeX render error:', err);
+      }
+    }
+  });
+}
+
+window.renderKaTeXInElement = renderKaTeXInElement;
+
+function renderAdminOptionBadge(opt, oIdx) {
+  const letter = String.fromCharCode(65 + oIdx);
+  const isCorrect = !!opt.isCorrect;
+  const content = opt.content || '';
+
+  // Extract clean text and image preview
+  const temp = document.createElement('div');
+  temp.innerHTML = content;
+  const imgEl = temp.querySelector('img');
+  const text = temp.textContent?.trim() || '';
+
+  let inner = '';
+  if (text) {
+    inner += escapeHtml(text.length > 25 ? text.substring(0, 25) + '...' : text);
+  }
+  if (imgEl && imgEl.src) {
+    inner += `${text ? ' ' : ''}<img src="${imgEl.src}" style="height: 20px; max-width: 32px; object-fit: cover; border-radius: 2px; vertical-align: middle; border: 1px solid var(--border-subtle); display: inline-block;">`;
+  }
+  if (!text && !imgEl) {
+    inner = escapeHtml(content);
+  }
+
+  const bg = isCorrect ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-body)';
+  const color = isCorrect ? '#15803d' : 'var(--text-muted)';
+  const border = isCorrect ? '#22c55e' : 'var(--border-subtle)';
+  const weight = isCorrect ? '700' : '500';
+
+  return `
+    <span style="padding: 2px 8px; border-radius: 4px; background: ${bg}; color: ${color}; border: 1px solid ${border}; font-weight: ${weight}; display: inline-flex; align-items: center; gap: 4px;">
+      ${letter}. ${inner} ${isCorrect ? '✓' : ''}
+    </span>
+  `;
+}
+
+async function uploadCbtImage(file) {
+  if (!file) throw new Error('File tidak ditemukan.');
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (!validTypes.includes(file.type)) {
+    throw new Error('Format file tidak didukung. Harap upload gambar berformat PNG, JPG, WEBP, atau GIF.');
+  }
+
+  let fileToUpload = file;
+  if (typeof compressImageFile === 'function') {
+    try {
+      fileToUpload = await compressImageFile(file, { maxWidth: 1600, maxHeight: 1600, quality: 0.85 });
+    } catch (e) {
+      console.warn('Compress image error:', e);
+    }
+  }
+
+  const formData = new FormData();
+  formData.append('image', fileToUpload);
+
+  const res = await apiRequest('/api/cbt/admin/upload-image', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.success || !res.data?.url) {
+    throw new Error(res.message || 'Gagal mengunggah gambar.');
+  }
+
+  return res.data.url;
+}
+
+function selectAndUploadImageForQuill(quill, successMessage = 'Gambar berhasil disisipkan!') {
+  if (!quill) return;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/png, image/jpeg, image/webp, image/gif';
+  input.style.display = 'none';
+
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    showToast('Mengunggah gambar...', 'info');
+    try {
+      const url = await uploadCbtImage(file);
+      const range = quill.getSelection(true) || { index: quill.getLength() };
+      quill.insertEmbed(range.index, 'image', url);
+      quill.setSelection(range.index + 1);
+      showToast(successMessage, 'success');
+    } catch (err) {
+      showToast(err.message || 'Gagal mengunggah gambar.', 'danger');
+    } finally {
+      input.remove();
+    }
+  };
+
+  document.body.appendChild(input);
+  input.click();
+}
+
+// ----------------------------------------------------------------------------
 // ADD & EDIT QUESTION
 // ----------------------------------------------------------------------------
 
@@ -612,13 +786,240 @@ function initQuestionQuill(initialHtml = '') {
       }
     });
 
+    // Custom Image Handler for Question Toolbar
+    const toolbar = window._questionQuill.getModule('toolbar');
+    if (toolbar) {
+      toolbar.addHandler('image', () => {
+        selectAndUploadImageForQuill(window._questionQuill, 'Gambar butir soal berhasil disisipkan!');
+      });
+    }
+
+    // Paste handler for images
+    window._questionQuill.root.addEventListener('paste', async (e) => {
+      const items = (e.clipboardData || window.clipboardData)?.items;
+      if (!items) return;
+      for (let k = 0; k < items.length; k++) {
+        if (items[k].type.indexOf('image') !== -1) {
+          const file = items[k].getAsFile();
+          if (file) {
+            e.preventDefault();
+            showToast('Mengunggah gambar butir soal...', 'info');
+            try {
+              const url = await uploadCbtImage(file);
+              const range = window._questionQuill.getSelection(true) || { index: window._questionQuill.getLength() };
+              window._questionQuill.insertEmbed(range.index, 'image', url);
+              window._questionQuill.setSelection(range.index + 1);
+              showToast('Gambar butir soal berhasil disisipkan!', 'success');
+            } catch (err) {
+              showToast(err.message || 'Gagal mengunggah gambar.', 'danger');
+            }
+            break;
+          }
+        }
+      }
+    });
+
     if (initialHtml) {
       window._questionQuill.root.innerHTML = initialHtml;
     }
   }, 120);
 }
 
+function triggerQuestionImageUpload() {
+  if (window._questionQuill) {
+    selectAndUploadImageForQuill(window._questionQuill, 'Gambar butir soal berhasil disisipkan!');
+  }
+}
+
+// Helper to detect current school name from state
+function getCurrentSchoolName() {
+  if (window.cbtAdminState?.currentSchool?.name) {
+    return window.cbtAdminState.currentSchool.name;
+  }
+  if (window.cbtAdminState?.currentExam?.school?.name) {
+    return window.cbtAdminState.currentExam.school.name;
+  }
+  if (window.cbtAdminState?.cachedStructure && window.cbtAdminState?.selectedSchoolId) {
+    const found = window.cbtAdminState.cachedStructure.find(s => s.id === window.cbtAdminState.selectedSchoolId);
+    if (found) return found.name || found.initial || '';
+  }
+  return '';
+}
+
+// Auto-detect default option count based on school level:
+// SMA / SMK / MA / ALIYAH -> 5 opsi (A - E)
+// SD / MI / SMP / MTS -> 4 opsi (A - D)
+function detectSchoolDefaultOptionCount(schoolName = '') {
+  const s = (schoolName || getCurrentSchoolName() || '').toUpperCase();
+  const isHighSchool = /\b(SMA|SMK|MA|ALIYAH|KEJURUAN|SLTA|SENIOR)\b/i.test(s) || s.includes('SMA') || s.includes('SMK');
+  return isHighSchool ? 5 : 4;
+}
+
+// Switch between 4 options (A-D) and 5 options (A-E) in the modal
+function setQuestionOptionCount(count, silent = false) {
+  const targetCount = Number(count) === 5 ? 5 : 4;
+  window._currentModalOptionCount = targetCount;
+
+  // Toggle switcher buttons
+  const btn4 = document.getElementById('btn-opt-count-4');
+  const btn5 = document.getElementById('btn-opt-count-5');
+  if (btn4 && btn5) {
+    if (targetCount === 4) {
+      btn4.className = 'btn btn-xs btn-primary';
+      btn5.className = 'btn btn-xs btn-outline-secondary';
+    } else {
+      btn4.className = 'btn btn-xs btn-outline-secondary';
+      btn5.className = 'btn btn-xs btn-primary';
+    }
+  }
+
+  // Card Option E (index 4) and quick add button container
+  const cardE = document.getElementById('cbt-opt-card-4');
+  const quickAddE = document.getElementById('quick-add-e-container');
+
+  if (targetCount === 4) {
+    if (cardE) cardE.style.display = 'none';
+    if (quickAddE) quickAddE.style.display = 'block';
+
+    // If Option E was marked as correct key, redirect to Option A (index 0)
+    const radioE = document.getElementById('radio-opt-4');
+    if (radioE && radioE.checked) {
+      const radioA = document.getElementById('radio-opt-0');
+      if (radioA) radioA.checked = true;
+      updateCorrectOptionBadge();
+      if (!silent) {
+        showToast('Kunci jawaban dialihkan ke Pilihan A karena Opsi E dinonaktifkan.', 'info');
+      }
+    }
+  } else {
+    if (cardE) cardE.style.display = 'block';
+    if (quickAddE) quickAddE.style.display = 'none';
+
+    // Refresh Quill editor 4 in case layout changed
+    if (window._optionQuills && window._optionQuills[4]) {
+      try {
+        window._optionQuills[4].update();
+      } catch (err) {}
+    }
+  }
+}
+
+// Initialize Quill for Multiple Choice Option Editors
+function initOptionQuills(optionsData = [], initialCount = 4) {
+  window._optionQuills = [];
+  const letters = ['A', 'B', 'C', 'D', 'E'];
+
+  setTimeout(() => {
+    for (let idx = 0; idx < 5; idx++) {
+      const container = document.getElementById(`opt-editor-${idx}`);
+      if (!container || typeof Quill === 'undefined') continue;
+
+      const optToolbarOptions = [
+        ['bold', 'italic', 'underline'],
+        [{ 'script': 'sub' }, { 'script': 'super' }],
+        ['formula', 'image'],
+        ['clean']
+      ];
+
+      const quill = new Quill(`#opt-editor-${idx}`, {
+        theme: 'snow',
+        placeholder: `Tuliskan pilihan jawaban ${letters[idx]} (teks, rumus, atau upload gambar)...`,
+        modules: {
+          toolbar: optToolbarOptions
+        }
+      });
+
+      // Override image handler
+      const toolbar = quill.getModule('toolbar');
+      if (toolbar) {
+        toolbar.addHandler('image', () => {
+          triggerOptionImageUpload(idx);
+        });
+      }
+
+      // Paste listener for images in option editor
+      quill.root.addEventListener('paste', async (e) => {
+        const items = (e.clipboardData || window.clipboardData)?.items;
+        if (!items) return;
+        for (let k = 0; k < items.length; k++) {
+          if (items[k].type.indexOf('image') !== -1) {
+            const file = items[k].getAsFile();
+            if (file) {
+              e.preventDefault();
+              showToast(`Mengunggah gambar untuk Pilihan ${letters[idx]}...`, 'info');
+              try {
+                const url = await uploadCbtImage(file);
+                const range = quill.getSelection(true) || { index: quill.getLength() };
+                quill.insertEmbed(range.index, 'image', url);
+                quill.setSelection(range.index + 1);
+                showToast(`Gambar berhasil disisipkan pada Pilihan ${letters[idx]}!`, 'success');
+              } catch (err) {
+                showToast(err.message || 'Gagal mengunggah gambar.', 'danger');
+              }
+              break;
+            }
+          }
+        }
+      });
+
+      // Pre-populate content if present
+      const opt = optionsData && optionsData[idx];
+      if (opt && opt.content) {
+        quill.root.innerHTML = opt.content;
+      }
+
+      window._optionQuills[idx] = quill;
+    }
+
+    setQuestionOptionCount(initialCount, true);
+  }, 140);
+}
+
+function triggerOptionImageUpload(idx) {
+  const quill = window._optionQuills && window._optionQuills[idx];
+  if (!quill) return;
+  const letters = ['A', 'B', 'C', 'D', 'E'];
+  selectAndUploadImageForQuill(quill, `Gambar berhasil disisipkan pada Pilihan ${letters[idx]}!`);
+}
+
+function clearOptionContent(idx) {
+  const quill = window._optionQuills && window._optionQuills[idx];
+  if (quill) {
+    quill.setText('');
+    showToast(`Pilihan ${String.fromCharCode(65 + idx)} dikosongkan.`, 'info');
+  }
+}
+
+function updateCorrectOptionBadge() {
+  const selected = document.querySelector('input[name="mc-correct-key"]:checked');
+  const checkedVal = selected ? Number(selected.value) : 0;
+  for (let i = 0; i < 5; i++) {
+    const badge = document.getElementById(`opt-badge-${i}`);
+    const card = document.getElementById(`cbt-opt-card-${i}`);
+    if (badge) {
+      badge.style.display = (i === checkedVal) ? 'inline-block' : 'none';
+    }
+    if (card) {
+      if (i === checkedVal) {
+        card.style.borderColor = 'var(--primary-600)';
+        card.style.background = 'rgba(14, 165, 233, 0.04)';
+      } else {
+        card.style.borderColor = 'var(--border-subtle)';
+        card.style.background = 'var(--bg-card)';
+      }
+    }
+  }
+}
+
 function openAddQuestionModal(examId) {
+  const schoolName = getCurrentSchoolName();
+  const defaultCount = detectSchoolDefaultOptionCount(schoolName);
+  window._currentModalOptionCount = defaultCount;
+
+  const schoolBadgeText = defaultCount === 5 
+    ? 'Jenjang SMA/MA/SMK (Rekomendasi 5 Opsi: A - E)' 
+    : 'Jenjang SD/MI/SMP/MTs (Rekomendasi 4 Opsi: A - D)';
+
   const bodyHtml = `
     <form onsubmit="handleSaveQuestionSubmit(event, '${examId}')">
       
@@ -630,34 +1031,88 @@ function openAddQuestionModal(examId) {
         </select>
       </div>
 
-      <div class="form-group" style="margin-bottom: 16px;">
-        <label class="form-label" style="font-weight: 700; font-size: 0.875rem; margin-bottom: 6px; display: block;">
-          Pertanyaan & Butir Soal (Rich Text)
-        </label>
+      <div class="form-group" style="margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+          <label class="form-label" style="font-weight: 700; font-size: 0.875rem; margin: 0;">
+            Pertanyaan & Butir Soal (Rich Text)
+          </label>
+          <button type="button" class="btn btn-xs btn-outline-secondary" onclick="triggerQuestionImageUpload()" style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--radius-sm);">
+            <i class="fa-solid fa-image"></i> Sisipkan Gambar ke Soal
+          </button>
+        </div>
         <div id="q-text-editor"></div>
         <input type="hidden" id="q-text">
         <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">
-          Gunakan toolbar di atas untuk format teks, tata letak, gambar, atau rumus matematika (&Sigma;, &radic;).
+          Gunakan toolbar di atas untuk format teks, tata letak, upload gambar, atau rumus matematika (&Sigma;, &radic;).
         </small>
       </div>
 
       <!-- Multiple Choice Options Box -->
-      <div id="box-mc-options" style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px;">
-        <label style="font-weight: 700; font-size: 0.875rem; margin-bottom: 10px; display: block; color: var(--text-heading);">
-          Pilihan Jawaban (Minimal 4 Opsi):
-        </label>
+      <div id="box-mc-options" style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);">
+          <div>
+            <label style="font-weight: 800; font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 8px; color: var(--text-heading);">
+              <i class="fa-solid fa-list-ol" style="color: var(--primary-600);"></i>
+              Pilihan Jawaban — Rich Text & Gambar
+            </label>
+            <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 2px;">
+              ${schoolName ? `Lembaga: <strong>${escapeHtml(schoolName)}</strong> &bull; <span style="color: var(--primary-600); font-weight: 600;">${schoolBadgeText}</span>` : 'Tiap opsi dapat berupa teks, rumus matematika, atau upload gambar.'}
+            </span>
+          </div>
+
+          <!-- Switcher 4 Opsi vs 5 Opsi -->
+          <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); padding: 4px 6px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); padding: 0 4px;">Jumlah Opsi:</span>
+            <button type="button" id="btn-opt-count-4" onclick="setQuestionOptionCount(4)" class="btn btn-xs ${defaultCount === 4 ? 'btn-primary' : 'btn-outline-secondary'}" style="font-weight: 700; border-radius: var(--radius-sm); font-size: 0.75rem;" title="Pilihan A, B, C, D (Standar SD/MI/SMP/MTs)">
+              4 Opsi (A - D) ${defaultCount === 4 ? '★' : ''}
+            </button>
+            <button type="button" id="btn-opt-count-5" onclick="setQuestionOptionCount(5)" class="btn btn-xs ${defaultCount === 5 ? 'btn-primary' : 'btn-outline-secondary'}" style="font-weight: 700; border-radius: var(--radius-sm); font-size: 0.75rem;" title="Pilihan A, B, C, D, E (Standar SMA/MA/SMK)">
+              5 Opsi (A - E) ${defaultCount === 5 ? '★' : ''}
+            </button>
+          </div>
+        </div>
         
-        <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
           ${['A', 'B', 'C', 'D', 'E'].map((letter, idx) => `
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <input type="radio" name="mc-correct-key" value="${idx}" id="radio-opt-${idx}" ${idx === 0 ? 'checked' : ''} style="cursor: pointer;" title="Pilih sebagai kunci jawaban yang benar">
-              <span style="font-weight: 700; width: 20px; text-align: center; color: var(--primary-600);">${letter}.</span>
-              <input type="text" class="form-control mc-option-input" id="opt-input-${idx}" placeholder="Pilihan jawaban ${letter}${idx === 4 ? ' (Opsional)' : ''}" ${idx < 4 ? 'required' : ''} style="flex: 1; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+            ${idx === 4 ? `
+              <div id="quick-add-e-container" style="display: ${defaultCount === 4 ? 'block' : 'none'}; text-align: center; margin: 4px 0;">
+                <button type="button" id="btn-quick-add-e" class="btn btn-xs btn-outline-primary" onclick="setQuestionOptionCount(5)" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-style: dashed; border-width: 1.5px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.8rem;">
+                  <i class="fa-solid fa-plus-circle"></i> Tambah Pilihan E (Opsional untuk SMA/MA/SMK)
+                </button>
+              </div>
+            ` : ''}
+            <div class="cbt-option-edit-card" id="cbt-opt-card-${idx}" style="background: ${idx === 0 ? 'rgba(14, 165, 233, 0.04)' : 'var(--bg-card)'}; border: 1px solid ${idx === 0 ? 'var(--primary-600)' : 'var(--border-subtle)'}; border-radius: var(--radius-md); padding: 10px 14px; transition: all 0.2s; ${idx === 4 && defaultCount === 4 ? 'display: none;' : ''}">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="radio" name="mc-correct-key" value="${idx}" id="radio-opt-${idx}" ${idx === 0 ? 'checked' : ''} onchange="updateCorrectOptionBadge()" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary-600);">
+                  <label for="radio-opt-${idx}" style="font-weight: 800; font-size: 0.9rem; color: var(--text-heading); cursor: pointer; margin: 0; display: flex; align-items: center; gap: 6px;">
+                    <span>Pilihan ${letter}</span>
+                    <span class="badge-correct-indicator" id="opt-badge-${idx}" style="display: ${idx === 0 ? 'inline-block' : 'none'}; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: rgba(34, 197, 94, 0.15); color: #16a34a; font-weight: 700; border: 1px solid #22c55e;">
+                      <i class="fa-solid fa-check"></i> Kunci Benar
+                    </span>
+                  </label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  ${idx === 4 ? `
+                    <button type="button" class="btn btn-xs btn-outline-secondary" onclick="setQuestionOptionCount(4)" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; padding: 3px 8px; border-radius: var(--radius-sm);" title="Sembunyikan Opsi E (kembali ke 4 Opsi)">
+                      <i class="fa-solid fa-eye-slash"></i> Sembunyikan Opsi E
+                    </button>
+                  ` : ''}
+                  <button type="button" class="btn btn-xs btn-outline-secondary" onclick="triggerOptionImageUpload(${idx})" style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--radius-sm);" title="Upload gambar untuk Pilihan ${letter}">
+                    <i class="fa-solid fa-image"></i> Sisipkan Gambar
+                  </button>
+                  <button type="button" class="btn btn-xs btn-outline-danger" onclick="clearOptionContent(${idx})" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--radius-sm);" title="Kosongkan Pilihan ${letter}">
+                    <i class="fa-solid fa-eraser"></i> Kosongkan
+                  </button>
+                </div>
+              </div>
+
+              <div id="opt-editor-${idx}" class="cbt-opt-quill-editor"></div>
+              <small style="color: var(--text-dim); font-size: 0.7rem; margin-top: 4px; display: block;">
+                ${idx === 4 ? '* Pilihan E opsional (hanya diaktifkan jika menggunakan format 5 opsi A-E)' : `* Pilihan ${letter} wajib diisi (teks, rumus, atau gambar)`}
+              </small>
             </div>
           `).join('')}
-        </div>
-        <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 8px;">
-          * Pilih radio button pada opsi yang merupakan <strong>Jawaban Benar</strong>.
         </div>
       </div>
 
@@ -677,8 +1132,9 @@ function openAddQuestionModal(examId) {
     </form>
   `;
 
-  openModal('Tambah Soal Baru', bodyHtml, 'modal-lg');
+  openModal('Tambah Soal Baru', bodyHtml, 'modal-xl');
   initQuestionQuill('');
+  initOptionQuills([], defaultCount);
 }
 
 function toggleQuestionTypeFields(type) {
@@ -687,15 +1143,11 @@ function toggleQuestionTypeFields(type) {
   if (type === 'ESSAY') {
     if (mcBox) mcBox.style.display = 'none';
     if (scoreLbl) scoreLbl.innerText = 'Nilai Maksimal Soal Essay';
-    // Remove required from MC inputs
-    document.querySelectorAll('.mc-option-input').forEach(inp => inp.required = false);
   } else {
     if (mcBox) mcBox.style.display = 'block';
     if (scoreLbl) scoreLbl.innerText = 'Nilai / Bobot Soal Pilihan Ganda';
-    // Add required back to first 4 MC inputs
-    for (let i = 0; i < 4; i++) {
-      const inp = document.getElementById(`opt-input-${i}`);
-      if (inp) inp.required = true;
+    if (!window._optionQuills || window._optionQuills.length === 0) {
+      initOptionQuills([], window._currentModalOptionCount || 4);
     }
   }
 }
@@ -734,21 +1186,49 @@ async function handleSaveQuestionSubmit(e, examId, editQuestionId = null) {
   if (type === 'MULTIPLE_CHOICE') {
     const selectedRadio = document.querySelector('input[name="mc-correct-key"]:checked');
     const correctIdx = selectedRadio ? Number(selectedRadio.value) : 0;
+    const optionLimit = (window._currentModalOptionCount === 4) ? 4 : 5;
 
     const options = [];
-    for (let i = 0; i < 5; i++) {
-      const val = document.getElementById(`opt-input-${i}`)?.value.trim();
-      if (val) {
+    for (let i = 0; i < optionLimit; i++) {
+      let content = '';
+      if (window._optionQuills && window._optionQuills[i]) {
+        const q = window._optionQuills[i];
+        const plain = q.getText().trim();
+        const html = q.root.innerHTML.trim();
+        if (plain.length > 0 || html.includes('<img') || html.includes('ql-formula')) {
+          content = html;
+        }
+      } else {
+        const val = document.getElementById(`opt-input-${i}`)?.value?.trim();
+        if (val) content = val;
+      }
+
+      if (content && content !== '<p><br></p>') {
         options.push({
-          content: val,
+          content: content,
           isCorrect: (i === correctIdx),
           orderNumber: i + 1,
         });
       }
     }
 
-    if (options.length < 4) {
-      showToast('Soal Pilihan Ganda minimal harus memiliki 4 pilihan jawaban.', 'danger');
+    if (optionLimit === 4 && options.length < 4) {
+      showToast('Soal Pilihan Ganda (4 Opsi) harus mengisi semua pilihan jawaban A, B, C, dan D.', 'danger');
+      btn.disabled = false;
+      btn.innerHTML = editQuestionId ? '<i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan' : '<i class="fa-solid fa-floppy-disk"></i> Simpan Soal';
+      return;
+    }
+
+    if (optionLimit === 5 && options.length < 4) {
+      showToast('Soal Pilihan Ganda harus memiliki minimal 4 pilihan jawaban (A, B, C, D).', 'danger');
+      btn.disabled = false;
+      btn.innerHTML = editQuestionId ? '<i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan' : '<i class="fa-solid fa-floppy-disk"></i> Simpan Soal';
+      return;
+    }
+
+    const hasCorrect = options.some(o => o.isCorrect);
+    if (!hasCorrect) {
+      showToast('Pilihan jawaban yang dipilih sebagai kunci benar belum diisi.', 'danger');
       btn.disabled = false;
       btn.innerHTML = editQuestionId ? '<i class="fa-solid fa-floppy-disk"></i> Simpan Perubahan' : '<i class="fa-solid fa-floppy-disk"></i> Simpan Soal';
       return;
@@ -786,6 +1266,25 @@ function openEditQuestionModal(questionId) {
   const q = (exam.questions || []).find(item => item.id === questionId);
   if (!q) return;
 
+  const schoolName = getCurrentSchoolName();
+  const schoolDefaultCount = detectSchoolDefaultOptionCount(schoolName);
+
+  let activeCount = schoolDefaultCount;
+  if (q.type === 'MULTIPLE_CHOICE') {
+    const opts = q.options || [];
+    const hasFifthOption = opts.length >= 5 && opts[4]?.content && opts[4].content.trim() !== '' && opts[4].content !== '<p><br></p>';
+    if (hasFifthOption) {
+      activeCount = 5;
+    } else if (opts.length === 4) {
+      activeCount = 4;
+    }
+  }
+  window._currentModalOptionCount = activeCount;
+
+  const schoolBadgeText = schoolDefaultCount === 5 
+    ? 'Jenjang SMA/MA/SMK (Rekomendasi 5 Opsi: A - E)' 
+    : 'Jenjang SD/MI/SMP/MTs (Rekomendasi 4 Opsi: A - D)';
+
   const bodyHtml = `
     <form onsubmit="handleSaveQuestionSubmit(event, '${exam.id}', '${questionId}')">
       
@@ -795,40 +1294,93 @@ function openEditQuestionModal(questionId) {
         <input type="hidden" id="q-type" value="${q.type}">
       </div>
 
-      <div class="form-group" style="margin-bottom: 16px;">
-        <label class="form-label" style="font-weight: 700; font-size: 0.875rem; margin-bottom: 6px; display: block;">
-          Pertanyaan & Butir Soal (Rich Text)
-        </label>
+      <div class="form-group" style="margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+          <label class="form-label" style="font-weight: 700; font-size: 0.875rem; margin: 0;">
+            Pertanyaan & Butir Soal (Rich Text)
+          </label>
+          <button type="button" class="btn btn-xs btn-outline-secondary" onclick="triggerQuestionImageUpload()" style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--radius-sm);">
+            <i class="fa-solid fa-image"></i> Sisipkan Gambar ke Soal
+          </button>
+        </div>
         <div id="q-text-editor"></div>
         <input type="hidden" id="q-text">
         <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">
-          Gunakan toolbar di atas untuk format teks, tata letak, gambar, atau rumus matematika (&Sigma;, &radic;).
+          Gunakan toolbar di atas untuk format teks, tata letak, upload gambar, atau rumus matematika (&Sigma;, &radic;).
         </small>
       </div>
 
       <!-- Multiple Choice Options Box -->
       ${q.type === 'MULTIPLE_CHOICE' ? `
-        <div id="box-mc-options" style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 16px;">
-          <label style="font-weight: 700; font-size: 0.875rem; margin-bottom: 10px; display: block; color: var(--text-heading);">
-            Pilihan Jawaban (Minimal 4 Opsi):
-          </label>
+        <div id="box-mc-options" style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 18px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);">
+            <div>
+              <label style="font-weight: 800; font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 8px; color: var(--text-heading);">
+                <i class="fa-solid fa-list-ol" style="color: var(--primary-600);"></i>
+                Pilihan Jawaban — Rich Text & Gambar
+              </label>
+              <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 2px;">
+                ${schoolName ? `Lembaga: <strong>${escapeHtml(schoolName)}</strong> &bull; <span style="color: var(--primary-600); font-weight: 600;">${schoolBadgeText}</span>` : 'Tiap opsi dapat berupa teks, rumus matematika, atau upload gambar.'}
+              </span>
+            </div>
+
+            <!-- Switcher 4 Opsi vs 5 Opsi -->
+            <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); padding: 4px 6px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+              <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); padding: 0 4px;">Jumlah Opsi:</span>
+              <button type="button" id="btn-opt-count-4" onclick="setQuestionOptionCount(4)" class="btn btn-xs ${activeCount === 4 ? 'btn-primary' : 'btn-outline-secondary'}" style="font-weight: 700; border-radius: var(--radius-sm); font-size: 0.75rem;" title="Pilihan A, B, C, D (Standar SD/MI/SMP/MTs)">
+                4 Opsi (A - D) ${schoolDefaultCount === 4 ? '★' : ''}
+              </button>
+              <button type="button" id="btn-opt-count-5" onclick="setQuestionOptionCount(5)" class="btn btn-xs ${activeCount === 5 ? 'btn-primary' : 'btn-outline-secondary'}" style="font-weight: 700; border-radius: var(--radius-sm); font-size: 0.75rem;" title="Pilihan A, B, C, D, E (Standar SMA/MA/SMK)">
+                5 Opsi (A - E) ${schoolDefaultCount === 5 ? '★' : ''}
+              </button>
+            </div>
+          </div>
           
-          <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 12px;">
             ${['A', 'B', 'C', 'D', 'E'].map((letter, idx) => {
               const opt = q.options && q.options[idx] ? q.options[idx] : null;
               const isChecked = opt ? opt.isCorrect : (idx === 0);
-              const content = opt ? opt.content : '';
               return `
-                <div style="display: flex; align-items: center; gap: 10px;">
-                  <input type="radio" name="mc-correct-key" value="${idx}" id="radio-opt-${idx}" ${isChecked ? 'checked' : ''} style="cursor: pointer;">
-                  <span style="font-weight: 700; width: 20px; text-align: center; color: var(--primary-600);">${letter}.</span>
-                  <input type="text" class="form-control mc-option-input" id="opt-input-${idx}" value="${escapeHtml(content)}" placeholder="Pilihan jawaban ${letter}${idx === 4 ? ' (Opsional)' : ''}" ${idx < 4 ? 'required' : ''} style="flex: 1; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                ${idx === 4 ? `
+                  <div id="quick-add-e-container" style="display: ${activeCount === 4 ? 'block' : 'none'}; text-align: center; margin: 4px 0;">
+                    <button type="button" id="btn-quick-add-e" class="btn btn-xs btn-outline-primary" onclick="setQuestionOptionCount(5)" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-style: dashed; border-width: 1.5px; border-radius: var(--radius-md); font-weight: 700; font-size: 0.8rem;">
+                      <i class="fa-solid fa-plus-circle"></i> Tambah Pilihan E (Opsional untuk SMA/MA/SMK)
+                    </button>
+                  </div>
+                ` : ''}
+                <div class="cbt-option-edit-card" id="cbt-opt-card-${idx}" style="background: ${isChecked ? 'rgba(14, 165, 233, 0.04)' : 'var(--bg-card)'}; border: 1px solid ${isChecked ? 'var(--primary-600)' : 'var(--border-subtle)'}; border-radius: var(--radius-md); padding: 10px 14px; transition: all 0.2s; ${idx === 4 && activeCount === 4 ? 'display: none;' : ''}">
+                  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <input type="radio" name="mc-correct-key" value="${idx}" id="radio-opt-${idx}" ${isChecked ? 'checked' : ''} onchange="updateCorrectOptionBadge()" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary-600);">
+                      <label for="radio-opt-${idx}" style="font-weight: 800; font-size: 0.9rem; color: var(--text-heading); cursor: pointer; margin: 0; display: flex; align-items: center; gap: 6px;">
+                        <span>Pilihan ${letter}</span>
+                        <span class="badge-correct-indicator" id="opt-badge-${idx}" style="display: ${isChecked ? 'inline-block' : 'none'}; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: rgba(34, 197, 94, 0.15); color: #16a34a; font-weight: 700; border: 1px solid #22c55e;">
+                          <i class="fa-solid fa-check"></i> Kunci Benar
+                        </span>
+                      </label>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      ${idx === 4 ? `
+                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="setQuestionOptionCount(4)" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; padding: 3px 8px; border-radius: var(--radius-sm);" title="Sembunyikan Opsi E (kembali ke 4 Opsi)">
+                          <i class="fa-solid fa-eye-slash"></i> Sembunyikan Opsi E
+                        </button>
+                      ` : ''}
+                      <button type="button" class="btn btn-xs btn-outline-secondary" onclick="triggerOptionImageUpload(${idx})" style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--radius-sm);" title="Upload gambar untuk Pilihan ${letter}">
+                        <i class="fa-solid fa-image"></i> Sisipkan Gambar
+                      </button>
+                      <button type="button" class="btn btn-xs btn-outline-danger" onclick="clearOptionContent(${idx})" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; padding: 4px 8px; border-radius: var(--radius-sm);" title="Kosongkan Pilihan ${letter}">
+                        <i class="fa-solid fa-eraser"></i> Kosongkan
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="opt-editor-${idx}" class="cbt-opt-quill-editor"></div>
+                  <small style="color: var(--text-dim); font-size: 0.7rem; margin-top: 4px; display: block;">
+                    ${idx === 4 ? '* Pilihan E opsional (hanya diaktifkan jika menggunakan format 5 opsi A-E)' : `* Pilihan ${letter} wajib diisi (teks, rumus, atau gambar)`}
+                  </small>
                 </div>
               `;
             }).join('')}
-          </div>
-          <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 8px;">
-            * Pilih radio button pada opsi yang merupakan <strong>Jawaban Benar</strong>.
           </div>
         </div>
       ` : ''}
@@ -849,8 +1401,11 @@ function openEditQuestionModal(questionId) {
     </form>
   `;
 
-  openModal('Edit Soal', bodyHtml, 'modal-lg');
+  openModal('Edit Soal', bodyHtml, 'modal-xl');
   initQuestionQuill(q.question);
+  if (q.type === 'MULTIPLE_CHOICE') {
+    initOptionQuills(q.options || [], activeCount);
+  }
 }
 
 async function handleDeleteQuestion(questionId) {
@@ -1211,9 +1766,11 @@ async function openCbtResultDetailModal(attemptId) {
                       }
 
                       return `
-                        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--radius-md); background: ${bg}; border: 1px solid ${border};">
-                          <strong style="width: 20px; color: var(--primary-600);">${String.fromCharCode(65 + oIdx)}.</strong>
-                          <span>${escapeHtml(opt.content)}</span>
+                        <div style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 12px; border-radius: var(--radius-md); background: ${bg}; border: 1px solid ${border};">
+                          <strong style="width: 20px; color: var(--primary-600); margin-top: 2px;">${String.fromCharCode(65 + oIdx)}.</strong>
+                          <div class="cbt-option-content" style="flex: 1; min-width: 0; line-height: 1.4;">
+                            ${sanitizeCbtHtml(opt.content)}
+                          </div>
                           ${labelBadge}
                         </div>
                       `;
@@ -1254,6 +1811,8 @@ async function openCbtResultDetailModal(attemptId) {
 
       </form>
     `;
+
+    renderKaTeXInElement(modalBody);
 
   } catch (err) {
     modalBody.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
@@ -2364,5 +2923,11 @@ window.exportQuestionsToCSV = exportQuestionsToCSV;
 window.openImportQuestionsModal = openImportQuestionsModal;
 window.handleCsvFileSelected = handleCsvFileSelected;
 window.handleProcessImportQuestions = handleProcessImportQuestions;
+window.detectSchoolDefaultOptionCount = detectSchoolDefaultOptionCount;
+window.setQuestionOptionCount = setQuestionOptionCount;
+window.triggerOptionImageUpload = triggerOptionImageUpload;
+window.clearOptionContent = clearOptionContent;
+window.updateCorrectOptionBadge = updateCorrectOptionBadge;
+window.triggerQuestionImageUpload = triggerQuestionImageUpload;
 
 

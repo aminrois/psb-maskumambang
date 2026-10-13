@@ -23,6 +23,18 @@ window.cbtPesertaState = {
   isSubmitting: false,
 };
 
+// Safe helper for rich content in options
+function renderCbtOptionRichContent(html) {
+  if (!html) return '';
+  if (typeof window.renderCbtRichContent === 'function') {
+    return window.renderCbtRichContent(html);
+  }
+  if (typeof window.sanitizeCbtHtml === 'function') {
+    return window.sanitizeCbtHtml(html);
+  }
+  return escapeHtml(html);
+}
+
 // Fullscreen Utility Helpers
 function requestAppFullscreen() {
   try {
@@ -618,7 +630,7 @@ function renderCurrentQuestion() {
 
     <!-- Answer Options Area -->
     ${isMC ? `
-      <div style="display: flex; flex-direction: column; gap: 10px;" id="cbt-options-list">
+      <div style="display: flex; flex-direction: column; gap: 12px;" id="cbt-options-list">
         ${(q.options || []).map((opt, oIdx) => {
     const letter = String.fromCharCode(65 + oIdx);
     const isSelected = currentAnswer.selectedOptionId === opt.id;
@@ -627,13 +639,13 @@ function renderCurrentQuestion() {
             <div 
               class="cbt-option-item ${isSelected ? 'selected' : ''}" 
               onclick="selectMultipleChoiceOption('${q.questionId}', '${opt.id}')"
-              style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius-lg); border: 2px solid ${isSelected ? 'var(--primary-600)' : 'var(--border-subtle)'}; background: ${isSelected ? 'rgba(14, 165, 233, 0.08)' : 'var(--bg-body)'}; cursor: pointer; transition: all 0.15s;"
+              style="display: flex; align-items: flex-start; gap: 14px; padding: 14px 18px; border-radius: var(--radius-lg); border: 2px solid ${isSelected ? 'var(--primary-600)' : 'var(--border-subtle)'}; background: ${isSelected ? 'rgba(14, 165, 233, 0.08)' : 'var(--bg-body)'}; cursor: pointer;"
             >
-              <div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; flex-shrink: 0; background: ${isSelected ? 'var(--primary-600)' : 'var(--bg-card)'}; color: ${isSelected ? '#ffffff' : 'var(--text-heading)'}; border: 1px solid ${isSelected ? 'var(--primary-600)' : 'var(--border-subtle)'};">
+              <div style="width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.95rem; flex-shrink: 0; margin-top: 2px; background: ${isSelected ? 'var(--primary-600)' : 'var(--bg-card)'}; color: ${isSelected ? '#ffffff' : 'var(--text-heading)'}; border: 1px solid ${isSelected ? 'var(--primary-600)' : 'var(--border-subtle)'};">
                 ${letter}
               </div>
-              <div style="font-size: 0.95rem; color: var(--text-main); line-height: 1.4; flex: 1;">
-                ${escapeHtml(opt.content)}
+              <div class="cbt-option-content" style="font-size: 0.95rem; color: var(--text-main); line-height: 1.5; flex: 1; min-width: 0;">
+                ${renderCbtOptionRichContent(opt.content)}
               </div>
             </div>
           `;
@@ -652,6 +664,10 @@ function renderCurrentQuestion() {
       </div>
     `}
   `;
+
+  if (typeof window.renderKaTeXInElement === 'function') {
+    window.renderKaTeXInElement(slot);
+  }
 }
 
 function renderPaletteGrid() {

@@ -1230,6 +1230,92 @@ body.cbt-exam-mode .content-inner-container {
   margin-bottom: 0;
 }
 
+/* CBT Option Rich Text & Image Customizations */
+.cbt-opt-quill-editor .ql-toolbar.ql-snow {
+  padding: 4px 8px !important;
+  background: var(--bg-body) !important;
+  border-color: var(--input-border) !important;
+  border-top-left-radius: var(--radius-md) !important;
+  border-top-right-radius: var(--radius-md) !important;
+}
+
+.cbt-opt-quill-editor .ql-container.ql-snow {
+  border-color: var(--input-border) !important;
+  font-family: inherit !important;
+  font-size: 0.9rem !important;
+  border-bottom-left-radius: var(--radius-md) !important;
+  border-bottom-right-radius: var(--radius-md) !important;
+}
+
+.cbt-opt-quill-editor .ql-editor {
+  min-height: 52px !important;
+  max-height: 180px !important;
+  overflow-y: auto;
+  color: var(--text-main);
+  background: var(--input-bg);
+  padding: 8px 12px !important;
+  line-height: 1.4 !important;
+}
+
+.cbt-opt-quill-editor .ql-editor img {
+  max-height: 130px !important;
+  max-width: 100% !important;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  margin: 4px 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.cbt-option-item {
+  transition: all 0.18s ease;
+}
+
+.cbt-option-item:hover {
+  border-color: var(--primary-500) !important;
+  background: rgba(14, 165, 233, 0.04) !important;
+}
+
+.cbt-option-item.selected {
+  border-color: var(--primary-600) !important;
+  background: rgba(14, 165, 233, 0.1) !important;
+  box-shadow: 0 0 0 1px var(--primary-600);
+}
+
+.cbt-option-content img,
+.cbt-option-item img,
+.cbt-zoomable-img {
+  max-width: 100% !important;
+  max-height: 280px !important;
+  object-fit: contain;
+  border-radius: var(--radius-md, 8px);
+  margin: 6px 0;
+  display: block;
+  cursor: zoom-in;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cbt-option-content img:hover,
+.cbt-zoomable-img:hover {
+  transform: scale(1.015);
+  box-shadow: var(--shadow-sm);
+}
+
+.cbt-option-content p {
+  margin-bottom: 4px;
+}
+
+.cbt-option-content p:last-child {
+  margin-bottom: 0;
+}
+
+.ql-formula {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 2px;
+}
+
+
 /* ==========================================================================
    RESPONSIVE FORM GRID SYSTEM FOR REGISTRATION & DASHBOARD
    ========================================================================== */

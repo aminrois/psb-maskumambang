@@ -4,6 +4,9 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
+import { FileValidatorUtil } from '../common/utils/file-validator.util';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   Role,
@@ -350,6 +353,40 @@ export class CbtService {
 
     await this.prisma.cBTQuestion.delete({ where: { id: questionId } });
     return { success: true, message: 'Soal berhasil dihapus.' };
+  }
+
+  /**
+   * Uploads an image for CBT questions or options.
+   * Validates image via magic bytes (PNG, JPG, WEBP) and stores securely in uploads/cbt.
+   */
+  async uploadQuestionImage(file: Express.Multer.File) {
+    if (!file || !file.buffer) {
+      throw new BadRequestException('File gambar tidak ditemukan.');
+    }
+
+    const validated = FileValidatorUtil.validateImageBuffer(
+      file.buffer,
+      file.originalname,
+    );
+
+    const targetDirs = [
+      path.resolve(process.cwd(), 'public/uploads/cbt'),
+      path.resolve(process.cwd(), 'uploads/cbt'),
+    ];
+
+    for (const dir of targetDirs) {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(path.join(dir, validated.storageFilename), file.buffer);
+    }
+
+    const publicUrl = `/uploads/cbt/${validated.storageFilename}`;
+
+    return {
+      filename: validated.storageFilename,
+      url: publicUrl,
+    };
   }
 
   /**

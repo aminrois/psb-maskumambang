@@ -7,7 +7,10 @@ import {
   Body,
   Param,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CbtService } from './cbt.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -103,6 +106,18 @@ export class CbtController {
   @Delete('admin/questions/:questionId')
   async deleteQuestion(@Param('questionId') questionId: string) {
     return this.cbtService.deleteQuestion(questionId);
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Post('admin/upload-image')
+  @UseInterceptors(FileInterceptor('image'))
+  async uploadQuestionImage(@UploadedFile() file: Express.Multer.File) {
+    const data = await this.cbtService.uploadQuestionImage(file);
+    return {
+      success: true,
+      message: 'Gambar berhasil diunggah.',
+      data,
+    };
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
