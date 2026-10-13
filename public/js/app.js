@@ -4536,22 +4536,22 @@ function renderBendaharaPaymentsTable() {
       {
         header: 'Nama Calon Santri',
         sortValue: p => (p.registration?.individualParticipant?.fullName || p.registration?.team?.teamName || ''),
-        render: p => `<strong>${p.registration?.individualParticipant?.fullName || p.registration?.team?.teamName || '-'}</strong><br><small style="color:var(--text-muted);">${p.registration?.user?.email || '-'}</small>`,
+        render: p => `<strong>${escapeHtml(p.registration?.individualParticipant?.fullName || p.registration?.team?.teamName || '-')}</strong><br><small style="color:var(--text-muted);">${escapeHtml(p.registration?.user?.email || '-')}</small>`,
       },
       {
         header: 'Program Kelas',
         sortValue: p => p.registration?.classProgram?.name || p.registration?.branch?.name || '',
-        render: p => p.registration?.classProgram?.name || p.registration?.branch?.name || '-',
+        render: p => escapeHtml(p.registration?.classProgram?.name || p.registration?.branch?.name || '-'),
       },
       {
         header: 'Nominal & Rekening',
         sortValue: p => Number(p.amount) || 0,
-        render: p => `<strong>${formatCurrency(p.amount)}</strong><br><small style="color:var(--text-muted);">${p.paymentAccount?.bankName || 'Bank'}</small>`,
+        render: p => `<strong>${formatCurrency(p.amount)}</strong><br><small style="color:var(--text-muted);">${escapeHtml(p.paymentAccount?.bankName || 'Bank')}</small>`,
       },
       {
         header: 'Pengirim',
         sortValue: p => p.senderAccountName || '',
-        render: p => `${p.senderBank || '-'} a.n. ${p.senderAccountName || '-'}`,
+        render: p => `${escapeHtml(p.senderBank || '-')} a.n. ${escapeHtml(p.senderAccountName || '-')}`,
       },
       {
         header: 'Status',
@@ -4563,7 +4563,7 @@ function renderBendaharaPaymentsTable() {
         sticky: true,
         sortable: false,
         render: p => `
-          <button class="btn btn-sm btn-primary" style="padding: 4px 10px;" onclick="openPaymentVerifyModal('${p.id}', '${p.proofImagePath}', '${p.registration?.registrationNumber}', '${p.registration?.individualParticipant?.fullName || p.registration?.team?.teamName}', ${p.amount}, '${p.status}')">
+          <button class="btn btn-sm btn-primary" style="padding: 4px 10px;" data-payment-id="${p.id}" onclick="openPaymentVerifyModal(this)">
             <i class="fa-solid fa-eye"></i> Periksa Bukti
           </button>
         `,
@@ -4728,7 +4728,22 @@ window.onBendaharaCustomDateChange = onBendaharaCustomDateChange;
 window.resetBendaharaDateFilters = resetBendaharaDateFilters;
 window.exportBendaharaPaymentsExcel = exportBendaharaPaymentsExcel;
 
-function openPaymentVerifyModal(paymentId, filename, regNum, participantName, amount, status) {
+function openPaymentVerifyModal(target, filename, regNum, participantName, amount, status) {
+  let paymentId = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    paymentId = target.getAttribute('data-payment-id') || target.dataset?.paymentId;
+  }
+
+  // Lookup full payment object from tableState if available
+  const p = (tableState.bendaharaPayments?.data || []).find(item => item && item.id === paymentId);
+  if (p) {
+    filename = p.proofImagePath;
+    regNum = p.registration?.registrationNumber || '-';
+    participantName = p.registration?.individualParticipant?.fullName || p.registration?.team?.teamName || '-';
+    amount = p.amount;
+    status = p.status;
+  }
+
   openAppModal(`
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <h3 style="font-size: 1.25rem; color: var(--text-heading); margin: 0;"><i class="fa-solid fa-file-invoice-dollar"></i> Verifikasi Pembayaran</h3>
@@ -4738,25 +4753,25 @@ function openPaymentVerifyModal(paymentId, filename, regNum, participantName, am
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
       <div>
         <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Nomor Registrasi:</div>
-        <code style="font-size: 1.1rem; font-weight: 800; color: var(--primary-600);">${regNum}</code>
+        <code style="font-size: 1.1rem; font-weight: 800; color: var(--primary-600);">${escapeHtml(regNum || '-')}</code>
         <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-top: 10px;">Nama Peserta:</div>
-        <div style="font-weight: 700; font-size: 1rem;">${participantName}</div>
+        <div style="font-weight: 700; font-size: 1rem;">${escapeHtml(participantName || '-')}</div>
         <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-top: 10px;">Nominal:</div>
-        <div style="font-weight: 800; color: var(--accent-600); font-size: 1.15rem;">${formatCurrency(amount)}</div>
+        <div style="font-weight: 800; color: var(--accent-600); font-size: 1.15rem;">${formatCurrency(amount || 0)}</div>
         <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-top: 10px;">Status:</div>
-        <div>${getStatusBadge(status)}</div>
+        <div>${getStatusBadge(status || '')}</div>
       </div>
 
       <div>
         <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">Bukti Transfer:</div>
         <div style="background: #0f172a; border-radius: 8px; overflow: hidden; text-align: center; border: 1px solid var(--border-subtle); min-height: 160px; max-height: 220px; display: flex; align-items: center; justify-content: center; padding: 6px;">
-          <img src="/api/payments/file/${encodeURIComponent(filename)}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" alt="Bukti Transfer" style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px;" onerror="this.style.display='none'; document.getElementById('proof-fallback-link').style.display='block';">
+          <img src="/api/payments/file/${encodeURIComponent(filename || '')}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" alt="Bukti Transfer" style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px;" onerror="this.style.display='none'; document.getElementById('proof-fallback-link').style.display='block';">
           <div id="proof-fallback-link" style="display: none; color: var(--text-muted); font-size: 0.85rem; padding: 20px;">
             <i class="fa-solid fa-file-image" style="font-size: 2rem; color: var(--primary-500); margin-bottom: 8px;"></i><br>
             File bukti transfer terunggah
           </div>
         </div>
-        <a href="/api/payments/file/${encodeURIComponent(filename)}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--primary-600); margin-top: 8px; font-weight: 600; text-decoration: none;">
+        <a href="/api/payments/file/${encodeURIComponent(filename || '')}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--primary-600); margin-top: 8px; font-weight: 600; text-decoration: none;">
           <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Gambar di Tab Baru
         </a>
       </div>
@@ -4765,8 +4780,8 @@ function openPaymentVerifyModal(paymentId, filename, regNum, participantName, am
     <div id="verify-modal-alert" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 16px;"></div>
 
     <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
-      <button class="btn btn-outline-danger" onclick="promptRejectPayment('${paymentId}')"><i class="fa-solid fa-circle-xmark"></i> Tolak Pembayaran</button>
-      <button class="btn btn-success" onclick="executeApprovePayment('${paymentId}')"><i class="fa-solid fa-circle-check"></i> Setujui Pembayaran</button>
+      <button class="btn btn-outline-danger" onclick="promptRejectPayment('${escapeHtml(paymentId)}')"><i class="fa-solid fa-circle-xmark"></i> Tolak Pembayaran</button>
+      <button class="btn btn-success" onclick="executeApprovePayment('${escapeHtml(paymentId)}')"><i class="fa-solid fa-circle-check"></i> Setujui Pembayaran</button>
     </div>
   `);
 }
@@ -7284,6 +7299,9 @@ async function executeDeleteLevel(lvlId, name) {
 }
 
 // --- MASTER REKENING PEMBAYARAN ---
+// Store for account data to avoid inline string injection in onclick handlers
+let _adminAccountsData = [];
+
 async function renderAdminPaymentAccountsView() {
   const container = document.getElementById('main-view-slot');
   container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat rekening bank...</div>';
@@ -7291,6 +7309,7 @@ async function renderAdminPaymentAccountsView() {
   try {
     const res = await apiRequest('/api/payments/accounts/all');
     const accounts = res.success ? res.data : [];
+    _adminAccountsData = accounts; // store for safe lookup
 
     container.innerHTML = `
       <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -7333,13 +7352,13 @@ async function renderAdminPaymentAccountsView() {
               </div>
 
               <div style="display: flex; gap: 6px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
-                <button class="btn btn-sm btn-secondary" style="flex: 1;" onclick="openEditAccountModal('${acc.id}', '${acc.bankName.replace(/'/g, "\\'")}', '${acc.accountNumber.replace(/'/g, "\\'")}', '${acc.accountHolder.replace(/'/g, "\\'")}', ${acc.qrisImagePath ? `'${acc.qrisImagePath}'` : 'null'})">
+                <button class="btn btn-sm btn-secondary" style="flex: 1;" data-acc-id="${acc.id}" onclick="openEditAccountModal(this)">
                   <i class="fa-solid fa-pen-to-square"></i> Edit
                 </button>
                 <button class="btn btn-sm ${acc.isActive ? 'btn-outline-danger' : 'btn-outline-success'}" style="flex: 1;" onclick="toggleAccountStatus('${acc.id}')">
                   ${acc.isActive ? '<i class="fa-solid fa-ban"></i> Nonaktif' : '<i class="fa-solid fa-check"></i> Aktifkan'}
                 </button>
-                <button class="btn btn-sm btn-danger" style="padding: 4px 10px;" title="Hapus Rekening" onclick="executeDeleteAccount('${acc.id}', '${acc.bankName.replace(/'/g, "\\'")}')">
+                <button class="btn btn-sm btn-danger" style="padding: 4px 10px;" title="Hapus Rekening" data-acc-id="${acc.id}" onclick="executeDeleteAccount(this)">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               </div>
@@ -7484,7 +7503,22 @@ async function submitCreateAccount(e) {
   }
 }
 
-function openEditAccountModal(id, bankName, accountNumber, accountHolder, qrisImagePath) {
+function openEditAccountModal(target, bankName, accountNumber, accountHolder, qrisImagePath) {
+  // Support being called with the button element (data-acc-id) OR legacy positional args
+  let id = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    id = target.dataset?.accId || target.getAttribute('data-acc-id');
+  }
+
+  // Lookup account from stored data to avoid any inline string issues
+  const acc = _adminAccountsData.find(a => a && a.id === id);
+  if (acc) {
+    bankName = acc.bankName;
+    accountNumber = acc.accountNumber;
+    accountHolder = acc.accountHolder;
+    qrisImagePath = acc.qrisImagePath;
+  }
+
   const qrisFilename = (qrisImagePath && qrisImagePath !== 'null') ? qrisImagePath : null;
   openAppModal(`
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -7649,7 +7683,16 @@ function handleQrisFileDrop(event, mode) {
   }
 }
 
-async function executeDeleteAccount(id, bankName) {
+async function executeDeleteAccount(target, bankName) {
+  let id = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    id = target.dataset?.accId || target.getAttribute('data-acc-id');
+  }
+  // Lookup bank name from stored data if not provided
+  if (!bankName) {
+    const acc = _adminAccountsData.find(a => a && a.id === id);
+    bankName = acc ? acc.bankName : '';
+  }
   const ok = await showAppConfirm({
     title: 'Hapus Rekening',
     message: `Apakah Anda yakin ingin menghapus rekening ${bankName}?`,

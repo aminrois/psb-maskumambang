@@ -189,7 +189,7 @@
                       <i class="fa-solid ${item.isActive ? 'fa-toggle-off' : 'fa-toggle-on'}" style="color: ${item.isActive ? '#94a3b8' : '#10b981'}; width: 16px;"></i> ${item.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                     </button>
                     <div style="margin: 4px 10px; border-top: 1px solid var(--border-subtle);"></div>
-                    <button type="button" onclick="window.deleteHeroSlider('${item.id}', '${escapeHtml(item.title.replace(/'/g, ''))}'); window.closeAllSliderDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: #ef4444; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background='none'">
+                    <button type="button" data-slider-id="${item.id}" onclick="window.deleteHeroSlider(this); window.closeAllSliderDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: #ef4444; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background='none'">
                       <i class="fa-regular fa-trash-can" style="width: 16px;"></i> Hapus
                     </button>
                   </div>
@@ -766,7 +766,16 @@
     }
   };
 
-  window.deleteHeroSlider = async function (id, title) {
+  window.deleteHeroSlider = async function (target, title) {
+    let id = target;
+    if (target && typeof target === 'object' && target.nodeType) {
+      id = target.dataset?.sliderId || target.getAttribute('data-slider-id');
+    }
+    // Lookup title from cached sliders if not provided
+    if (!title) {
+      const found = sliderState.sliders.find(s => s && s.id === id);
+      title = found ? found.title : id;
+    }
     const ok = typeof window.showAppConfirm === 'function'
       ? await window.showAppConfirm({
           title: 'Hapus Hero Slider',
@@ -1141,7 +1150,7 @@
                           <i class="fa-solid ${step.isActive ? 'fa-toggle-off' : 'fa-toggle-on'}" style="color: ${step.isActive ? '#94a3b8' : '#10b981'}; width: 16px;"></i> ${step.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                         </button>
                         <div style="margin: 4px 10px; border-top: 1px solid var(--border-subtle);"></div>
-                        <button type="button" onclick="window.deleteFlowStep('${step.id}', '${escapeHtml(step.title.replace(/'/g, ''))}'); window.closeAllFlowDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: #ef4444; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background='none'">
+                        <button type="button" data-step-id="${step.id}" onclick="window.deleteFlowStep(this); window.closeAllFlowDropdowns()" style="width: 100%; padding: 10px 14px; background: none; border: none; color: #ef4444; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; text-align: left;" onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background='none'">
                           <i class="fa-regular fa-trash-can" style="width: 16px;"></i> Hapus
                         </button>
                       </div>
@@ -1263,7 +1272,16 @@
     }
   };
 
-  window.deleteFlowStep = async function (id, title) {
+  window.deleteFlowStep = async function (target, title) {
+    let id = target;
+    if (target && typeof target === 'object' && target.nodeType) {
+      id = target.dataset?.stepId || target.getAttribute('data-step-id');
+    }
+    // Lookup title from cached steps if not provided
+    if (!title) {
+      const found = flowState.steps.find(s => s && s.id === id);
+      title = found ? found.title : id;
+    }
     const ok = typeof window.showAppConfirm === 'function'
       ? await window.showAppConfirm({
           title: 'Hapus Langkah Alur',

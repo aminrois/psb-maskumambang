@@ -396,7 +396,7 @@ async function loadCbtSchoolExamDetails(schoolId) {
             <button type="button" class="btn btn-sm btn-secondary" onclick="downloadQuestionTemplate()" style="display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-file-arrow-down"></i> Template CSV
             </button>
-            <button type="button" class="btn btn-sm btn-secondary" onclick="exportQuestionsToCSV('${exam.id}', '${escapeHtml(exam.title || 'Soal_Ujian')}')" style="display: inline-flex; align-items: center; gap: 6px;">
+            <button type="button" class="btn btn-sm btn-secondary" data-exam-id="${exam.id}" onclick="exportQuestionsToCSV(this)" style="display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-file-export"></i> Export Soal
             </button>
             <button type="button" class="btn btn-sm btn-secondary" onclick="openImportQuestionsModal('${exam.id}')" style="display: inline-flex; align-items: center; gap: 6px;">
@@ -1641,7 +1641,7 @@ async function loadCbtResultsTable() {
                             <button type="button" class="btn btn-xs btn-outline-primary" onclick="openCbtResultDetailModal('${att.id}')" title="Buka Detail & Penilaian">
                               <i class="fa-solid fa-eye"></i> Detail
                             </button>
-                            <button type="button" class="btn btn-xs btn-outline-danger" onclick="openResetCbtModal('${att.id}', '${escapeHtml(row.candidateName)}')" title="Reset Ujian Peserta">
+                            <button type="button" class="btn btn-xs btn-outline-danger" data-attempt-id="${att.id}" data-candidate-name="${escapeHtml(row.candidateName)}" onclick="openResetCbtModal(this)" title="Reset Ujian Peserta">
                               <i class="fa-solid fa-rotate-left"></i> Reset
                             </button>
                           </div>
@@ -1888,7 +1888,16 @@ function downloadQuestionTemplate() {
   URL.revokeObjectURL(url);
 }
 
-async function exportQuestionsToCSV(examId, examTitle) {
+async function exportQuestionsToCSV(target, examTitle) {
+  let examId = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    examId = target.dataset?.examId || target.getAttribute('data-exam-id');
+  }
+  // Lookup exam title from state if not provided
+  if (!examTitle) {
+    const currentExam = window.cbtAdminState?.currentExam;
+    examTitle = (currentExam && currentExam.id === examId) ? (currentExam.title || 'Soal_Ujian') : 'Soal_Ujian';
+  }
   try {
     const res = await apiRequest(`/api/cbt/admin/exams/${examId}`);
     if (!res.success || !res.data) throw new Error(res.message || 'Gagal mengambil data soal ujian.');
@@ -2446,16 +2455,16 @@ async function loadCbtVerificationTable() {
                             <button type="button" class="btn btn-sm btn-secondary" onclick="openCbtResultDetailModal('${row.attemptId}')" style="padding: 3px 8px; font-size: 0.75rem; white-space: nowrap;">
                               <i class="fa-solid fa-eye"></i> Detail
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="openResetCbtModal('${row.attemptId}', '${escapeHtml(row.candidateName)}')" style="padding: 3px 8px; font-size: 0.75rem;" title="Reset Ujian Peserta">
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-attempt-id="${row.attemptId}" data-candidate-name="${escapeHtml(row.candidateName)}" onclick="openResetCbtModal(this)" style="padding: 3px 8px; font-size: 0.75rem;" title="Reset Ujian Peserta">
                               <i class="fa-solid fa-rotate-left"></i> Reset
                             </button>
                           </div>
                           
                           <div style="display: flex; gap: 4px;">
-                            <button type="button" class="btn btn-sm btn-success" onclick="openVerifyCbtModal('${row.attemptId}', '${escapeHtml(row.candidateName)}')" style="padding: 3px 8px; font-size: 0.75rem;" title="Luluskan Verifikasi CBT">
+                            <button type="button" class="btn btn-sm btn-success" data-attempt-id="${row.attemptId}" data-candidate-name="${escapeHtml(row.candidateName)}" onclick="openVerifyCbtModal(this)" style="padding: 3px 8px; font-size: 0.75rem;" title="Luluskan Verifikasi CBT">
                               <i class="fa-solid fa-check"></i> Verifikasi
                             </button>
-                            <button type="button" class="btn btn-sm btn-danger" onclick="openRejectCbtModal('${row.attemptId}', '${escapeHtml(row.candidateName)}')" style="padding: 3px 8px; font-size: 0.75rem;" title="Tolak / Tidak Lulus CBT">
+                            <button type="button" class="btn btn-sm btn-danger" data-attempt-id="${row.attemptId}" data-candidate-name="${escapeHtml(row.candidateName)}" onclick="openRejectCbtModal(this)" style="padding: 3px 8px; font-size: 0.75rem;" title="Tolak / Tidak Lulus CBT">
                               <i class="fa-solid fa-xmark"></i> Tolak
                             </button>
                           </div>
@@ -2477,15 +2486,22 @@ async function loadCbtVerificationTable() {
   }
 }
 
-function openVerifyCbtModal(attemptId, candidateName) {
+function openVerifyCbtModal(target, candidateName) {
+  let attemptId = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    attemptId = target.getAttribute('data-attempt-id') || target.dataset?.attemptId;
+    candidateName = target.getAttribute('data-candidate-name') || target.dataset?.candidateName;
+  }
+  const safeName = escapeHtml(candidateName || 'Calon Santri');
+  const safeAttemptId = escapeHtml(attemptId || '');
   const bodyHtml = `
-    <form onsubmit="handleConfirmVerifyCbt(event, '${attemptId}')">
+    <form onsubmit="handleConfirmVerifyCbt(event, '${safeAttemptId}')">
       <div style="margin-bottom: 16px;">
         <p style="margin: 0; font-size: 0.9rem; color: var(--text-main);">
           Apakah Anda yakin ingin <strong>Memverifikasi & Meluluskan</strong> ujian CBT untuk calon santri:
         </p>
         <div style="margin: 10px 0; padding: 12px 14px; background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; border-radius: var(--radius-md); font-weight: 700; color: #15803d; font-size: 1rem;">
-          ${candidateName}
+          ${safeName}
         </div>
         <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">
           * Setelah diverifikasi, status calon santri akan menjadi <strong>LULUS CBT</strong> dan berhak melanjutkan ke tahapan wawancara / pengumuman.
@@ -2542,15 +2558,22 @@ async function handleConfirmVerifyCbt(event, attemptId) {
   }
 }
 
-function openRejectCbtModal(attemptId, candidateName) {
+function openRejectCbtModal(target, candidateName) {
+  let attemptId = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    attemptId = target.getAttribute('data-attempt-id') || target.dataset?.attemptId;
+    candidateName = target.getAttribute('data-candidate-name') || target.dataset?.candidateName;
+  }
+  const safeName = escapeHtml(candidateName || 'Calon Santri');
+  const safeAttemptId = escapeHtml(attemptId || '');
   const bodyHtml = `
-    <form onsubmit="handleConfirmRejectCbt(event, '${attemptId}')">
+    <form onsubmit="handleConfirmRejectCbt(event, '${safeAttemptId}')">
       <div style="margin-bottom: 16px;">
         <p style="margin: 0; font-size: 0.9rem; color: var(--text-main);">
           Apakah Anda yakin ingin menandai <strong>Ditolak / Tidak Lulus</strong> CBT untuk calon santri:
         </p>
         <div style="margin: 10px 0; padding: 12px 14px; background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: var(--radius-md); font-weight: 700; color: #b91c1c; font-size: 1rem;">
-          ${candidateName}
+          ${safeName}
         </div>
       </div>
 
@@ -2608,9 +2631,16 @@ async function handleConfirmRejectCbt(event, attemptId) {
 // 6. RESET UJIAN PESERTA CBT
 // ============================================================================
 
-function openResetCbtModal(attemptId, candidateName) {
+function openResetCbtModal(target, candidateName) {
+  let attemptId = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    attemptId = target.getAttribute('data-attempt-id') || target.dataset?.attemptId;
+    candidateName = target.getAttribute('data-candidate-name') || target.dataset?.candidateName;
+  }
+  const safeName = escapeHtml(candidateName || 'Calon Santri');
+  const safeAttemptId = escapeHtml(attemptId || '');
   const bodyHtml = `
-    <form onsubmit="handleConfirmResetCbt(event, '${attemptId}')">
+    <form onsubmit="handleConfirmResetCbt(event, '${safeAttemptId}')">
       <div style="margin-bottom: 16px;">
         <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); padding: 14px;">
           <i class="fa-solid fa-triangle-exclamation" style="color: #dc2626; font-size: 1.5rem; margin-top: 2px;"></i>
@@ -2626,7 +2656,7 @@ function openResetCbtModal(attemptId, candidateName) {
           Apakah Anda yakin ingin me-reset sesi ujian CBT untuk peserta:
         </p>
         <div style="padding: 12px 14px; background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); font-weight: 800; color: var(--text-heading); font-size: 1.05rem;">
-          ${candidateName}
+          ${safeName}
         </div>
       </div>
 
@@ -2857,7 +2887,7 @@ async function loadCbtResetTable() {
                       </td>
                       <td style="padding: 10px 8px; text-align: right;">
                         <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                          <button type="button" class="btn btn-sm btn-outline-danger" onclick="openResetCbtModal('${att.id}', '${escapeHtml(row.candidateName)}')" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                          <button type="button" class="btn btn-sm btn-outline-danger" data-attempt-id="${att.id}" data-candidate-name="${escapeHtml(row.candidateName)}" onclick="openResetCbtModal(this)" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
                             <i class="fa-solid fa-rotate-left"></i> Reset Ujian
                           </button>
                         </div>

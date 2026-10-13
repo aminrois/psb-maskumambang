@@ -171,11 +171,11 @@ async function renderAdminPeriodsView() {
             </div>
 
             <div style="display: flex; gap: 6px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border-subtle);">
-              <button class="btn btn-sm btn-secondary" onclick="openEditPeriodModal('${p.id}', '${p.name}')"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+              <button class="btn btn-sm btn-secondary" data-period-id="${p.id}" data-period-name="${escapeHtml(p.name)}" onclick="openEditPeriodModal(this)"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
               <button class="btn btn-sm ${p.isActive ? 'btn-outline-danger' : 'btn-outline-success'}" onclick="togglePeriodStatus('${p.id}')">
                 ${p.isActive ? 'Nonaktifkan' : '<i class="fa-solid fa-circle-check"></i> Aktifkan'}
               </button>
-              <button class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Hapus Periode" onclick="executeDeletePeriod('${p.id}', '${p.name}')"><i class="fa-solid fa-trash-can"></i></button>
+              <button class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Hapus Periode" data-period-id="${p.id}" data-period-name="${escapeHtml(p.name)}" onclick="executeDeletePeriod(this)"><i class="fa-solid fa-trash-can"></i></button>
             </div>
           </div>
         `).join('')}
@@ -236,12 +236,17 @@ async function submitCreatePeriod(e) {
   }
 }
 
-function openEditPeriodModal(id, currentName) {
+function openEditPeriodModal(target, currentName) {
+  let id = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    id = target.getAttribute('data-period-id') || target.dataset?.periodId;
+    currentName = target.getAttribute('data-period-name') || target.dataset?.periodName;
+  }
   openModal('Edit Periode Tahun Pelajaran', `
-    <form id="edit-period-form" onsubmit="submitEditPeriod(event, '${id}')">
+    <form id="edit-period-form" onsubmit="submitEditPeriod(event, '${escapeHtml(id)}')">
       <div class="form-group" style="margin-bottom: 20px;">
         <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Nama Periode / Tahun Pelajaran</label>
-        <input type="text" id="m-edit-period-name" class="form-control" value="${currentName}" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        <input type="text" id="m-edit-period-name" class="form-control" value="${escapeHtml(currentName || '')}" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 8px;">
         <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
@@ -292,16 +297,22 @@ async function togglePeriodStatus(id) {
   }
 }
 
-async function executeDeletePeriod(id, name) {
+async function executeDeletePeriod(target, name) {
+  let id = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    id = target.getAttribute('data-period-id') || target.dataset?.periodId;
+    name = target.getAttribute('data-period-name') || target.dataset?.periodName;
+  }
+  const safeName = name || '';
   const ok = typeof window.showAppConfirm === 'function'
     ? await window.showAppConfirm({
         title: 'Hapus Periode Pendaftaran',
-        message: `Apakah Anda yakin ingin menghapus periode "${name}"?`,
+        message: `Apakah Anda yakin ingin menghapus periode "${safeName}"?`,
         confirmText: 'Ya, Hapus',
         cancelText: 'Batal',
         type: 'danger'
       })
-    : confirm(`Apakah Anda yakin ingin menghapus periode "${name}"?`);
+    : confirm(`Apakah Anda yakin ingin menghapus periode "${safeName}"?`);
   if (!ok) return;
   try {
     const res = await apiRequest(`/api/competitions/periods/${id}`, { method: 'DELETE' });
@@ -443,7 +454,7 @@ async function renderAdminWavesView() {
                 <button class="btn btn-sm ${w.isActive ? 'btn-outline-danger' : 'btn-outline-success'}" onclick="toggleWaveStatus('${w.id}')">
                   ${w.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                 </button>
-                <button class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Hapus Kuota Pendaftaran" onclick="executeDeleteWave('${w.id}', '${w.name}')"><i class="fa-solid fa-trash-can"></i></button>
+                <button class="btn btn-sm btn-danger" style="padding: 4px 8px;" title="Hapus Kuota Pendaftaran" data-wave-id="${w.id}" data-wave-name="${escapeHtml(w.name)}" onclick="executeDeleteWave(this)"><i class="fa-solid fa-trash-can"></i></button>
               </div>
             </div>
           `;
@@ -782,16 +793,22 @@ async function toggleWaveStatus(id) {
   }
 }
 
-async function executeDeleteWave(id, name) {
+async function executeDeleteWave(target, name) {
+  let id = target;
+  if (target && typeof target === 'object' && target.nodeType) {
+    id = target.getAttribute('data-wave-id') || target.dataset?.waveId;
+    name = target.getAttribute('data-wave-name') || target.dataset?.waveName;
+  }
+  const safeName = name || '';
   const ok = typeof window.showAppConfirm === 'function'
     ? await window.showAppConfirm({
         title: 'Hapus Gelombang Pendaftaran',
-        message: `Apakah Anda yakin ingin menghapus gelombang "${name}"?`,
+        message: `Apakah Anda yakin ingin menghapus gelombang "${safeName}"?`,
         confirmText: 'Ya, Hapus',
         cancelText: 'Batal',
         type: 'danger'
       })
-    : confirm(`Apakah Anda yakin ingin menghapus gelombang "${name}"?`);
+    : confirm(`Apakah Anda yakin ingin menghapus gelombang "${safeName}"?`);
   if (!ok) return;
   try {
     const res = await apiRequest(`/api/competitions/waves/${id}`, { method: 'DELETE' });
