@@ -25,7 +25,7 @@ export class SettingsController {
     return { success: true, data: settings };
   }
 
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Post()
   async updateSettings(
     @CurrentUser('id') staffId: string,
@@ -39,7 +39,7 @@ export class SettingsController {
     };
   }
 
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Post('logo')
   @UseInterceptors(FileInterceptor('logo'))
   async uploadLogo(
@@ -54,7 +54,7 @@ export class SettingsController {
     };
   }
 
-  @Roles(Role.SUPER_ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Post('favicon')
   @UseInterceptors(FileInterceptor('favicon'))
   async uploadFavicon(
@@ -65,6 +65,21 @@ export class SettingsController {
     return {
       success: true,
       message: 'Favicon aplikasi berhasil diperbarui.',
+      data: result,
+    };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Post('og-image')
+  @UseInterceptors(FileInterceptor('og_image'))
+  async uploadOgImage(
+    @CurrentUser('id') staffId: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const result = await this.settingsService.uploadBrandingFile(staffId, file, 'og_image');
+    return {
+      success: true,
+      message: 'Gambar thumbnail Open Graph (Social Share) berhasil diperbarui.',
       data: result,
     };
   }

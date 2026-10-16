@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <title>Biaya Pendidikan - PSB Pondok Pesantren Maskumambang</title>
+  <meta name="description" content="Informasi lengkap rincian Biaya Pendidikan dan Biaya Pangkal Penerimaan Santri Baru (PSB) Pondok Pesantren Maskumambang untuk MI, MTs Reguler, MTs Progresif, MA, dan SMK.">
+  <link rel="icon" type="image/webp" id="app-favicon" href="/static/img/favicon_87007b6344.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <style>
+    /* Public Navbar */
+    .public-navbar {
+      background: #ffffff !important;
+      border: none !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .public-navbar .nav-container {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0.9rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-logo-title {
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: #0f172a !important;
+      letter-spacing: -0.01em;
+    }
+
+    .public-navbar .nav-link {
+      color: #475569;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 8px 16px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .public-navbar .nav-link:hover {
+      color: #4f46e5;
+    }
+
+    .public-navbar .nav-link.active {
+      color: #4f46e5;
+      font-weight: 700;
+      position: relative;
+    }
+
+    .public-navbar .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 16px;
+      right: 16px;
+      height: 2.5px;
+      background: #4f46e5;
+      border-radius: 9999px;
+    }
+
+    #btn-nav-login {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #0f172a !important;
+      border-radius: 9999px;
+      padding: 7px 18px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    #btn-nav-login:hover {
+      background: #e2e8f0;
+    }
+
+    #btn-nav-register {
+      background: #4f46e5;
+      border: 1px solid #4f46e5;
+      color: #ffffff !important;
+      border-radius: 9999px;
+      padding: 7px 20px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+      transition: all 0.2s;
+    }
+
+    #btn-nav-register:hover {
+      background: #4338ca;
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.5);
+    }
+
+    /* Hero Section */
+    .biaya-hero {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%);
+      color: #fff;
+      padding: 70px 24px 85px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .biaya-hero::before {
+      content: '';
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      top: -120px;
+      right: -100px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .biaya-hero::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      bottom: -100px;
+      left: -80px;
+      background: radial-gradient(circle, rgba(129, 140, 248, 0.18) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* Filter Tabs */
+    .level-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: -30px;
+      position: relative;
+      z-index: 10;
+      padding: 0 16px;
+    }
+
+    .level-tab-btn {
+      background: #ffffff;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+      padding: 12px 22px;
+      border-radius: 9999px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .level-tab-btn:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      transform: translateY(-2px);
+    }
+
+    .level-tab-btn.active {
+      background: #4f46e5;
+      color: #ffffff;
+      border-color: #4f46e5;
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.35);
+    }
+
+    /* Card Box Styles */
+    .pricing-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+      margin-bottom: 36px;
+      transition: box-shadow 0.25s, transform 0.25s;
+    }
+
+    .pricing-card:hover {
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .pricing-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #f1f5f9;
+      margin-bottom: 24px;
+    }
+
+    .pricing-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(79, 70, 229, 0.1);
+      color: #4f46e5;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    /* Modern Responsive Table */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin-bottom: 22px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      min-width: 580px;
+    }
+
+    .table-custom th {
+      background: #f8fafc;
+      color: #1e293b;
+      font-weight: 700;
+      text-align: left;
+      padding: 14px 18px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .table-custom td {
+      padding: 13px 18px;
+      border-bottom: 1px solid #f1f5f9;
+      color: #334155;
+    }
+
+    .table-custom tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-custom tr:hover td {
+      background: #f8fafc;
+    }
+
+    .table-custom .price-highlight {
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    /* Info Callout */
+    .callout-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 14px;
+      padding: 18px 20px;
+      color: #166534;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      margin-top: 18px;
+    }
+
+    .callout-box ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    .callout-info {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      color: #3730a3;
+    }
+
+    @media (max-width: 992px) {
+      .public-navbar .nav-menu {
+        display: none;
+      }
+
+      .btn-toggle-public-menu {
+        display: block !important;
+      }
+
+      .public-navbar.menu-open .nav-menu {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #ffffff;
+        padding: 1rem 1.5rem 1.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border-top: 1px solid #f1f5f9;
+      }
+
+      .public-navbar .nav-menu #auth-buttons-nav {
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+        margin-top: 6px;
+        padding-top: 10px;
+        border-top: 1px solid #f1f5f9;
+      }
+
+      .public-navbar .nav-menu #auth-buttons-nav a {
+        width: 100%;
+        justify-content: center;
+        box-sizing: border-box;
+      }
+    }
+  </style>
+</head>
+
+<body class="public-layout">
+
+  <!-- Header / Navbar -->
+  <header class="public-navbar">
+    <div class="nav-container">
+      <a href="/" class="brand-logo" style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
+        <img id="nav-logo" src="/static/img/logo_e7a8b6a95d.webp" alt="Logo" style="height: 38px; width: auto; border-radius: 6px;" onerror="this.style.display='none'">
+        <span class="brand-logo-title" id="nav-title">PSB MASKUMAMBANG</span>
+      </a>
+
+      <button type="button" class="btn-toggle-public-menu" id="btn-toggle-public-menu" onclick="togglePublicMenu(event)" aria-label="Menu Navigasi" style="cursor: pointer; display: none; background: none; border: none; font-size: 1.4rem; color: #1e293b;">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <nav>
+        <ul class="nav-menu" id="public-nav-menu">
+          <li><a href="/" class="nav-link">Beranda</a></li>
+          <li><a href="/guide.html" class="nav-link">Panduan</a></li>
+          <li><a href="/biaya-pendidikan.html" class="nav-link active">Biaya Pendidikan</a></li>
+          <li><a href="/kontak.html" class="nav-link">Kontak</a></li>
+          <li id="auth-buttons-nav" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="/login.html" id="btn-nav-login"><i class="fa-regular fa-user"></i> Login</a>
+            <a href="/register.html" id="btn-nav-register"><i class="fa-solid fa-pen-to-square"></i> Daftar</a>
+          </li>
+          <li id="user-logged-nav" style="display: none;">
+            <a href="/dashboard.html" class="btn btn-sm btn-primary" style="border-radius: 9999px; padding: 8px 20px; font-weight: 700;"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <div class="biaya-hero">
+    <div style="max-width: 860px; margin: 0 auto; position: relative; z-index: 2;">
+      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #e0e7ff; padding: 6px 20px; border-radius: 9999px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px;">
+        <i class="fa-solid fa-hand-holding-dollar"></i> Biaya Flat 3 Tahun • Transparan &amp; Terencana
+      </div>
+      <h1 style="font-size: clamp(1.9rem, 4.5vw, 2.75rem); font-weight: 800; margin-bottom: 16px; line-height: 1.25;">
+        Biaya Pendidikan Pondok Pesantren Maskumambang
+      </h1>
+      <p style="font-size: 1.05rem; color: rgba(255, 255, 255, 0.92); line-height: 1.7; max-width: 760px; margin: 0 auto 28px;">
+        Sebagai bentuk kepastian dan kemudahan bagi para wali santri, kami memberlakukan <strong>biaya SPP yang tetap (flat) selama 3 tahun</strong>. Membantu kemudahan perencanaan pendidikan ananda dengan tata kelola terpercaya.
+      </p>
+
+      <!-- 3 Pilar Kebijakan -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; max-width: 780px; margin: 0 auto; text-align: left;">
+        <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 14px 18px;">
+          <div style="font-weight: 700; font-size: 0.9rem; color: #ffffff; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <i class="fa-solid fa-shield-halved" style="color: #a5b4fc;"></i> Kepastian Biaya
+          </div>
+          <div style="font-size: 0.8rem; color: #e0e7ff; line-height: 1.4;">Kemudahan dalam perencanaan anggaran pendidikan anak.</div>
+        </div>
+        <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 14px 18px;">
+          <div style="font-weight: 700; font-size: 0.9rem; color: #ffffff; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <i class="fa-solid fa-chart-line" style="color: #a5b4fc;"></i> Konsistensi Mutu
+          </div>
+          <div style="font-size: 0.8rem; color: #e0e7ff; line-height: 1.4;">Menjaga konsistensi standar pembelajaran dan sarana santri.</div>
+        </div>
+        <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 14px 18px;">
+          <div style="font-weight: 700; font-size: 0.9rem; color: #ffffff; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <i class="fa-solid fa-handshake-angle" style="color: #a5b4fc;"></i> Saling Percaya
+          </div>
+          <div style="font-size: 0.8rem; color: #e0e7ff; line-height: 1.4;">Memupuk rasa saling percaya antara pesantren &amp; wali santri.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter / Selector Jenjang -->
+  <div class="level-tabs">
+    <button type="button" class="level-tab-btn active" onclick="switchLevelTab('all', this)">
+      <i class="fa-solid fa-border-all"></i> Semua Jenjang
+    </button>
+    <button type="button" class="level-tab-btn" onclick="switchLevelTab('mi', this)">
+      <i class="fa-solid fa-school"></i> MI (Ibtidaiyah)
+    </button>
+    <button type="button" class="level-tab-btn" onclick="switchLevelTab('mts-reguler', this)">
+      <i class="fa-solid fa-book-open-reader"></i> MTs Reguler
+    </button>
+    <button type="button" class="level-tab-btn" onclick="switchLevelTab('mts-progresif', this)">
+      <i class="fa-solid fa-star"></i> MTs Progresif
+    </button>
+    <button type="button" class="level-tab-btn" onclick="switchLevelTab('ma', this)">
+      <i class="fa-solid fa-graduation-cap"></i> MA (Aliyah)
+    </button>
+    <button type="button" class="level-tab-btn" onclick="switchLevelTab('smk', this)">
+      <i class="fa-solid fa-screwdriver-wrench"></i> SMK
+    </button>
+  </div>
+
+  <!-- Main Content Container -->
+  <main style="max-width: 1200px; margin: 0 auto; padding: 48px 24px 72px;">
+
+    <!-- TAHAPAN BIAYA SELEKSI & PENDAFTARAN (BANNER INFO) -->
+    <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 18px; padding: 24px 28px; margin-bottom: 40px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px;">
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <div style="width: 52px; height: 52px; border-radius: 14px; background: #4f46e5; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+          <i class="fa-solid fa-ticket"></i>
+        </div>
+        <div>
+          <div style="font-size: 0.85rem; font-weight: 700; color: #4f46e5; text-transform: uppercase;">Biaya Pendaftaran &amp; Seleksi Awal</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">Rp 350.000,- <span style="font-size: 0.82rem; font-weight: 500; color: #64748b;">(Dibayar saat mendaftar online &amp; verifikasi data)</span></div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <a href="/register.html" class="btn" style="background: #4f46e5; color: #ffffff; padding: 11px 22px; font-weight: 700; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+          <i class="fa-solid fa-pen-to-square"></i> Daftar Sekarang
+        </a>
+        <a href="/kontak.html" class="btn" style="background: #ffffff; color: #0f172a; border: 1px solid #cbd5e1; padding: 11px 20px; font-weight: 600; border-radius: 9999px; text-decoration: none;">
+          <i class="fa-solid fa-headset"></i> Tanya Panitia
+        </a>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 1. JENJANG MADRASAH IBTIDAIYAH (MI)        -->
+    <!-- ========================================== -->
+    <section class="pricing-card level-section" id="section-mi">
+      <div class="pricing-header">
+        <div>
+          <div class="pricing-badge"><i class="fa-solid fa-school"></i> Jenjang Pendidikan Dasar</div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 8px 0 4px;">Madrasah Ibtidaiyah (MI)</h2>
+          <p style="color: #64748b; font-size: 0.92rem; margin: 0;">Pendidikan dasar Islam terpadu dengan penanaman akidah, akhlak, dan literasi Qur'an sejak dini.</p>
+        </div>
+      </div>
+
+      <!-- Tabel Biaya Pendidikan MI -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MI)
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Komponen Biaya</th>
+              <th>Putra</th>
+              <th>Putri</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SPP (Bulanan)</strong></td>
+              <td class="price-highlight">Rp 375.000,-</td>
+              <td class="price-highlight">Rp 375.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kegiatan &amp; Perlengkapan</strong></td>
+              <td class="price-highlight">Rp 1.200.000,-</td>
+              <td class="price-highlight">Rp 1.200.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Ujian 1 Tahun</strong></td>
+              <td class="price-highlight">Rp 460.000,-</td>
+              <td class="price-highlight">Rp 460.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam</strong></td>
+              <td class="price-highlight">Rp 600.000,-</td>
+              <td class="price-highlight">Rp 750.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Seragam Details MI -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam MI:</div>
+        <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> Seragam Polo, Jersey Olahraga, Baju Putih, Celana Hitam, Celana Biru, Baju Pramuka, Celana Pramuka.</div>
+        <div><strong>• Santri Putri:</strong> Seragam Olahraga, Kain Hitam &amp; Batik, Kain Biru Bawahan, Kain Coklat Bawahan, Kain Coklat Atasan, Kain Hitam dan Putih.</div>
+      </div>
+
+      <!-- Tabel Biaya Pangkal MI -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal Jenjang MI Berdasarkan Kuota
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Gelombang / Kuota</th>
+              <th>Kategori Umum</th>
+              <th>Alumni YKUI / Anak Guru</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Kuota 1 (Gelombang Awal)</strong></td>
+              <td class="price-highlight" style="color: #059669;">Rp 2.340.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 1.950.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 2</strong></td>
+              <td class="price-highlight">Rp 3.120.000,-</td>
+              <td class="price-highlight">Rp 2.650.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 3</strong></td>
+              <td class="price-highlight">Rp 3.900.000,-</td>
+              <td class="price-highlight">Rp 3.300.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout-box">
+        <strong><i class="fa-solid fa-circle-info"></i> Catatan Khusus Jenjang MI:</strong>
+        <ul>
+          <li>Biaya SPP bersifat flat selama 3 tahun. Penyesuaian biaya SPP dilakukan pada tahun keempat.</li>
+          <li>Biaya kegiatan 1 tahun belum termasuk agenda <em>Outing Class</em> dan perlengkapan belum termasuk Buku/Kitab pelajaran.</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- 2. JENJANG MTS REGULER                     -->
+    <!-- ========================================== -->
+    <section class="pricing-card level-section" id="section-mts-reguler">
+      <div class="pricing-header">
+        <div>
+          <div class="pricing-badge"><i class="fa-solid fa-book-open-reader"></i> Menengah Pertama (Asrama &amp; Non-Asrama)</div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 8px 0 4px;">Madrasah Tsanawiyah (MTs) Reguler</h2>
+          <p style="color: #64748b; font-size: 0.92rem; margin: 0;">Pembinaan karakter pesantren terpadu dengan kurikulum Kemenag dan kurikulum khas Maskumambang.</p>
+        </div>
+      </div>
+
+      <!-- Tabel Biaya Pendidikan MTs Reguler -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MTs Reguler)
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Komponen Biaya</th>
+              <th>Santri Asrama</th>
+              <th>Santri Non-Asrama</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SPP (Bulanan)</strong></td>
+              <td class="price-highlight">Rp 1.850.000,-</td>
+              <td class="price-highlight">Rp 450.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kegiatan &amp; Perlengkapan</strong></td>
+              <td class="price-highlight">Rp 2.000.000,-</td>
+              <td class="price-highlight">Rp 2.000.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Ujian 1 Tahun</strong></td>
+              <td class="price-highlight">Rp 470.000,-</td>
+              <td class="price-highlight">Rp 470.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putra</strong></td>
+              <td class="price-highlight">Rp 650.000,-</td>
+              <td class="price-highlight">Rp 650.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putri</strong></td>
+              <td class="price-highlight">Rp 1.350.000,-</td>
+              <td class="price-highlight">Rp 1.350.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Seragam Details MTs Reguler -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam MTs Reguler:</div>
+        <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Celana Biru, 3. Baju Putih, 4. Celana Hitam, 5. Baju Pramuka, 6. Celana Pramuka, 7. Jersey Olahraga, 8. Celana Training Olahraga.</div>
+        <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih, 3. Kain Biru Bawahan, 4. Kain Coklat Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7. Kain Biru Atasan &amp; Minang Putih, 8. Kain Coklat Atasan &amp; Minang Coklat.</div>
+      </div>
+
+      <!-- Tabel Biaya Pangkal MTs Reguler -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MTs Reguler (Berdasarkan Kuota &amp; Kategori)
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th rowspan="2" style="vertical-align: middle;">Gelombang / Kuota</th>
+              <th colspan="2" style="text-align: center; border-bottom: 1px solid #cbd5e1; background: #f1f5f9;">SANTRI ASRAMA</th>
+              <th colspan="2" style="text-align: center; border-bottom: 1px solid #cbd5e1; background: #e2e8f0;">SANTRI NON-ASRAMA</th>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc;">Umum</th>
+              <th style="background: #f8fafc;">Alumni / Anak Guru</th>
+              <th style="background: #f8fafc;">Umum</th>
+              <th style="background: #f8fafc;">Alumni / Anak Guru</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Kuota 1</strong></td>
+              <td class="price-highlight" style="color: #059669;">Rp 8.400.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 6.900.000,-</td>
+              <td class="price-highlight">Rp 3.900.000,-</td>
+              <td class="price-highlight">Rp 3.300.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 2</strong></td>
+              <td class="price-highlight">Rp 9.700.000,-</td>
+              <td class="price-highlight">Rp 8.200.000,-</td>
+              <td class="price-highlight">Rp 5.200.000,-</td>
+              <td class="price-highlight">Rp 4.400.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 3</strong></td>
+              <td class="price-highlight">Rp 11.000.000,-</td>
+              <td class="price-highlight">Rp 9.500.000,-</td>
+              <td class="price-highlight">Rp 6.500.000,-</td>
+              <td class="price-highlight">Rp 5.500.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout-box">
+        <strong><i class="fa-solid fa-circle-info"></i> Fasilitas &amp; Keterangan Tambahan:</strong>
+        <ul>
+          <li>Biaya SPP flat selama 3 tahun penuh.</li>
+          <li><strong>Beasiswa Tahfiz</strong> tersedia bagi Santri Asrama melalui jalur tes seleksi khusus hafalan.</li>
+          <li>Biaya kegiatan 1 tahun belum termasuk agenda <em>Edu Trip</em> dan biaya perlengkapan belum termasuk Buku/Kitab.</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- 3. JENJANG MTS PROGRESIF                   -->
+    <!-- ========================================== -->
+    <section class="pricing-card level-section" id="section-mts-progresif">
+      <div class="pricing-header">
+        <div>
+          <div class="pricing-badge" style="background: rgba(234, 88, 12, 0.1); color: #ea580c;"><i class="fa-solid fa-star"></i> Program Unggulan Progresif</div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 8px 0 4px;">Madrasah Tsanawiyah (MTs) Progresif</h2>
+          <p style="color: #64748b; font-size: 0.92rem; margin: 0;">Kelas percepatan dan pengayaan intensif dengan fokus keilmuan digital, bahasa asing, dan tahfiz unggulan.</p>
+        </div>
+      </div>
+
+      <!-- Tabel Biaya Pendidikan MTs Progresif -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MTs Progresif)
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Komponen Biaya</th>
+              <th>Santri Asrama</th>
+              <th>Santri Non-Asrama</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SPP (Bulanan)</strong></td>
+              <td class="price-highlight">Rp 2.000.000,-</td>
+              <td class="price-highlight">Rp 1.375.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kegiatan &amp; Perlengkapan</strong></td>
+              <td class="price-highlight">Rp 2.000.000,-</td>
+              <td class="price-highlight">Rp 2.000.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Ujian 1 Tahun</strong></td>
+              <td class="price-highlight">Rp 470.000,-</td>
+              <td class="price-highlight">Rp 470.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putra</strong></td>
+              <td class="price-highlight">Rp 650.000,-</td>
+              <td class="price-highlight">Rp 650.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putri</strong></td>
+              <td class="price-highlight">Rp 1.350.000,-</td>
+              <td class="price-highlight">Rp 1.350.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Seragam Details MTs Progresif -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam MTs Progresif:</div>
+        <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Celana Biru, 3. Baju Putih, 4. Celana Hitam, 5. Baju Pramuka, 6. Celana Pramuka, 7. Jersey Olahraga, 8. Celana Training Olahraga.</div>
+        <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih, 3. Kain Biru Bawahan, 4. Kain Coklat Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7. Kain Biru Atasan &amp; Minang Putih, 8. Kain Coklat Atasan &amp; Minang Coklat.</div>
+      </div>
+
+      <!-- Tabel Biaya Pangkal MTs Progresif -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MTs Progresif
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Gelombang / Kuota</th>
+              <th>Kategori Umum</th>
+              <th>Alumni YKUI / Anak Guru</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Kuota 1</strong></td>
+              <td class="price-highlight">Rp 20.000.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 6.000.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 2</strong></td>
+              <td class="price-highlight">Rp 20.000.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 6.000.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 3</strong></td>
+              <td class="price-highlight">Rp 20.000.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 6.000.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout-box">
+        <strong><i class="fa-solid fa-circle-info"></i> Catatan Khusus MTs Progresif:</strong>
+        <ul>
+          <li>Biaya SPP flat selama 3 tahun.</li>
+          <li>Biaya kegiatan 1 tahun belum termasuk program <em>Edu Trip</em> dan buku/kitab pelajaran.</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- 4. JENJANG MADRASAH ALIYAH (MA)            -->
+    <!-- ========================================== -->
+    <section class="pricing-card level-section" id="section-ma">
+      <div class="pricing-header">
+        <div>
+          <div class="pricing-badge"><i class="fa-solid fa-graduation-cap"></i> Menengah Atas Berbasis Sains &amp; Keagamaan</div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 8px 0 4px;">Madrasah Aliyah (MA)</h2>
+          <p style="color: #64748b; font-size: 0.92rem; margin: 0;">Mempersiapkan kader ulama dan cendekiawan muslim yang siap bersaing masuk PTN, Perguruan Tinggi Islam, dan Luar Negeri.</p>
+        </div>
+      </div>
+
+      <!-- Tabel Biaya Pendidikan MA -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MA)
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Komponen Biaya</th>
+              <th>Santri Asrama</th>
+              <th>Santri Non-Asrama</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SPP (Bulanan)</strong></td>
+              <td class="price-highlight">Rp 1.900.000,-</td>
+              <td class="price-highlight">Rp 475.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kegiatan &amp; Perlengkapan</strong></td>
+              <td class="price-highlight">Rp 2.100.000,-</td>
+              <td class="price-highlight">Rp 2.100.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Ujian 1 Tahun</strong></td>
+              <td class="price-highlight">Rp 500.000,-</td>
+              <td class="price-highlight">Rp 500.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putra</strong></td>
+              <td class="price-highlight">Rp 900.000,-</td>
+              <td class="price-highlight">Rp 900.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putri</strong></td>
+              <td class="price-highlight">Rp 1.600.000,-</td>
+              <td class="price-highlight">Rp 1.600.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Seragam Details MA -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam MA:</div>
+        <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Celana Abu-Abu, 3. Baju Putih, 4. Celana Hitam, 5. Baju Pramuka, 6. Celana Pramuka, 7. Jersey Olahraga, 8. Celana Training Olahraga.</div>
+        <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih, 3. Kain Abu Bawahan, 4. Kain Coklat Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7. Kain Putih &amp; Minang Putih, 8. Kain Coklat Atasan &amp; Minang Coklat.</div>
+      </div>
+
+      <!-- Tabel Biaya Pangkal MA -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MA (Berdasarkan Kuota &amp; Kategori)
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th rowspan="2" style="vertical-align: middle;">Gelombang / Kuota</th>
+              <th colspan="2" style="text-align: center; border-bottom: 1px solid #cbd5e1; background: #f1f5f9;">SANTRI ASRAMA</th>
+              <th colspan="2" style="text-align: center; border-bottom: 1px solid #cbd5e1; background: #e2e8f0;">SANTRI NON-ASRAMA</th>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc;">Umum</th>
+              <th style="background: #f8fafc;">Alumni / Anak Guru</th>
+              <th style="background: #f8fafc;">Umum</th>
+              <th style="background: #f8fafc;">Alumni / Anak Guru</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Kuota 1</strong></td>
+              <td class="price-highlight" style="color: #059669;">Rp 8.400.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 6.900.000,-</td>
+              <td class="price-highlight">Rp 3.900.000,-</td>
+              <td class="price-highlight">Rp 3.300.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 2</strong></td>
+              <td class="price-highlight">Rp 9.700.000,-</td>
+              <td class="price-highlight">Rp 8.200.000,-</td>
+              <td class="price-highlight">Rp 5.200.000,-</td>
+              <td class="price-highlight">Rp 4.400.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 3</strong></td>
+              <td class="price-highlight">Rp 11.000.000,-</td>
+              <td class="price-highlight">Rp 9.500.000,-</td>
+              <td class="price-highlight">Rp 6.500.000,-</td>
+              <td class="price-highlight">Rp 5.500.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout-box">
+        <strong><i class="fa-solid fa-circle-info"></i> Beasiswa &amp; Keterangan Tambahan MA:</strong>
+        <ul>
+          <li>Biaya SPP flat selama 3 tahun.</li>
+          <li><strong>Beasiswa Tahfiz</strong> tersedia bagi Santri Asrama melalui tes hafalan.</li>
+          <li>Biaya kegiatan 1 tahun belum termasuk program <em>Visit Campus</em> dan buku/kitab pelajaran.</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- 5. JENJANG SEKOLAH MENENGAH KEJURUAN (SMK) -->
+    <!-- ========================================== -->
+    <section class="pricing-card level-section" id="section-smk">
+      <div class="pricing-header">
+        <div>
+          <div class="pricing-badge"><i class="fa-solid fa-screwdriver-wrench"></i> Vokasi &amp; Keahlian Terapan</div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 8px 0 4px;">Sekolah Menengah Kejuruan (SMK)</h2>
+          <p style="color: #64748b; font-size: 0.92rem; margin: 0;">Mencetak lulusan terampil, mandiri, siap kerja, wirausaha, serta berbekal adab santri yang kokoh.</p>
+        </div>
+      </div>
+
+      <!-- Tabel Biaya Pendidikan SMK -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (SMK)
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Komponen Biaya</th>
+              <th>Santri Asrama</th>
+              <th>Santri Non-Asrama</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SPP (Bulanan)</strong></td>
+              <td class="price-highlight">Rp 1.900.000,-</td>
+              <td class="price-highlight">Rp 475.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kegiatan &amp; Perlengkapan</strong></td>
+              <td class="price-highlight">Rp 2.250.000,-</td>
+              <td class="price-highlight">Rp 2.250.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Ujian 1 Tahun</strong></td>
+              <td class="price-highlight">Rp 500.000,-</td>
+              <td class="price-highlight">Rp 500.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putra</strong></td>
+              <td class="price-highlight">Rp 1.100.000,-</td>
+              <td class="price-highlight">Rp 1.100.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putri</strong></td>
+              <td class="price-highlight">Rp 1.600.000,-</td>
+              <td class="price-highlight">Rp 1.600.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Seragam Details SMK -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam SMK:</div>
+        <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Kain Putih, 3. Kain Hitam, 4. Baju Pramuka, 5. Celana Pramuka, 6. Kain Biru (Baju &amp; Celana), 7. Jersey Olahraga &amp; Celana Training, 8. Wearpack / Katelpak.</div>
+        <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih Asrama, 3. Kain Abu Bawahan, 4. Kain Ungu Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7. Kain Putih &amp; Minang Putih, 8. Kain Ungu Atasan &amp; Minang Coklat.</div>
+      </div>
+
+      <!-- Tabel Biaya Pangkal SMK -->
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal SMK (Berdasarkan Kuota &amp; Kategori)
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th rowspan="2" style="vertical-align: middle;">Gelombang / Kuota</th>
+              <th colspan="2" style="text-align: center; border-bottom: 1px solid #cbd5e1; background: #f1f5f9;">SANTRI ASRAMA</th>
+              <th colspan="2" style="text-align: center; border-bottom: 1px solid #cbd5e1; background: #e2e8f0;">SANTRI NON-ASRAMA</th>
+            </tr>
+            <tr>
+              <th style="background: #f8fafc;">Umum</th>
+              <th style="background: #f8fafc;">Alumni / Anak Guru</th>
+              <th style="background: #f8fafc;">Umum</th>
+              <th style="background: #f8fafc;">Alumni / Anak Guru</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Kuota 1</strong></td>
+              <td class="price-highlight" style="color: #059669;">Rp 8.400.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 6.900.000,-</td>
+              <td class="price-highlight">Rp 3.900.000,-</td>
+              <td class="price-highlight">Rp 3.300.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 2</strong></td>
+              <td class="price-highlight">Rp 9.700.000,-</td>
+              <td class="price-highlight">Rp 8.200.000,-</td>
+              <td class="price-highlight">Rp 5.200.000,-</td>
+              <td class="price-highlight">Rp 4.400.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 3</strong></td>
+              <td class="price-highlight">Rp 11.000.000,-</td>
+              <td class="price-highlight">Rp 9.500.000,-</td>
+              <td class="price-highlight">Rp 6.500.000,-</td>
+              <td class="price-highlight">Rp 5.500.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout-box">
+        <strong><i class="fa-solid fa-circle-info"></i> Beasiswa &amp; Keterangan Tambahan SMK:</strong>
+        <ul>
+          <li>Biaya SPP flat selama 3 tahun.</li>
+          <li><strong>Beasiswa Tahfiz</strong> tersedia bagi Santri Asrama melalui seleksi tes.</li>
+          <li>Biaya kegiatan 1 tahun belum termasuk program PKL (Praktik Kerja Lapangan), Kunjungan Industri, dan buku/kitab pelajaran.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- TAHAPAN PEMBAYARAN & DAFTAR ULANG -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); margin-top: 36px;">
+      <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-timeline" style="color: #4f46e5;"></i> Alur Pembayaran &amp; Daftar Ulang Santri Diterima
+      </h3>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+        <div style="background: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 10px; padding: 18px 20px;">
+          <div style="font-size: 0.78rem; font-weight: 800; color: #4f46e5; text-transform: uppercase; margin-bottom: 4px;">Tahap 1</div>
+          <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">Biaya Seleksi Online</div>
+          <div style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">Dibayar sebesar <strong>Rp 350.000,-</strong> saat melakukan pendaftaran online akun peserta untuk jadwal ujian CBT &amp; wawancara.</div>
+        </div>
+
+        <div style="background: #f8fafc; border-left: 4px solid #d97706; border-radius: 10px; padding: 18px 20px;">
+          <div style="font-size: 0.78rem; font-weight: 800; color: #d97706; text-transform: uppercase; margin-bottom: 4px;">Tahap 2</div>
+          <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">Biaya Pangkal (1 Pekan)</div>
+          <div style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">Setelah dinyatakan <strong>DITERIMA</strong>, calon santri wajib membayar Biaya Pangkal maksimal <strong>1 pekan</strong> untuk mengunci kuota pendaftaran.</div>
+        </div>
+
+        <div style="background: #f8fafc; border-left: 4px solid #16a34a; border-radius: 10px; padding: 18px 20px;">
+          <div style="font-size: 0.78rem; font-weight: 800; color: #16a34a; text-transform: uppercase; margin-bottom: 4px;">Tahap 3</div>
+          <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">Daftar Ulang (Sebelum Masuk)</div>
+          <div style="font-size: 0.85rem; color: #64748b; line-height: 1.5;">Melunasi sisa biaya sebelum masuk tahun ajaran baru (SPP bulan Juli, Kegiatan &amp; Kelengkapan, serta Seragam).</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 24px;">
+        <p style="color: #475569; font-size: 0.95rem; margin-bottom: 18px;">
+          <em>Semoga Allah ﷻ senantiasa memberkahi rezeki dan setiap langkah kita dalam mendidik generasi penerus peradaban Islam.</em>
+        </p>
+        <div style="display: inline-flex; gap: 14px; flex-wrap: wrap; justify-content: center;">
+          <a href="/register.html" class="btn" style="background: #4f46e5; color: #ffffff; padding: 12px 28px; font-weight: 700; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
+            <i class="fa-solid fa-paper-plane"></i> Daftar Akun Santri Baru
+          </a>
+          <a href="/guide.html" class="btn" style="background: #ffffff; color: #334155; border: 1px solid #cbd5e1; padding: 12px 24px; font-weight: 600; border-radius: 9999px; text-decoration: none;">
+            <i class="fa-solid fa-book"></i> Lihat Panduan &amp; Alur
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer" style="background: #ffffff; border-top: 1px solid #e2e8f0; padding: 32px 20px; text-align: center;">
+    <div class="container" style="max-width: 1100px; margin: 0 auto;">
+      <div style="font-weight: 800; color: #0f172a; font-size: 1.05rem; margin-bottom: 0.35rem;" id="footer-title">
+        PSB MASKUMAMBANG
+      </div>
+      <p style="color: #64748b; font-size: 0.875rem;" id="footer-desc">
+        Penerimaan Santri Baru (PSB) Pondok Pesantren Maskumambang.
+      </p>
+      <div style="margin-top: 1rem; font-size: 0.8rem; color: #94a3b8;">
+        &copy; 2026 Maskumambang Creative Center
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/app.js?v=20261017_v1"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initTheme();
+      loadBrandingInfo();
+      checkAuthStatus();
+    });
+
+    function checkAuthStatus() {
+      if (typeof state !== 'undefined' && state.token && state.user) {
+        const authNav = document.getElementById('auth-buttons-nav');
+        const userNav = document.getElementById('user-logged-nav');
+        if (authNav) authNav.style.display = 'none';
+        if (userNav) userNav.style.display = 'block';
+      }
+    }
+
+    function togglePublicMenu(event) {
+      if (event) event.stopPropagation();
+      const navbar = document.querySelector('.public-navbar');
+      if (navbar) navbar.classList.toggle('menu-open');
+    }
+
+    function switchLevelTab(levelId, btnEl) {
+      document.querySelectorAll('.level-tab-btn').forEach(btn => btn.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+
+      const sections = document.querySelectorAll('.level-section');
+      if (levelId === 'all') {
+        sections.forEach(sec => sec.style.display = 'block');
+      } else {
+        sections.forEach(sec => {
+          if (sec.id === `section-${levelId}`) {
+            sec.style.display = 'block';
+            sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          } else {
+            sec.style.display = 'none';
+          }
+        });
+      }
+    }
+  </script>
+</body>
+
+</html>

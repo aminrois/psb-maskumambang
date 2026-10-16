@@ -1083,6 +1083,7 @@ function buildRoleSidebar(role) {
           <a href="#countdown-settings" id="nav-countdown-settings" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-stopwatch"></i></span><span class="nav-label">Countdown Pendaftaran</span></a>
           <a href="#homepage-announcements" id="nav-homepage-announcements" class="sidebar-nav-item" onclick="alert('Fitur Pengumuman Homepage akan segera hadir.'); return false;"><span class="nav-icon"><i class="fa-solid fa-bullhorn"></i></span><span class="nav-label">Pengumuman Homepage</span></a>
           <a href="#homepage-flow" id="nav-homepage-flow" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-route"></i></span><span class="nav-label">Alur Pendaftaran</span></a>
+          <a href="#metadata-settings" id="nav-metadata-settings" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-tags"></i></span><span class="nav-label">Metadata &amp; SEO</span></a>
         </div>
       </div>
 
@@ -1096,7 +1097,8 @@ function buildRoleSidebar(role) {
           <a href="#users" id="nav-users" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-users-gear"></i></span><span class="nav-label">Pengguna</span></a>
           <a href="#payment-accounts" id="nav-payment-accounts" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-building-columns"></i></span><span class="nav-label">Rekening Pembayaran</span></a>
           <a href="#branding-settings" id="nav-branding-settings" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-sliders"></i></span><span class="nav-label">Pengaturan Aplikasi</span></a>
-          <a href="#countdown-settings" id="nav-countdown-settings" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-stopwatch"></i></span><span class="nav-label">Pengaturan Countdown</span></a>
+          <a href="#metadata-settings" id="nav-metadata-settings-sys" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-tags"></i></span><span class="nav-label">Metadata &amp; SEO</span></a>
+          <a href="#countdown-settings" id="nav-countdown-settings-sys" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-stopwatch"></i></span><span class="nav-label">Pengaturan Countdown</span></a>
         </div>
       </div>
 
@@ -1128,6 +1130,7 @@ function buildRoleSidebar(role) {
           <a href="#master-periode" id="nav-master-periode" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-days"></i></span><span class="nav-label">Periode TP</span></a>
           <a href="#master-gelombang" id="nav-master-gelombang" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-users-between-lines"></i></span><span class="nav-label">Kuota Pendaftaran</span></a>
           <a href="#master-kategori" id="nav-master-kategori" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-sitemap"></i></span><span class="nav-label">Struktur Pendidikan</span></a>
+          <a href="#metadata-settings" id="nav-metadata-settings-admin" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-tags"></i></span><span class="nav-label">Metadata &amp; SEO</span></a>
         </div>
       </div>
 
@@ -1389,6 +1392,7 @@ function handleDashboardRoute() {
     else if (mainRoute === 'users') renderAdminUsersView();
     else if (mainRoute === 'payment-accounts') renderAdminPaymentAccountsView();
     else if (mainRoute === 'branding-settings') renderAdminBrandingView();
+    else if (mainRoute === 'metadata-settings' || mainRoute === 'metadata') renderAdminMetadataView();
     else if (mainRoute === 'countdown-settings') renderAdminCountdownView();
     else if (mainRoute === 'audit-logs') renderAdminAuditLogsView();
     else if (mainRoute === 'reset-operasional') renderAdminResetOperasionalView();
@@ -1472,6 +1476,9 @@ function handleDashboardRoute() {
     }
     else if (mainRoute === 'detail') renderPesertaRegistrationDetail(param);
     else if (mainRoute === 'card') renderParticipantCardView(param);
+    else if (mainRoute === 'metadata-settings' || mainRoute === 'metadata') renderAdminMetadataView();
+    else if (mainRoute === 'branding-settings') renderAdminBrandingView();
+    else if (mainRoute === 'countdown-settings') renderAdminCountdownView();
     else if (mainRoute === 'change-password') renderChangePasswordView();
     else renderAdminDashboard();
   } else if (role === 'ADMIN_BARCODE') {
@@ -7942,6 +7949,577 @@ async function handleCountdownSave(e) {
   }
 }
 
+// ==========================================
+// PENGATURAN METADATA, SEO & WEBMASTER VIEW
+// ==========================================
+async function renderAdminMetadataView() {
+  const container = document.getElementById('main-view-slot');
+  if (!container) return;
+
+  // Pastikan settings termuat
+  let s = state.settings || {};
+  if (!s || !s.application_name) {
+    try {
+      const res = await apiRequest('/api/settings');
+      if (res && res.success && res.data) {
+        state.settings = res.data;
+        s = res.data;
+      }
+    } catch (e) {
+      console.warn('Gagal memuat settings:', e);
+    }
+  }
+
+  const baseUrl = window.location.origin;
+  const rawLogo = s.application_logo || 'logo_e7a8b6a95d.webp';
+  const logoUrl = (rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('/'))
+    ? rawLogo
+    : `/static/img/${rawLogo}`;
+
+  const rawFavicon = s.application_favicon || 'favicon_87007b6344.webp';
+  const faviconUrl = (rawFavicon.startsWith('http://') || rawFavicon.startsWith('https://') || rawFavicon.startsWith('/'))
+    ? rawFavicon
+    : `/static/img/${rawFavicon}`;
+
+  const rawOgImg = s.og_image || rawLogo;
+  const ogImgUrl = (rawOgImg.startsWith('http://') || rawOgImg.startsWith('https://') || rawOgImg.startsWith('/'))
+    ? rawOgImg
+    : `/static/img/${rawOgImg}`;
+
+  const metaTitle = s.meta_title || s.application_name || 'PSB Maskumambang';
+  const metaDesc = s.meta_description || s.application_description || 'Portal Resmi Penerimaan Santri Baru (PSB) Pondok Pesantren Maskumambang';
+  const metaKeywords = s.meta_keywords || 'PSB Maskumambang, Pondok Pesantren Maskumambang, Santri Baru, MI, MTs, MA, SMK';
+  const metaAuthor = s.meta_author || s.application_name || 'Pondok Pesantren Maskumambang';
+  const metaRobots = s.meta_robots || 'index, follow';
+  const canonicalUrl = s.canonical_url || '';
+
+  let socialHost = window.location.hostname;
+  if (canonicalUrl) {
+    try {
+      socialHost = new URL(canonicalUrl.startsWith('http') ? canonicalUrl : `https://${canonicalUrl}`).hostname;
+    } catch {
+      socialHost = canonicalUrl;
+    }
+  }
+
+  const ogTitle = s.og_title || metaTitle;
+  const ogDesc = s.og_description || metaDesc;
+  const ogType = s.og_type || 'website';
+
+  const twitterCard = s.twitter_card || 'summary_large_image';
+  const twitterTitle = s.twitter_title || ogTitle;
+  const twitterDesc = s.twitter_description || ogDesc;
+
+  const gscVerification = s.google_site_verification || '';
+  const gaId = s.google_analytics_id || '';
+  const gtmId = s.google_tag_manager_id || '';
+
+  const customHead = s.custom_head_scripts || '';
+  const customBody = s.custom_body_scripts || '';
+
+  container.innerHTML = `
+    <div style="max-width: 1040px; margin: 0 auto; padding-bottom: 60px;">
+      <!-- Page Header -->
+      <div style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px;">
+        <div>
+          <h2 style="font-size: 1.6rem; color: var(--text-heading); margin-bottom: 4px; display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-tags" style="color: #0284c7;"></i> Pengaturan Metadata, SEO &amp; Webmaster
+          </h2>
+          <p style="color: var(--text-muted); font-size: 0.95rem; margin: 0;">
+            Kelola identitas SEO mesin pencari, preview media sosial, verifikasi Google Search Console, Google Analytics 4, GTM, dan script kustom.
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <a href="/" target="_blank" class="btn btn-sm btn-secondary" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px;">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Cek Tampilan Web
+          </a>
+        </div>
+      </div>
+
+      <div id="meta-save-alert" style="display: none; padding: 14px 18px; border-radius: 10px; margin-bottom: 22px;"></div>
+
+      <!-- Navigation Tabs -->
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 2px solid var(--border-subtle); margin-bottom: 24px; padding-bottom: 2px;">
+        <button type="button" class="btn-meta-tab active" id="tab-btn-seo" onclick="switchMetadataSubTab('seo')" style="padding: 10px 18px; font-weight: 700; font-size: 0.9rem; border: none; background: none; color: var(--primary-600); border-bottom: 3px solid var(--primary-600); cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-magnifying-glass"></i> 1. SEO &amp; Meta Tag
+        </button>
+        <button type="button" class="btn-meta-tab" id="tab-btn-social" onclick="switchMetadataSubTab('social')" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; border: none; background: none; color: var(--text-muted); border-bottom: 3px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-share-nodes"></i> 2. Media Sosial (Open Graph &amp; X)
+        </button>
+        <button type="button" class="btn-meta-tab" id="tab-btn-google" onclick="switchMetadataSubTab('google')" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; border: none; background: none; color: var(--text-muted); border-bottom: 3px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+          <i class="fa-brands fa-google"></i> 3. Google Console &amp; Analytics
+        </button>
+        <button type="button" class="btn-meta-tab" id="tab-btn-custom" onclick="switchMetadataSubTab('custom')" style="padding: 10px 18px; font-weight: 600; font-size: 0.9rem; border: none; background: none; color: var(--text-muted); border-bottom: 3px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-code"></i> 4. Script Kustom (Head &amp; Body)
+        </button>
+      </div>
+
+      <form onsubmit="handleMetadataSave(event)" id="metadata-settings-form">
+
+        <!-- ========================================== -->
+        <!-- TAB 1: SEO & META TAG DASAR                -->
+        <!-- ========================================== -->
+        <div id="meta-pane-seo" class="meta-pane">
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 26px; box-shadow: var(--shadow-sm); margin-bottom: 24px;">
+            <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-globe" style="color: var(--primary-600);"></i> Metadata Search Engine (Google, Bing, dll.)
+            </div>
+
+            <!-- Meta Title -->
+            <div class="form-group" style="margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="font-size: 0.875rem; font-weight: 700; color: var(--text-main); margin: 0;">
+                  Meta Title (Judul Halaman Pencarian)
+                </label>
+                <span id="title-char-count" style="font-size: 0.75rem; color: var(--text-dim);">50-60 Karakter Disarankan</span>
+              </div>
+              <input type="text" id="meta-title-input" class="form-control" value="${metaTitle}" oninput="updateLiveSeoPreview()" placeholder="Contoh: Penerimaan Santri Baru (PSB) Pondok Pesantren Maskumambang" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.92rem;">
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 5px;">
+                Judul utama yang tampil sebagai teks biru pada hasil pencarian Google.
+              </div>
+            </div>
+
+            <!-- Meta Description -->
+            <div class="form-group" style="margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label class="form-label" style="font-size: 0.875rem; font-weight: 700; color: var(--text-main); margin: 0;">
+                  Meta Description (Ringkasan Deskripsi)
+                </label>
+                <span id="desc-char-count" style="font-size: 0.75rem; color: var(--text-dim);">140-160 Karakter Disarankan</span>
+              </div>
+              <textarea id="meta-desc-input" class="form-control" rows="3" oninput="updateLiveSeoPreview()" placeholder="Deskripsi ringkas yang menjelaskan portal PSB..." style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.92rem;">${metaDesc}</textarea>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 5px;">
+                Teks cuplikan penjelasan yang muncul di bawah judul pada mesin pencari Google.
+              </div>
+            </div>
+
+            <!-- Keywords & Author -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                  Meta Keywords (Kata Kunci)
+                </label>
+                <input type="text" id="meta-keywords-input" class="form-control" value="${metaKeywords}" placeholder="PSB, Pesantren, Santri Baru, Maskumambang" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Pisahkan dengan tanda koma (,)</div>
+              </div>
+
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                  Meta Author (Penerbit / Pemilik)
+                </label>
+                <input type="text" id="meta-author-input" class="form-control" value="${metaAuthor}" placeholder="Pondok Pesantren Maskumambang" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Nama lembaga atau institusi resmi.</div>
+              </div>
+            </div>
+
+            <!-- Robots & Canonical -->
+            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; margin-bottom: 10px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                  Robots Indexing (Crawler)
+                </label>
+                <select id="meta-robots-select" class="form-control" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="index, follow" ${metaRobots === 'index, follow' ? 'selected' : ''}>index, follow (Rekomendasi: Izinkan Google Mengindeks)</option>
+                  <option value="noindex, follow" ${metaRobots === 'noindex, follow' ? 'selected' : ''}>noindex, follow (Jangan tampilkan di hasil pencarian)</option>
+                  <option value="index, nofollow" ${metaRobots === 'index, nofollow' ? 'selected' : ''}>index, nofollow (Indeks halaman, jangan ikuti link)</option>
+                  <option value="noindex, nofollow" ${metaRobots === 'noindex, nofollow' ? 'selected' : ''}>noindex, nofollow (Tutup penuh dari mesin pencari)</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                  Canonical URL (URL Kanonikal Resmi)
+                </label>
+                <input type="url" id="meta-canonical-input" class="form-control" value="${canonicalUrl}" oninput="updateLiveSeoPreview()" placeholder="Contoh: https://psb.maskumambang.ac.id" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Mencegah masalah konten duplikat (opsional, default domain saat ini).</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- LIVE GOOGLE SEARCH SERP PREVIEW CARD -->
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-sm); margin-bottom: 24px;">
+            <div style="font-size: 0.8rem; font-weight: 800; color: #1a73e8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-brands fa-google"></i> Simulasi Tampilan di Google Search (SERP Preview)
+            </div>
+            <div style="background: #ffffff; border: 1px solid #dfe1e5; border-radius: 12px; padding: 18px 20px; font-family: arial, sans-serif;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <img src="${faviconUrl}" alt="favicon" style="width: 18px; height: 18px; border-radius: 50%; object-fit: contain;">
+                <span id="preview-serp-url" style="color: #202124; font-size: 13px;">${canonicalUrl || baseUrl}</span>
+              </div>
+              <div id="preview-serp-title" style="color: #1a0dab; font-size: 19px; line-height: 1.3; font-weight: 400; cursor: pointer; text-decoration: none; margin-bottom: 4px;">
+                ${metaTitle}
+              </div>
+              <div id="preview-serp-desc" style="color: #4d5156; font-size: 14px; line-height: 1.58;">
+                ${metaDesc}
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ========================================== -->
+        <!-- TAB 2: MEDIA SOSIAL (OPEN GRAPH & X)       -->
+        <!-- ========================================== -->
+        <div id="meta-pane-social" class="meta-pane" style="display: none;">
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 26px; box-shadow: var(--shadow-sm); margin-bottom: 24px;">
+            <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-share-nodes" style="color: #3b82f6;"></i> Open Graph (WhatsApp, Facebook, Telegram, LinkedIn)
+            </div>
+
+            <!-- OG Title & Type -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 18px;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                  og:title (Judul Share Media Sosial)
+                </label>
+                <input type="text" id="og-title-input" class="form-control" value="${ogTitle}" oninput="updateLiveSocialPreview()" placeholder="Judul saat link dishare ke WhatsApp / Medsos" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                  og:type
+                </label>
+                <select id="og-type-select" class="form-control" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="website" ${ogType === 'website' ? 'selected' : ''}>website</option>
+                  <option value="article" ${ogType === 'article' ? 'selected' : ''}>article</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- OG Description -->
+            <div class="form-group" style="margin-bottom: 20px;">
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                og:description (Deskripsi Share Media Sosial)
+              </label>
+              <textarea id="og-desc-input" class="form-control" rows="3" oninput="updateLiveSocialPreview()" placeholder="Deskripsi saat link dibagikan di media sosial..." style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">${ogDesc}</textarea>
+            </div>
+
+            <!-- OG Image Upload & URL -->
+            <div style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 18px 20px; margin-bottom: 24px;">
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">
+                <i class="fa-solid fa-image"></i> Gambar Thumbnail Sosial Media (og:image)
+              </label>
+              <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 20px;">
+                <div style="width: 140px; height: 78px; border-radius: 10px; background: #000; border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                  <img id="og-image-preview-slot" src="${ogImgUrl}" alt="OG Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div style="flex: 1; min-width: 240px;">
+                  <div style="margin-bottom: 10px;">
+                    <input type="file" id="og-image-file" accept="image/png,image/jpeg,image/webp" style="font-size: 0.85rem;" onchange="previewBrandingFile(this, 'og-image-preview-slot'); updateLiveSocialPreviewFile(this);">
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 3px;">Format disarankan: 1200 x 630 px (JPG/PNG/WEBP, Maks. 2MB).</div>
+                  </div>
+                  <div>
+                    <input type="text" id="og-image-url-input" class="form-control" value="${s.og_image || ''}" oninput="updateLiveSocialPreview()" placeholder="Atau masukkan link gambar eksternal (https://...)" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-sm); font-size: 0.82rem;">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Twitter / X Settings -->
+            <div style="padding-top: 18px; border-top: 1px solid var(--border-subtle);">
+              <div style="font-weight: 800; font-size: 1rem; color: var(--text-heading); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-brands fa-x-twitter"></i> Pengaturan Twitter / X Cards
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 14px;">
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: var(--text-main);">twitter:card</label>
+                  <select id="twitter-card-select" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                    <option value="summary_large_image" ${twitterCard === 'summary_large_image' ? 'selected' : ''}>summary_large_image (Gambar Besar - Rekomendasi)</option>
+                    <option value="summary" ${twitterCard === 'summary' ? 'selected' : ''}>summary (Kotak Thumbnail Kecil)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: var(--text-main);">twitter:title (Opsional, default sama dengan OG)</label>
+                  <input type="text" id="twitter-title-input" class="form-control" value="${twitterTitle}" placeholder="Kosongkan jika sama dengan OG Title" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- LIVE SOCIAL SHARE PREVIEW CARD -->
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow-sm); margin-bottom: 24px;">
+            <div style="font-size: 0.8rem; font-weight: 800; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-mobile-screen"></i> Simulasi Preview Share WhatsApp / Media Sosial
+            </div>
+            <div style="max-width: 480px; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+              <div style="width: 100%; height: 210px; background: #0f172a; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                <img id="preview-social-img" src="${ogImgUrl}" alt="Social Card Preview" style="width: 100%; height: 100%; object-fit: cover;">
+              </div>
+              <div style="padding: 16px 18px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                <div id="preview-social-host" style="font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 600; margin-bottom: 4px;">
+                  ${socialHost}
+                </div>
+                <div id="preview-social-title" style="font-size: 0.98rem; font-weight: 800; color: #0f172a; line-height: 1.35; margin-bottom: 4px;">
+                  ${ogTitle}
+                </div>
+                <div id="preview-social-desc" style="font-size: 0.82rem; color: #475569; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                  ${ogDesc}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ========================================== -->
+        <!-- TAB 3: GOOGLE CONSOLE & ANALYTICS          -->
+        <!-- ========================================== -->
+        <div id="meta-pane-google" class="meta-pane" style="display: none;">
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 26px; box-shadow: var(--shadow-sm); margin-bottom: 24px;">
+            <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-brands fa-google" style="color: #ea4335;"></i> Google Search Console Verification
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px; line-height: 1.5;">
+              Hubungkan website dengan <strong>Google Search Console</strong> untuk memantau performa kata kunci pencarian, sitemap, indexing halaman, dan status kesehatan website di Google.
+            </p>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                Kode Verifikasi Google Search Console (HTML Tag / Token)
+              </label>
+              <input type="text" id="gsc-token-input" class="form-control" value="${gscVerification}" placeholder="Contoh: v8k_xxxxxx atau <meta name='google-site-verification' content='...' />" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-family: monospace;">
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 6px; line-height: 1.5;">
+                <i class="fa-solid fa-circle-question" style="color: #0284c7;"></i> <strong>Panduan:</strong> Masuk ke Google Search Console &gt; Tambah Properti &gt; Pilih metode verifikasi <strong>Tag HTML</strong> &gt; Salin kode token atau seluruh tag <code>&lt;meta&gt;</code> ke kolom ini. Sistem akan otomatis memasangnya di halaman depan.
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 10px;">
+              <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-chart-pie" style="color: #f59e0b;"></i> Google Analytics 4 (GA4) &amp; Google Tag Manager (GTM)
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px; line-height: 1.5;">
+                Integrasi pelacakan pengunjung, statistik pendaftaran, sumber lalu lintas (Traffic Sources), dan konversi secara realtime.
+              </p>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px;">
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                    Google Analytics Measurement ID (GA4)
+                  </label>
+                  <input type="text" id="ga-id-input" class="form-control" value="${gaId}" placeholder="Contoh: G-XXXXXXXXXX" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-family: monospace;">
+                  <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Sistem akan otomatis menginjeksi library resmi <code>gtag.js</code>.</div>
+                </div>
+
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                    Google Tag Manager Container ID (GTM)
+                  </label>
+                  <input type="text" id="gtm-id-input" class="form-control" value="${gtmId}" placeholder="Contoh: GTM-XXXXXXX" style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-family: monospace;">
+                  <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Otomatis memasang tag GTM di <code>&lt;head&gt;</code> dan <code>&lt;noscript&gt;</code> di <code>&lt;body&gt;</code>.</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+
+        <!-- ========================================== -->
+        <!-- TAB 4: KUSTOM SCRIPTS (HEAD & BODY)        -->
+        <!-- ========================================== -->
+        <div id="meta-pane-custom" class="meta-pane" style="display: none;">
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 26px; box-shadow: var(--shadow-sm); margin-bottom: 24px;">
+            <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-code" style="color: #6366f1;"></i> Injeksi Script Kustom &amp; Tag HTML Tambahan
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px; line-height: 1.5;">
+              Gunakan opsi ini jika Anda memiliki tracking pixel pihak ketiga (seperti Meta Pixel / Facebook Pixel, TikTok Pixel), verifikasi kepemilikan domain kustom, atau widget chat langsung (Tawk.to, WhatsApp Widget).
+            </p>
+
+            <div class="form-group" style="margin-bottom: 22px;">
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                Header Scripts (Diinjeksi tepat sebelum <code>&lt;/head&gt;</code>)
+              </label>
+              <textarea id="custom-head-input" class="form-control" rows="5" placeholder="<!-- Masukkan tag <meta>, <script>, atau <link> di sini -->" style="width: 100%; padding: 12px; font-family: monospace; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">${customHead}</textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">
+                Body Scripts (Diinjeksi tepat sebelum <code>&lt;/body&gt;</code>)
+              </label>
+              <textarea id="custom-body-input" class="form-control" rows="5" placeholder="<!-- Masukkan widget live chat atau tracking noscript di sini -->" style="width: 100%; padding: 12px; font-family: monospace; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">${customBody}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sticky / Fixed Save Button -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 18px 24px; box-shadow: var(--shadow-md); display: flex; justify-content: space-between; align-items: center; gap: 16px;">
+          <div style="font-size: 0.85rem; color: var(--text-muted);">
+            <i class="fa-solid fa-cloud-arrow-up" style="color: #0284c7;"></i> Perubahan langsung aktif di seluruh halaman publik tanpa perlu restart aplikasi.
+          </div>
+          <button type="submit" id="btn-save-metadata" class="btn btn-primary" style="padding: 12px 28px; font-weight: 700; font-size: 0.95rem; border-radius: var(--radius-md); min-width: 220px;">
+            <i class="fa-solid fa-check"></i> Simpan Semua Metadata
+          </button>
+        </div>
+
+      </form>
+    </div>
+  `;
+
+  updateLiveSeoPreview();
+  updateLiveSocialPreview();
+}
+
+function switchMetadataSubTab(tabName) {
+  document.querySelectorAll('.btn-meta-tab').forEach(b => {
+    b.style.color = 'var(--text-muted)';
+    b.style.borderBottomColor = 'transparent';
+    b.classList.remove('active');
+  });
+  document.querySelectorAll('.meta-pane').forEach(p => p.style.display = 'none');
+
+  const btn = document.getElementById(`tab-btn-${tabName}`);
+  const pane = document.getElementById(`meta-pane-${tabName}`);
+
+  if (btn) {
+    btn.style.color = 'var(--primary-600)';
+    btn.style.borderBottomColor = 'var(--primary-600)';
+    btn.classList.add('active');
+  }
+  if (pane) {
+    pane.style.display = 'block';
+  }
+}
+
+function updateLiveSeoPreview() {
+  const titleVal = document.getElementById('meta-title-input')?.value || 'PSB Maskumambang';
+  const descVal = document.getElementById('meta-desc-input')?.value || '';
+  const canonVal = document.getElementById('meta-canonical-input')?.value || window.location.origin;
+
+  const serpTitle = document.getElementById('preview-serp-title');
+  const serpDesc = document.getElementById('preview-serp-desc');
+  const serpUrl = document.getElementById('preview-serp-url');
+
+  if (serpTitle) serpTitle.textContent = titleVal;
+  if (serpDesc) serpDesc.textContent = descVal || 'Tidak ada deskripsi yang disetel.';
+  if (serpUrl) serpUrl.textContent = canonVal;
+
+  const titleCounter = document.getElementById('title-char-count');
+  if (titleCounter) {
+    const len = titleVal.length;
+    titleCounter.textContent = `${len} karakter ${len > 60 ? '(Terlalu panjang)' : len < 30 ? '(Terlalu pendek)' : '(Ideal)'}`;
+    titleCounter.style.color = (len >= 30 && len <= 60) ? '#059669' : '#d97706';
+  }
+
+  const descCounter = document.getElementById('desc-char-count');
+  if (descCounter) {
+    const len = descVal.length;
+    descCounter.textContent = `${len} karakter ${len > 160 ? '(Terlalu panjang)' : len < 80 ? '(Terlalu pendek)' : '(Ideal)'}`;
+    descCounter.style.color = (len >= 80 && len <= 160) ? '#059669' : '#d97706';
+  }
+}
+
+function updateLiveSocialPreview() {
+  const ogTitleVal = document.getElementById('og-title-input')?.value || document.getElementById('meta-title-input')?.value || 'PSB Maskumambang';
+  const ogDescVal = document.getElementById('og-desc-input')?.value || document.getElementById('meta-desc-input')?.value || '';
+  const canonVal = document.getElementById('meta-canonical-input')?.value || window.location.origin;
+  const urlVal = document.getElementById('og-image-url-input')?.value;
+
+  const pTitle = document.getElementById('preview-social-title');
+  const pDesc = document.getElementById('preview-social-desc');
+  const pHost = document.getElementById('preview-social-host');
+  const pImg = document.getElementById('preview-social-img');
+
+  if (pTitle) pTitle.textContent = ogTitleVal;
+  if (pDesc) pDesc.textContent = ogDescVal;
+  if (pHost) {
+    try {
+      pHost.textContent = new URL(canonVal).hostname;
+    } catch {
+      pHost.textContent = window.location.hostname;
+    }
+  }
+  if (urlVal && pImg) {
+    pImg.src = urlVal;
+  }
+}
+
+function updateLiveSocialPreviewFile(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const pImg = document.getElementById('preview-social-img');
+      if (pImg) pImg.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function handleMetadataSave(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-save-metadata');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+  }
+
+  try {
+    // 1. Upload OG Image file jika ada
+    const ogFileInput = document.getElementById('og-image-file');
+    let uploadedOgFilename = null;
+    if (ogFileInput && ogFileInput.files && ogFileInput.files[0]) {
+      const fd = new FormData();
+      fd.append('og_image', ogFileInput.files[0]);
+      const upRes = await apiRequest('/api/settings/og-image', { method: 'POST', body: fd });
+      if (upRes && upRes.data && upRes.data.filename) {
+        uploadedOgFilename = upRes.data.filename;
+      }
+    }
+
+    // 2. Kumpulkan field metadata
+    const payload = {
+      meta_title: document.getElementById('meta-title-input')?.value?.trim() || '',
+      meta_description: document.getElementById('meta-desc-input')?.value?.trim() || '',
+      meta_keywords: document.getElementById('meta-keywords-input')?.value?.trim() || '',
+      meta_author: document.getElementById('meta-author-input')?.value?.trim() || '',
+      meta_robots: document.getElementById('meta-robots-select')?.value || 'index, follow',
+      canonical_url: document.getElementById('meta-canonical-input')?.value?.trim() || '',
+      og_title: document.getElementById('og-title-input')?.value?.trim() || '',
+      og_description: document.getElementById('og-desc-input')?.value?.trim() || '',
+      og_type: document.getElementById('og-type-select')?.value || 'website',
+      twitter_card: document.getElementById('twitter-card-select')?.value || 'summary_large_image',
+      twitter_title: document.getElementById('twitter-title-input')?.value?.trim() || '',
+      twitter_description: document.getElementById('og-desc-input')?.value?.trim() || '',
+      google_site_verification: document.getElementById('gsc-token-input')?.value?.trim() || '',
+      google_analytics_id: document.getElementById('ga-id-input')?.value?.trim() || '',
+      google_tag_manager_id: document.getElementById('gtm-id-input')?.value?.trim() || '',
+      custom_head_scripts: document.getElementById('custom-head-input')?.value || '',
+      custom_body_scripts: document.getElementById('custom-body-input')?.value || '',
+    };
+
+    // Jika user menginput custom URL og_image atau upload gambar baru
+    if (uploadedOgFilename) {
+      payload.og_image = uploadedOgFilename;
+    } else {
+      const customUrl = document.getElementById('og-image-url-input')?.value?.trim();
+      if (customUrl) payload.og_image = customUrl;
+    }
+
+    const res = await apiRequest('/api/settings', {
+      method: 'POST',
+      body: payload,
+    });
+
+    if (res && res.success) {
+      state.settings = res.data;
+      showBannerAlert('meta-save-alert', 'Pengaturan Metadata, SEO, Google Console & Analytics berhasil disimpan dan langsung aktif!', 'success');
+      showToast('Pengaturan Metadata berhasil disimpan!', 'success');
+      await loadBrandingInfo();
+    } else {
+      throw new Error(res.message || 'Gagal menyimpan metadata.');
+    }
+  } catch (err) {
+    showBannerAlert('meta-save-alert', err.message || 'Terjadi kesalahan.', 'danger');
+    showToast(err.message || 'Gagal menyimpan.', 'danger');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Simpan Semua Metadata';
+    }
+  }
+}
+
 // --- HOMEPAGE LIVE COUNTDOWN TIMER ENGINE ---
 let countdownTimerInterval = null;
 
@@ -8992,6 +9570,12 @@ window.handleBrandingSave = handleBrandingSave;
 window.previewBrandingFile = previewBrandingFile;
 window.renderAdminCountdownView = renderAdminCountdownView;
 window.handleCountdownSave = handleCountdownSave;
+window.renderAdminMetadataView = renderAdminMetadataView;
+window.switchMetadataSubTab = switchMetadataSubTab;
+window.updateLiveSeoPreview = updateLiveSeoPreview;
+window.updateLiveSocialPreview = updateLiveSocialPreview;
+window.updateLiveSocialPreviewFile = updateLiveSocialPreviewFile;
+window.handleMetadataSave = handleMetadataSave;
 window.initHomepageCountdown = initHomepageCountdown;
 window.initHomepageQuotaInfo = initHomepageQuotaInfo;
 window.handleOperationalResetSubmit = handleOperationalResetSubmit;

@@ -31,6 +31,26 @@ export class SettingsService {
       countdown_title: 'Hitung Mundur Penutupan Pendaftaran',
       countdown_target_date: '2026-10-15T23:59:00',
       countdown_ended_text: 'Pendaftaran Resmi Ditutup',
+      // Metadata & SEO Defaults
+      meta_title: 'PSB Pondok Pesantren Maskumambang',
+      meta_description: 'Portal Resmi Penerimaan Santri Baru (PSB) Pondok Pesantren Maskumambang. Pendidikan Islam terpadu dengan lingkungan yang disiplin, berakhlak, dan berprestasi.',
+      meta_keywords: 'PSB Maskumambang, Pondok Pesantren Maskumambang, Santri Baru, MI Maskumambang, MTs Maskumambang, MA Maskumambang, SMK Maskumambang',
+      meta_author: 'Pondok Pesantren Maskumambang',
+      meta_robots: 'index, follow',
+      canonical_url: '',
+      og_title: 'Penerimaan Santri Baru Pondok Pesantren Maskumambang',
+      og_description: 'Pendaftaran Santri Baru Pondok Pesantren Maskumambang tahun ajaran baru. Pendidikan Islam unggul dan berakhlak mulia.',
+      og_image: '',
+      og_type: 'website',
+      twitter_card: 'summary_large_image',
+      twitter_title: '',
+      twitter_description: '',
+      twitter_image: '',
+      google_site_verification: '',
+      google_analytics_id: '',
+      google_tag_manager_id: '',
+      custom_head_scripts: '',
+      custom_body_scripts: '',
     };
 
     settings.forEach((s) => {
@@ -63,7 +83,7 @@ export class SettingsService {
     return this.getSettings();
   }
 
-  async uploadBrandingFile(staffUserId: string, file: Express.Multer.File, type: 'logo' | 'favicon') {
+  async uploadBrandingFile(staffUserId: string, file: Express.Multer.File, type: 'logo' | 'favicon' | 'og_image') {
     if (!file || !file.buffer) {
       throw new BadRequestException('File tidak ditemukan.');
     }
@@ -86,7 +106,11 @@ export class SettingsService {
       fs.writeFileSync(path.join(dir, filename), file.buffer);
     }
 
-    const settingKey = type === 'logo' ? 'application_logo' : 'application_favicon';
+    const settingKey = type === 'logo'
+      ? 'application_logo'
+      : type === 'favicon'
+        ? 'application_favicon'
+        : 'og_image';
     await this.prisma.appSetting.upsert({
       where: { key: settingKey },
       update: { value: filename },

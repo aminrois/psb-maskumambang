@@ -34,6 +34,7 @@ async function bootstrap() {
           scriptSrc: [
             "'self'",
             "'unsafe-inline'",
+            "'unsafe-eval'",
             'https://cdnjs.cloudflare.com',
             'https://unpkg.com',
             'https://cdn.jsdelivr.net',
@@ -41,6 +42,8 @@ async function bootstrap() {
             'https://www.gstatic.com',
             'https://www.google.com/recaptcha/',
             'https://www.gstatic.com/recaptcha/',
+            'https://www.googletagmanager.com',
+            'https://www.google-analytics.com',
           ],
           scriptSrcAttr: ["'unsafe-inline'"],
           styleSrc: [
@@ -55,13 +58,28 @@ async function bootstrap() {
             'https://fonts.gstatic.com',
             'https://cdnjs.cloudflare.com',
           ],
-          imgSrc: ["'self'", 'data:', 'blob:', 'https://www.google.com', 'https://www.gstatic.com'],
-          connectSrc: ["'self'", 'https://www.google.com', 'https://www.gstatic.com'],
+          imgSrc: [
+            "'self'",
+            'data:',
+            'blob:',
+            'https:',
+            'http:',
+          ],
+          connectSrc: [
+            "'self'",
+            'https://www.google.com',
+            'https://www.gstatic.com',
+            'https://www.google-analytics.com',
+            'https://analytics.google.com',
+            'https://*.googletagmanager.com',
+            'https://*.google-analytics.com',
+          ],
           frameSrc: [
             "'self'",
             'https://www.google.com',
             'https://recaptcha.google.com',
             'https://www.google.com/recaptcha/',
+            'https://www.googletagmanager.com',
           ],
           mediaSrc: ["'self'", 'blob:'],
           // Do NOT upgrade insecure requests on HTTP servers - breaks Safari navigation
@@ -151,35 +169,128 @@ async function bootstrap() {
       const appDesc = settings.application_description || 'Portal Resmi Penerimaan Santri Baru (PSB) Pondok Pesantren Maskumambang';
       const pageUrl = `${baseUrl}${pathname}`;
 
+      // Metadata & SEO values
+      const metaTitle = settings.meta_title || appName;
+      const metaDesc = settings.meta_description || appDesc;
+      const metaKeywords = settings.meta_keywords || '';
+      const metaAuthor = settings.meta_author || appName;
+      const metaRobots = settings.meta_robots || 'index, follow';
+      const canonicalUrl = settings.canonical_url
+        ? (settings.canonical_url.endsWith('/') ? `${settings.canonical_url}${pathname.replace(/^\//, '')}` : settings.canonical_url)
+        : pageUrl;
+
+      // Social Media (Open Graph & Twitter)
+      const ogTitle = settings.og_title || metaTitle;
+      const ogDesc = settings.og_description || metaDesc;
+      const rawOgImg = settings.og_image || settings.application_logo || 'logo_e7a8b6a95d.webp';
+      const ogImgUrl = rawOgImg.startsWith('http://') || rawOgImg.startsWith('https://')
+        ? rawOgImg
+        : `${baseUrl}/static/img/${rawOgImg}`;
+      const ogType = settings.og_type || 'website';
+
+      const twitterCard = settings.twitter_card || 'summary_large_image';
+      const twitterTitle = settings.twitter_title || ogTitle;
+      const twitterDesc = settings.twitter_description || ogDesc;
+      const rawTwitterImg = settings.twitter_image || rawOgImg;
+      const twitterImgUrl = rawTwitterImg.startsWith('http://') || rawTwitterImg.startsWith('https://')
+        ? rawTwitterImg
+        : `${baseUrl}/static/img/${rawTwitterImg}`;
+
+      // Google Search Console Verification Tag
+      let gscMeta = '';
+      if (settings.google_site_verification && settings.google_site_verification.trim()) {
+        const val = settings.google_site_verification.trim();
+        if (val.startsWith('<meta') || val.startsWith('<HTML') || val.startsWith('<html')) {
+          gscMeta = val;
+        } else {
+          gscMeta = `<meta name="google-site-verification" content="${val}">`;
+        }
+      }
+
+      // Google Analytics 4 (GA4) snippet
+      let gaSnippet = '';
+      if (settings.google_analytics_id && settings.google_analytics_id.trim()) {
+        const gaId = settings.google_analytics_id.trim();
+        gaSnippet = `
+    <!-- Google Analytics (GA4) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=${gaId}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '${gaId}');
+    </script>`;
+      }
+
+      // Google Tag Manager (GTM) Head snippet & Body snippet
+      let gtmHeadSnippet = '';
+      let gtmBodySnippet = '';
+      if (settings.google_tag_manager_id && settings.google_tag_manager_id.trim()) {
+        const gtmId = settings.google_tag_manager_id.trim();
+        gtmHeadSnippet = `
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','${gtmId}');</script>
+    <!-- End Google Tag Manager -->`;
+
+        gtmBodySnippet = `
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${gtmId}"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->`;
+      }
+
+      const customHead = (settings.custom_head_scripts || '').trim();
+      const customBody = (settings.custom_body_scripts || '').trim();
+
       // Open Graph / Twitter Meta Tags block
       const metaTags = `
-    <!-- Dynamic Social Media & Open Graph Meta Tags (Synced with App Settings) -->
-    <title>${appName}</title>
-    <meta name="description" content="${appDesc}">
+    <!-- Dynamic Social Media, SEO & Open Graph Meta Tags (Synced with App Settings) -->
+    <title>${metaTitle}</title>
+    <meta name="description" content="${metaDesc}">
+    ${metaKeywords ? `<meta name="keywords" content="${metaKeywords}">` : ''}
+    ${metaAuthor ? `<meta name="author" content="${metaAuthor}">` : ''}
+    <meta name="robots" content="${metaRobots}">
+    <link rel="canonical" href="${canonicalUrl}">
     <link rel="icon" type="image/webp" id="app-favicon" href="${rawFavicon.startsWith('http') ? rawFavicon : `/static/img/${rawFavicon}`}">
-    <meta property="og:type" content="website">
+    ${gscMeta}
+    <meta property="og:type" content="${ogType}">
     <meta property="og:site_name" content="${appName}">
-    <meta property="og:title" content="${appName}">
-    <meta property="og:description" content="${appDesc}">
+    <meta property="og:title" content="${ogTitle}">
+    <meta property="og:description" content="${ogDesc}">
     <meta property="og:url" content="${pageUrl}">
-    <meta property="og:image" content="${logoUrl}">
-    <meta property="og:image:secure_url" content="${logoUrl}">
-    <meta property="og:image:alt" content="${appName}">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="${appName}">
-    <meta name="twitter:description" content="${appDesc}">
-    <meta name="twitter:image" content="${logoUrl}">
+    <meta property="og:image" content="${ogImgUrl}">
+    <meta property="og:image:secure_url" content="${ogImgUrl}">
+    <meta property="og:image:alt" content="${ogTitle}">
+    <meta name="twitter:card" content="${twitterCard}">
+    <meta name="twitter:title" content="${twitterTitle}">
+    <meta name="twitter:description" content="${twitterDesc}">
+    <meta name="twitter:image" content="${twitterImgUrl}">
+    ${gaSnippet}
+    ${gtmHeadSnippet}
+    ${customHead ? `\n    <!-- Custom Head Scripts -->\n    ${customHead}` : ''}
       `.trim();
 
       // Clean old meta tags to prevent duplication
       html = html.replace(/<title>[\s\S]*?<\/title>/gi, '');
       html = html.replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, '');
       html = html.replace(/<link\s+rel=["']icon["'][\s\S]*?>/gi, '');
+      html = html.replace(/<link\s+rel=["']canonical["'][\s\S]*?>/gi, '');
       html = html.replace(/<meta\s+property=["']og:[\s\S]*?>/gi, '');
       html = html.replace(/<meta\s+name=["']twitter:[\s\S]*?>/gi, '');
 
       if (html.includes('</head>')) {
         html = html.replace('</head>', `  ${metaTags}\n</head>`);
+      }
+
+      if (gtmBodySnippet || customBody) {
+        const bodyInjections = `${gtmBodySnippet}${customBody ? `\n    <!-- Custom Body Scripts -->\n    ${customBody}` : ''}`;
+        if (html.includes('</body>')) {
+          html = html.replace('</body>', `  ${bodyInjections}\n</body>`);
+        }
       }
 
       // Replace static fallback logos in body
