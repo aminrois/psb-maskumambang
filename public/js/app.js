@@ -1885,7 +1885,7 @@ async function renderPesertaDashboard() {
               <strong style="font-size: 0.78rem; color: var(--text-heading);">4. Ujian CBT</strong>
             </div>
             <div style="font-size: 0.72rem; font-weight: 600; color: ${isCbtVerified ? '#059669' : isCbtPending ? '#d97706' : isCbtRejected ? '#dc2626' : isFormVerified ? '#0284c7' : '#64748b'};">
-              ${isCbtVerified ? 'Lulus CBT ✓' : isCbtPending ? 'Menunggu Verifikasi' : isCbtRejected ? 'Tidak Lulus' : isCbtStarted ? 'Sedang Ujian' : isFormVerified ? 'Siap Dikerjakan' : 'Menunggu Berkas'}
+              ${isCbtVerified ? 'Terverifikasi ✓' : isCbtPending ? 'Menunggu Verifikasi' : isCbtRejected ? 'Tidak Lulus' : isCbtStarted ? 'Sedang Ujian' : isFormVerified ? 'Siap Dikerjakan' : 'Menunggu Berkas'}
             </div>
           </div>
 
@@ -1980,11 +1980,11 @@ async function renderPesertaDashboard() {
                 </div>
               ` : isCbtVerified ? `
                 <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin-bottom: 16px;">
-                  Selamat! Anda telah lulus CBT dan siap mengikuti <strong>Tes Praktik Baca Tulis Al-Qur'an (BTQ), Wudhu & Salat</strong>. Jadwal pengujian sedang disiapkan oleh Panitia.
+                  Selamat! Anda telah terverifikasi CBT dan siap mengikuti <strong>Tes Praktik Baca Tulis Al-Qur'an (BTQ), Wudhu & Salat</strong>. Jadwal pengujian sedang disiapkan oleh Panitia.
                 </p>
               ` : `
                 <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin-bottom: 16px;">
-                  Tahap Tes Praktik akan aktif setelah Anda dinyatakan Lulus Ujian CBT.
+                  Tahap Tes Praktik akan aktif setelah Anda dinyatakan Terverifikasi Ujian CBT.
                 </p>
               `}
             </div>
@@ -2003,7 +2003,7 @@ async function renderPesertaDashboard() {
                 </div>
               ` : `
                 <button type="button" class="btn btn-secondary" style="width: 100%; opacity: 0.75; cursor: not-allowed;" disabled>
-                  <i class="fa-solid fa-lock"></i> Menunggu Lulus CBT
+                  <i class="fa-solid fa-lock"></i> Menunggu Terverifikasi CBT
                 </button>
               `}
             </div>
@@ -3131,7 +3131,7 @@ async function previewProofImage(input) {
   const slot = document.getElementById('wiz-img-preview-slot');
   const img = document.getElementById('wiz-preview-img');
   const infoEl = document.getElementById('wiz-compress-info');
-  
+
   if (input.files && input.files[0]) {
     const origFile = input.files[0];
     const origSizeKB = Math.round(origFile.size / 1024);
@@ -4360,8 +4360,8 @@ async function renderBendaharaDashboard() {
               </thead>
               <tbody>
                 ${schoolStats.map((s, idx) => {
-                  const pct = totalRegs > 0 ? Math.round((s.totalCount / totalRegs) * 100) : 0;
-                  return `
+      const pct = totalRegs > 0 ? Math.round((s.totalCount / totalRegs) * 100) : 0;
+      return `
                     <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.15s;">
                       <td style="padding: 12px 10px; color: var(--text-muted); font-weight: 600;">${idx + 1}</td>
                       <td style="padding: 12px 10px;">
@@ -4395,7 +4395,7 @@ async function renderBendaharaDashboard() {
                       </td>
                     </tr>
                   `;
-                }).join('')}
+    }).join('')}
               </tbody>
               <tfoot>
                 <tr style="border-top: 2px solid var(--border-subtle); background: var(--bg-body); font-weight: 800;">
@@ -4640,7 +4640,7 @@ function onBendaharaDatePresetChange(preset) {
   const ts = tableState.bendaharaPayments;
   ts.datePreset = preset;
   const now = new Date();
-  
+
   const formatDateISO = (d) => {
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');

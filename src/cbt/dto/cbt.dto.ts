@@ -98,6 +98,10 @@ export class CreateCbtQuestionDto {
 }
 
 export class UpdateCbtQuestionDto {
+  @IsEnum(CBTQuestionType)
+  @IsOptional()
+  type?: CBTQuestionType;
+
   @IsString()
   @IsOptional()
   question?: string;

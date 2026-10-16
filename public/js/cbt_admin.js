@@ -394,9 +394,9 @@ async function loadCbtSchoolExamDetails(schoolId) {
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
             <button type="button" class="btn btn-sm btn-secondary" onclick="downloadQuestionTemplate()" style="display: inline-flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-file-arrow-down"></i> Template CSV
+              <i class="fa-solid fa-file-excel"></i> Template Excel
             </button>
-            <button type="button" class="btn btn-sm btn-secondary" data-exam-id="${exam.id}" onclick="exportQuestionsToCSV(this)" style="display: inline-flex; align-items: center; gap: 6px;">
+            <button type="button" class="btn btn-sm btn-secondary" data-exam-id="${exam.id}" onclick="exportQuestionsToExcel(this)" style="display: inline-flex; align-items: center; gap: 6px;">
               <i class="fa-solid fa-file-export"></i> Export Soal
             </button>
             <button type="button" class="btn btn-sm btn-secondary" onclick="openImportQuestionsModal('${exam.id}')" style="display: inline-flex; align-items: center; gap: 6px;">
@@ -1181,7 +1181,11 @@ async function handleSaveQuestionSubmit(e, examId, editQuestionId = null) {
 
   const score = Number(document.getElementById('q-score')?.value);
 
-  const payload = { type, question, score };
+  // Saat edit (PATCH), jangan kirim 'type' karena UpdateCbtQuestionDto tidak memiliki field tersebut
+  // Backend akan reject dengan "property type should not exist" jika dikirim
+  const payload = editQuestionId
+    ? { question, score }
+    : { type, question, score };
 
   if (type === 'MULTIPLE_CHOICE') {
     const selectedRadio = document.querySelector('input[name="mc-correct-key"]:checked');
@@ -1862,42 +1866,145 @@ async function handleSaveEssayGrading(e, attemptId) {
 // 4. IMPORT, EXPORT, AND TEMPLATE SOAL CBT
 // ============================================================================
 
-function downloadQuestionTemplate() {
-  const headers = ['type', 'question', 'score', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_key'];
-  const sampleRows = [
-    ['MULTIPLE_CHOICE', 'Berapa hasil dari 15 + 25?', '5', '30', '35', '40', '45', '50', 'C'],
-    ['MULTIPLE_CHOICE', 'Rukun iman yang kedua adalah beriman kepada...?', '5', 'Allah SWT', 'Malaikat-malaikat Allah', 'Kitab-kitab Allah', 'Rasul-rasul Allah', 'Hari Kiamat', 'B'],
-    ['MULTIPLE_CHOICE', 'Ibu kota negara Indonesia saat ini adalah...?', '5', 'Surabaya', 'Bandung', 'Jakarta', 'Nusantara', 'Medan', 'C'],
-    ['ESSAY', 'Jelaskan secara singkat apa yang dimaksud dengan Ihsan menurut hadits Jibril!', '10', '', '', '', '', '', ''],
-    ['ESSAY', 'Sebutkan 5 rukun Islam secara berurutan!', '10', '', '', '', '', '', ''],
-  ];
+/**
+ * Helper: Buat workbook Excel dengan styling header menggunakan SheetJS
+ * @param {string[][]} headers - Array nama kolom
+ * @param {any[][]} rows - Array baris data
+ * @param {string} sheetName - Nama sheet
+ */
+function _buildExcelWorkbook(headers, rows, sheetName = 'Soal CBT') {
+  const XLSX = window.XLSX;
+  if (!XLSX) throw new Error('Library SheetJS (XLSX) belum termuat. Coba refresh halaman.');
 
-  const csvContent = '\uFEFF' + [
-    headers.map(h => `"${h}"`).join(','),
-    ...sampleRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-  ].join('\r\n');
+  // Gabung header + rows
+  const wsData = [headers, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', 'template_import_soal_cbt.csv');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Lebar kolom otomatis
+  const colWidths = headers.map((h, colIdx) => {
+    let maxLen = String(h).length;
+    rows.forEach(row => {
+      const cell = row[colIdx];
+      if (cell !== undefined && cell !== null) {
+        maxLen = Math.max(maxLen, String(cell).length);
+      }
+    });
+    return { wch: Math.min(maxLen + 4, 60) };
+  });
+  ws['!cols'] = colWidths;
+
+  // Style header (baris pertama) — warna biru tua, teks putih, bold
+  const headerStyle = {
+    fill: { fgColor: { rgb: '1e40af' } },
+    font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+    border: {
+      top: { style: 'thin', color: { rgb: 'CCCCCC' } },
+      bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+      left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+      right: { style: 'thin', color: { rgb: 'CCCCCC' } },
+    },
+  };
+  headers.forEach((_, colIdx) => {
+    const cellAddr = XLSX.utils.encode_cell({ r: 0, c: colIdx });
+    if (ws[cellAddr]) ws[cellAddr].s = headerStyle;
+  });
+
+  // Style baris data — border tipis, baris genap warna abu muda
+  rows.forEach((row, rowIdx) => {
+    const isEven = rowIdx % 2 === 1;
+    row.forEach((_, colIdx) => {
+      const cellAddr = XLSX.utils.encode_cell({ r: rowIdx + 1, c: colIdx });
+      if (ws[cellAddr]) {
+        ws[cellAddr].s = {
+          fill: isEven ? { fgColor: { rgb: 'F8FAFC' } } : { fgColor: { rgb: 'FFFFFF' } },
+          alignment: { vertical: 'top', wrapText: true },
+          border: {
+            top: { style: 'thin', color: { rgb: 'E2E8F0' } },
+            bottom: { style: 'thin', color: { rgb: 'E2E8F0' } },
+            left: { style: 'thin', color: { rgb: 'E2E8F0' } },
+            right: { style: 'thin', color: { rgb: 'E2E8F0' } },
+          },
+        };
+      }
+    });
+  });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  return wb;
 }
 
-async function exportQuestionsToCSV(target, examTitle) {
+/**
+ * Download template Excel kosong dengan contoh soal
+ */
+function downloadQuestionTemplate() {
+  const XLSX = window.XLSX;
+  if (!XLSX) {
+    showToast('Library Excel belum termuat. Coba refresh halaman.', 'danger');
+    return;
+  }
+
+  const headers = ['type', 'question', 'score', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_key'];
+  const sampleRows = [
+    ['MULTIPLE_CHOICE', 'Berapa hasil dari 15 + 25?', 5, '30', '35', '40', '45', '50', 'C'],
+    ['MULTIPLE_CHOICE', 'Rukun iman yang kedua adalah beriman kepada...?', 5, 'Allah SWT', 'Malaikat-malaikat Allah', 'Kitab-kitab Allah', 'Rasul-rasul Allah', 'Hari Kiamat', 'B'],
+    ['MULTIPLE_CHOICE', 'Ibu kota negara Indonesia saat ini adalah...?', 5, 'Surabaya', 'Bandung', 'Jakarta', 'Nusantara', 'Medan', 'D'],
+    ['ESSAY', 'Jelaskan secara singkat apa yang dimaksud dengan Ihsan menurut hadits Jibril!', 10, '', '', '', '', '', ''],
+    ['ESSAY', 'Sebutkan 5 rukun Islam secara berurutan!', 10, '', '', '', '', '', ''],
+  ];
+
+  try {
+    const wb = _buildExcelWorkbook(headers, sampleRows, 'Template Soal CBT');
+
+    // Sheet panduan
+    const guideData = [
+      ['PANDUAN PENGISIAN TEMPLATE SOAL CBT'],
+      [''],
+      ['Kolom', 'Keterangan', 'Contoh Nilai'],
+      ['type', 'Jenis soal. Wajib diisi.', 'MULTIPLE_CHOICE atau ESSAY'],
+      ['question', 'Teks pertanyaan soal. Wajib diisi.', 'Berapa hasil dari 2 + 2?'],
+      ['score', 'Nilai/bobot soal (angka).', '5'],
+      ['option_a', 'Pilihan jawaban A (hanya untuk PG).', '10'],
+      ['option_b', 'Pilihan jawaban B (hanya untuk PG).', '20'],
+      ['option_c', 'Pilihan jawaban C (hanya untuk PG).', '4'],
+      ['option_d', 'Pilihan jawaban D (hanya untuk PG).', '8'],
+      ['option_e', 'Pilihan jawaban E - opsional (hanya untuk PG).', ''],
+      ['correct_key', 'Kunci jawaban: A, B, C, D, atau E (hanya untuk PG).', 'C'],
+      [''],
+      ['CATATAN:', 'Untuk soal ESSAY, kosongkan kolom option_a s/d option_e dan correct_key.', ''],
+      ['CATATAN:', 'Soal bergambar harus diinput secara manual melalui editor di aplikasi.', ''],
+    ];
+    const wsGuide = XLSX.utils.aoa_to_sheet(guideData);
+    wsGuide['!cols'] = [{ wch: 16 }, { wch: 58 }, { wch: 28 }];
+    XLSX.utils.book_append_sheet(wb, wsGuide, 'Panduan');
+
+    XLSX.writeFile(wb, 'template_import_soal_cbt.xlsx');
+    showToast('Template Excel berhasil diunduh!', 'success');
+  } catch (err) {
+    showToast('Gagal membuat template: ' + (err.message || err), 'danger');
+  }
+}
+
+/**
+ * Export semua soal ujian ke file Excel (.xlsx)
+ */
+async function exportQuestionsToExcel(target, examTitle) {
+  const XLSX = window.XLSX;
+  if (!XLSX) {
+    showToast('Library Excel belum termuat. Coba refresh halaman.', 'danger');
+    return;
+  }
+
   let examId = target;
   if (target && typeof target === 'object' && target.nodeType) {
     examId = target.dataset?.examId || target.getAttribute('data-exam-id');
   }
-  // Lookup exam title from state if not provided
   if (!examTitle) {
     const currentExam = window.cbtAdminState?.currentExam;
     examTitle = (currentExam && currentExam.id === examId) ? (currentExam.title || 'Soal_Ujian') : 'Soal_Ujian';
   }
+
   try {
     const res = await apiRequest(`/api/cbt/admin/exams/${examId}`);
     if (!res.success || !res.data) throw new Error(res.message || 'Gagal mengambil data soal ujian.');
@@ -1912,131 +2019,82 @@ async function exportQuestionsToCSV(target, examTitle) {
 
     const headers = ['type', 'question', 'score', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_key'];
     const rows = questions.map(q => {
-      const type = q.type;
+      // Strip HTML tags dari teks soal untuk Excel
       const questionText = q.question.replace(/<[^>]*>?/gm, '').trim() || q.question;
       const score = Number(q.score);
-      const opts = q.options || [];
+      const opts = (q.options || []).sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0));
 
-      let optA = '', optB = '', optC = '', optD = '', optE = '';
-      let correctKey = '';
-
-      if (type === 'MULTIPLE_CHOICE') {
-        optA = opts[0]?.content || '';
-        optB = opts[1]?.content || '';
-        optC = opts[2]?.content || '';
-        optD = opts[3]?.content || '';
-        optE = opts[4]?.content || '';
-
+      let optA = '', optB = '', optC = '', optD = '', optE = '', correctKey = '';
+      if (q.type === 'MULTIPLE_CHOICE') {
+        optA = (opts[0]?.content || '').replace(/<[^>]*>?/gm, '').trim();
+        optB = (opts[1]?.content || '').replace(/<[^>]*>?/gm, '').trim();
+        optC = (opts[2]?.content || '').replace(/<[^>]*>?/gm, '').trim();
+        optD = (opts[3]?.content || '').replace(/<[^>]*>?/gm, '').trim();
+        optE = (opts[4]?.content || '').replace(/<[^>]*>?/gm, '').trim();
         const correctIdx = opts.findIndex(o => o.isCorrect);
-        if (correctIdx >= 0) {
-          correctKey = String.fromCharCode(65 + correctIdx);
-        }
+        if (correctIdx >= 0) correctKey = String.fromCharCode(65 + correctIdx);
       }
 
-      return [type, questionText, score, optA, optB, optC, optD, optE, correctKey];
+      return [q.type, questionText, score, optA, optB, optC, optD, optE, correctKey];
     });
 
-    const csvContent = '\uFEFF' + [
-      headers.map(h => `"${h}"`).join(','),
-      ...rows.map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(','))
-    ].join('\r\n');
-
+    const wb = _buildExcelWorkbook(headers, rows, 'Soal CBT');
     const cleanTitle = (examTitle || 'Soal_Ujian').replace(/[^a-zA-Z0-9_\-]/g, '_');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `soal_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(wb, `soal_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    showToast(`Berhasil mengekspor ${questions.length} soal ke Excel!`, 'success');
   } catch (err) {
     showToast(err.message || 'Gagal mengekspor soal.', 'danger');
   }
 }
 
-function parseCsvToRows(text) {
-  const rows = [];
-  let currentRow = [];
-  let currentVal = '';
-  let inQuotes = false;
+/**
+ * Parse file Excel (.xlsx atau .xls) menjadi array soal
+ * @param {ArrayBuffer} arrayBuffer
+ * @returns {Array} questions
+ */
+function parseExcelToQuestions(arrayBuffer) {
+  const XLSX = window.XLSX;
+  if (!XLSX) throw new Error('Library SheetJS (XLSX) belum termuat. Coba refresh halaman.');
 
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    const nextChar = text[i + 1];
+  const wb = XLSX.read(arrayBuffer, { type: 'array' });
 
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        currentVal += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === ',' && !inQuotes) {
-      currentRow.push(currentVal.trim());
-      currentVal = '';
-    } else if ((char === '\r' || char === '\n') && !inQuotes) {
-      if (char === '\r' && nextChar === '\n') i++;
-      currentRow.push(currentVal.trim());
-      if (currentRow.length > 1 || currentRow[0] !== '') {
-        rows.push(currentRow);
-      }
-      currentRow = [];
-      currentVal = '';
-    } else {
-      currentVal += char;
-    }
-  }
-  if (currentVal || currentRow.length > 0) {
-    currentRow.push(currentVal.trim());
-    if (currentRow.length > 1 || currentRow[0] !== '') {
-      rows.push(currentRow);
-    }
-  }
-  return rows;
-}
+  // Ambil sheet pertama (bukan sheet Panduan)
+  const sheetName = wb.SheetNames.find(n => !/panduan/i.test(n)) || wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  if (!ws) throw new Error('Sheet tidak ditemukan dalam file Excel.');
 
-function parseCsvToQuestions(csvText) {
-  const rawRows = parseCsvToRows(csvText);
-  if (!rawRows || rawRows.length < 2) {
-    throw new Error('File CSV kosong atau tidak memiliki baris data soal.');
+  // Konversi ke array of objects
+  const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  if (!rawRows || rawRows.length === 0) {
+    throw new Error('File Excel kosong atau tidak memiliki baris data soal.');
   }
 
-  const headers = rawRows[0].map(h => h.toLowerCase().replace(/[^a-z0-9_]/g, ''));
   const questions = [];
 
-  for (let r = 1; r < rawRows.length; r++) {
-    const row = rawRows[r];
-    if (row.length === 0 || (row.length === 1 && !row[0])) continue;
-
-    const rowObj = {};
-    headers.forEach((h, idx) => {
-      rowObj[h] = row[idx] !== undefined ? row[idx] : '';
+  rawRows.forEach((rowObj, rIdx) => {
+    // Normalisasi key ke lowercase tanpa spasi
+    const row = {};
+    Object.keys(rowObj).forEach(k => {
+      row[k.toLowerCase().replace(/[^a-z0-9_]/g, '')] = rowObj[k];
     });
 
-    const typeRaw = (rowObj.type || rowObj.question_type || rowObj.jenis_soal || row[0] || '').toUpperCase().trim();
+    const typeRaw = String(row.type || row.questiontype || row.jenissoal || '').toUpperCase().trim();
     const type = (typeRaw.includes('ESSAY') || typeRaw.includes('ESAI')) ? 'ESSAY' : 'MULTIPLE_CHOICE';
-    const questionText = rowObj.question || rowObj.pertanyaan || rowObj.soal || row[1] || '';
-    if (!questionText) continue;
+    const questionText = String(row.question || row.pertanyaan || row.soal || '').trim();
+    if (!questionText) return; // skip baris kosong
 
-    const score = parseFloat(rowObj.score || rowObj.nilai || rowObj.bobot || row[2] || '5') || 5;
+    const score = parseFloat(row.score || row.nilai || row.bobot || '5') || 5;
 
     if (type === 'ESSAY') {
-      questions.push({
-        type: 'ESSAY',
-        question: questionText,
-        score: score,
-        options: [],
-      });
+      questions.push({ type: 'ESSAY', question: questionText, score, options: [] });
     } else {
-      const optA = rowObj.option_a || rowObj.opsi_a || rowObj.pilihan_a || row[3] || '';
-      const optB = rowObj.option_b || rowObj.opsi_b || rowObj.pilihan_b || row[4] || '';
-      const optC = rowObj.option_c || rowObj.opsi_c || rowObj.pilihan_c || row[5] || '';
-      const optD = rowObj.option_d || rowObj.opsi_d || rowObj.pilihan_d || row[6] || '';
-      const optE = rowObj.option_e || rowObj.opsi_e || rowObj.pilihan_e || row[7] || '';
+      const optA = String(row.option_a || row.opsia || row.piliha || row.pilihana || '').trim();
+      const optB = String(row.option_b || row.opsib || row.pilihb || row.pilihanb || '').trim();
+      const optC = String(row.option_c || row.opsic || row.pilihc || row.pilihanc || '').trim();
+      const optD = String(row.option_d || row.opsid || row.pilihd || row.pilihand || '').trim();
+      const optE = String(row.option_e || row.opsie || row.pilihe || row.pilihane || '').trim();
 
-      const correctKeyRaw = (rowObj.correct_key || rowObj.kunci_jawaban || rowObj.kunci || row[8] || 'A').toUpperCase().trim();
+      const correctKeyRaw = String(row.correct_key || row.kuncijawaban || row.kunci || 'A').toUpperCase().trim();
       let correctIdx = 0;
       if (correctKeyRaw === 'B' || correctKeyRaw === '1') correctIdx = 1;
       else if (correctKeyRaw === 'C' || correctKeyRaw === '2') correctIdx = 2;
@@ -2045,7 +2103,7 @@ function parseCsvToQuestions(csvText) {
 
       const rawOpts = [optA, optB, optC, optD, optE].filter(o => o !== '');
       if (rawOpts.length < 2) {
-        throw new Error(`Baris ${r + 1}: Soal pilihan ganda minimal harus memiliki 2 opsi jawaban.`);
+        throw new Error(`Baris ${rIdx + 2}: Soal pilihan ganda harus memiliki minimal 2 opsi jawaban.`);
       }
 
       const options = rawOpts.map((content, idx) => ({
@@ -2053,26 +2111,17 @@ function parseCsvToQuestions(csvText) {
         isCorrect: idx === correctIdx,
         orderNumber: idx + 1,
       }));
+      if (!options.some(o => o.isCorrect)) options[0].isCorrect = true;
 
-      if (!options.some(o => o.isCorrect)) {
-        options[0].isCorrect = true;
-      }
-
-      questions.push({
-        type: 'MULTIPLE_CHOICE',
-        question: questionText,
-        score: score,
-        options: options,
-      });
+      questions.push({ type: 'MULTIPLE_CHOICE', question: questionText, score, options });
     }
-  }
+  });
 
-  if (questions.length === 0) {
-    throw new Error('Tidak ada data soal yang valid ditemukan.');
-  }
-
+  if (questions.length === 0) throw new Error('Tidak ada data soal yang valid ditemukan.');
   return questions;
 }
+
+
 
 window.parsedImportQuestions = [];
 
@@ -2084,27 +2133,28 @@ function openImportQuestionsModal(examId) {
       <div class="alert alert-info" style="font-size: 0.85rem; padding: 12px 16px; margin: 0; display: flex; align-items: flex-start; gap: 10px;">
         <i class="fa-solid fa-circle-info" style="font-size: 1.1rem; margin-top: 2px;"></i>
         <div>
-          <strong>Panduan Import Soal CSV:</strong>
+          <strong>Panduan Import Soal Excel:</strong>
           <ul style="margin: 6px 0 0 0; padding-left: 18px; line-height: 1.5;">
-            <li>Gunakan format file <strong>CSV (Comma Separated Values)</strong> dengan encoding UTF-8.</li>
+            <li>Gunakan format file <strong>Excel (.xlsx atau .xls)</strong>.</li>
             <li>Kolom yang dibutuhkan: <code>type, question, score, option_a, option_b, option_c, option_d, option_e, correct_key</code>.</li>
             <li>Nilai kolom <code>type</code>: <code>MULTIPLE_CHOICE</code> untuk pilihan ganda, atau <code>ESSAY</code> untuk soal esai.</li>
-            <li>Untuk soal esai, biarkan kolom opsi dan kunci jawaban kosong.</li>
+            <li>Untuk soal esai, kosongkan kolom opsi dan <code>correct_key</code>.</li>
+            <li>Download template untuk contoh format yang benar.</li>
           </ul>
         </div>
       </div>
 
       <div style="display: flex; justify-content: flex-end;">
         <button type="button" class="btn btn-sm btn-secondary" onclick="downloadQuestionTemplate()" style="display: inline-flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-download"></i> Download Template CSV
+          <i class="fa-solid fa-file-excel"></i> Download Template Excel
         </button>
       </div>
 
       <div class="form-group" style="margin: 0;">
         <label class="form-label" style="font-weight: 700; font-size: 0.875rem; margin-bottom: 6px; display: block;">
-          Pilih File CSV
+          Pilih File Excel (.xlsx / .xls)
         </label>
-        <input type="file" id="import-csv-file" accept=".csv,text/csv" class="form-control" onchange="handleCsvFileSelected(event)" style="padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); width: 100%;">
+        <input type="file" id="import-excel-file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="form-control" onchange="handleExcelFileSelected(event)" style="padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); width: 100%;">
       </div>
 
       <div id="import-preview-container" style="display: none;">
@@ -2136,18 +2186,20 @@ function openImportQuestionsModal(examId) {
     </div>
   `;
 
-  openModal('Import Soal Ujian (CSV)', bodyHtml, 'modal-lg');
+  openModal('Import Soal Ujian (Excel)', bodyHtml, 'modal-lg');
 }
 
-function handleCsvFileSelected(event) {
+/**
+ * Handler: file Excel dipilih → parse dan tampilkan preview
+ */
+function handleExcelFileSelected(event) {
   const file = event.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const csvText = e.target.result;
-      const questions = parseCsvToQuestions(csvText);
+      const questions = parseExcelToQuestions(e.target.result);
       window.parsedImportQuestions = questions;
 
       const previewContainer = document.getElementById('import-preview-container');
@@ -2185,9 +2237,9 @@ function handleCsvFileSelected(event) {
       if (previewContainer) previewContainer.style.display = 'block';
       if (btnSubmit) btnSubmit.disabled = false;
 
-      showToast(`Berhasil membaca ${questions.length} butir soal dari file CSV.`, 'success');
+      showToast(`Berhasil membaca ${questions.length} butir soal dari file Excel.`, 'success');
     } catch (err) {
-      showToast(err.message || 'Gagal memproses file CSV.', 'danger');
+      showToast(err.message || 'Gagal memproses file Excel.', 'danger');
       window.parsedImportQuestions = [];
       const btnSubmit = document.getElementById('btn-submit-import');
       if (btnSubmit) btnSubmit.disabled = true;
@@ -2195,7 +2247,7 @@ function handleCsvFileSelected(event) {
       if (previewContainer) previewContainer.style.display = 'none';
     }
   };
-  reader.readAsText(file, 'UTF-8');
+  reader.readAsArrayBuffer(file);
 }
 
 async function handleProcessImportQuestions(examId) {
