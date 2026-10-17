@@ -220,20 +220,21 @@
       font-weight: 700;
     }
 
-    /* Modern Responsive Table */
+    /* Table & Container Styles */
     .table-container {
       width: 100%;
       overflow-x: auto;
       margin-bottom: 22px;
       border-radius: 12px;
       border: 1px solid #e2e8f0;
+      -webkit-overflow-scrolling: touch;
     }
 
     .table-custom {
       width: 100%;
       border-collapse: collapse;
       font-size: 0.92rem;
-      min-width: 580px;
+      min-width: 540px;
     }
 
     .table-custom th {
@@ -264,6 +265,31 @@
       color: #0f172a;
     }
 
+    .table-section-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .table-scroll-hint {
+      display: none;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #4f46e5;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      align-items: center;
+      gap: 5px;
+    }
+
     /* Info Callout */
     .callout-box {
       background: #f0fdf4;
@@ -287,26 +313,127 @@
       color: #3730a3;
     }
 
+    .seragam-detail-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 22px;
+      font-size: 0.88rem;
+      color: #475569;
+    }
+
+    .biaya-main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 48px 24px 72px;
+    }
+
+    .biaya-selection-banner {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 24px 28px;
+      margin-bottom: 40px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .timeline-container-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+      margin-top: 36px;
+    }
+
+    .timeline-stages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .timeline-cta-group {
+      display: inline-flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-toggle-public-menu {
+      display: none;
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-toggle-public-menu:hover {
+      background: #e2e8f0;
+    }
+
+    /* ================================================= */
+    /* RESPONSIVE MEDIA QUERIES (TABLET & MOBILE)       */
+    /* ================================================= */
     @media (max-width: 992px) {
-      .public-navbar .nav-menu {
-        display: none;
+      .public-navbar .nav-container {
+        padding: 0.85rem 1.25rem;
       }
 
       .btn-toggle-public-menu {
-        display: block !important;
+        display: inline-flex !important;
       }
 
-      .public-navbar.menu-open .nav-menu {
-        display: flex;
-        flex-direction: column;
+      .public-navbar .nav-menu {
+        display: none !important;
         position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: #ffffff;
-        padding: 1rem 1.5rem 1.5rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        border-top: 1px solid #f1f5f9;
+        top: calc(100% + 8px);
+        left: 12px;
+        right: 12px;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 16px;
+        padding: 16px;
+        flex-direction: column;
+        gap: 6px;
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.14) !important;
+      }
+
+      .public-navbar .nav-menu.open,
+      .public-navbar .nav-menu.show {
+        display: flex !important;
+      }
+
+      .public-navbar .nav-menu li {
+        width: 100%;
+      }
+
+      .public-navbar .nav-menu .nav-link {
+        display: block;
+        padding: 10px 14px;
+        border-radius: 8px;
+        color: #334155 !important;
+      }
+
+      .public-navbar .nav-menu .nav-link.active {
+        color: #4f46e5 !important;
+        background: #eef2ff !important;
+        font-weight: 700;
+      }
+
+      .public-navbar .nav-menu .nav-link.active::after {
+        display: none;
       }
 
       .public-navbar .nav-menu #auth-buttons-nav {
@@ -324,6 +451,231 @@
         box-sizing: border-box;
       }
     }
+
+    @media (max-width: 768px) {
+      .table-scroll-hint {
+        display: inline-flex;
+      }
+
+      /* Hero Section Mobile */
+      .biaya-hero {
+        padding: 40px 16px 54px !important;
+      }
+
+      .biaya-hero::before {
+        width: 260px !important;
+        height: 260px !important;
+        right: -60px !important;
+        top: -60px !important;
+      }
+
+      .biaya-hero::after {
+        width: 200px !important;
+        height: 200px !important;
+        left: -40px !important;
+        bottom: -40px !important;
+      }
+
+      .biaya-hero h1 {
+        font-size: 1.55rem !important;
+        line-height: 1.3 !important;
+        margin-bottom: 12px !important;
+      }
+
+      .biaya-hero p {
+        font-size: 0.88rem !important;
+        line-height: 1.6 !important;
+        margin-bottom: 18px !important;
+      }
+
+      .hero-badge-pill {
+        font-size: 0.75rem !important;
+        padding: 5px 14px !important;
+        margin-bottom: 14px !important;
+      }
+
+      .hero-pillars-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+      }
+
+      /* Level Tabs Horizontal Swipeable Carousel on Mobile */
+      .level-tabs {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        justify-content: flex-start !important;
+        gap: 8px !important;
+        margin-top: -24px !important;
+        padding: 4px 14px 14px !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+      }
+
+      .level-tabs::-webkit-scrollbar {
+        display: none !important;
+      }
+
+      .level-tab-btn {
+        flex-shrink: 0 !important;
+        padding: 8px 16px !important;
+        font-size: 0.82rem !important;
+        white-space: nowrap !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+      }
+
+      /* Main Content Mobile */
+      .biaya-main-container {
+        padding: 18px 12px 48px !important;
+      }
+
+      /* Selection Banner Mobile */
+      .biaya-selection-banner {
+        padding: 16px 14px !important;
+        margin-bottom: 20px !important;
+        border-radius: 14px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 14px !important;
+      }
+
+      .banner-info-left {
+        gap: 12px !important;
+      }
+
+      .banner-info-left .banner-icon {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 1.25rem !important;
+        border-radius: 10px !important;
+      }
+
+      .banner-info-left .banner-title {
+        font-size: 0.78rem !important;
+      }
+
+      .banner-info-left .banner-amount {
+        font-size: 1.15rem !important;
+      }
+
+      .banner-info-left .banner-subtext {
+        display: block !important;
+        font-size: 0.74rem !important;
+        margin-top: 2px !important;
+      }
+
+      .banner-action-buttons {
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 8px !important;
+      }
+
+      .banner-action-buttons a {
+        width: 100% !important;
+        text-align: center !important;
+        justify-content: center !important;
+        padding: 10px 16px !important;
+        font-size: 0.88rem !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Pricing Card Mobile */
+      .pricing-card {
+        padding: 18px 14px !important;
+        border-radius: 16px !important;
+        margin-bottom: 20px !important;
+      }
+
+      .pricing-header {
+        margin-bottom: 14px !important;
+        padding-bottom: 12px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+      }
+
+      .pricing-header h2 {
+        font-size: 1.25rem !important;
+      }
+
+      .pricing-header p {
+        font-size: 0.82rem !important;
+      }
+
+      .table-section-title {
+        font-size: 0.92rem !important;
+        margin-bottom: 8px !important;
+      }
+
+      /* Tables on Mobile */
+      .table-container {
+        border-radius: 10px !important;
+        margin-bottom: 14px !important;
+      }
+
+      .table-custom {
+        font-size: 0.82rem !important;
+        min-width: 460px !important;
+      }
+
+      .table-custom th,
+      .table-custom td {
+        padding: 9px 11px !important;
+        white-space: nowrap !important;
+      }
+
+      /* Seragam Box & Callout Box Mobile */
+      .seragam-detail-box,
+      .callout-box {
+        padding: 12px 14px !important;
+        font-size: 0.8rem !important;
+        border-radius: 10px !important;
+        line-height: 1.5 !important;
+        margin-top: 14px !important;
+        margin-bottom: 14px !important;
+      }
+
+      /* Timeline Card Mobile */
+      .timeline-container-card {
+        padding: 20px 14px !important;
+        border-radius: 16px !important;
+        margin-top: 20px !important;
+      }
+
+      .timeline-container-card h3 {
+        font-size: 1.1rem !important;
+        margin-bottom: 14px !important;
+      }
+
+      .timeline-stages-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+      }
+
+      .timeline-stages-grid > div {
+        padding: 14px 14px !important;
+      }
+
+      .timeline-cta-group {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 8px !important;
+      }
+
+      .timeline-cta-group a {
+        width: 100% !important;
+        text-align: center !important;
+        justify-content: center !important;
+        padding: 11px 18px !important;
+        font-size: 0.9rem !important;
+        box-sizing: border-box !important;
+      }
+
+      .footer {
+        padding: 24px 16px !important;
+      }
+    }
   </style>
 </head>
 
@@ -337,7 +689,7 @@
         <span class="brand-logo-title" id="nav-title">PSB MASKUMAMBANG</span>
       </a>
 
-      <button type="button" class="btn-toggle-public-menu" id="btn-toggle-public-menu" onclick="togglePublicMenu(event)" aria-label="Menu Navigasi" style="cursor: pointer; display: none; background: none; border: none; font-size: 1.4rem; color: #1e293b;">
+      <button type="button" class="btn-toggle-public-menu" id="btn-toggle-public-menu" onclick="togglePublicMenu(event)" aria-label="Menu Navigasi">
         <i class="fa-solid fa-bars"></i>
       </button>
 
@@ -362,7 +714,7 @@
   <!-- Hero Section -->
   <div class="biaya-hero">
     <div style="max-width: 860px; margin: 0 auto; position: relative; z-index: 2;">
-      <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #e0e7ff; padding: 6px 20px; border-radius: 9999px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px;">
+      <div class="hero-badge-pill" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.25); color: #e0e7ff; padding: 6px 20px; border-radius: 9999px; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px;">
         <i class="fa-solid fa-hand-holding-dollar"></i> Biaya Flat 3 Tahun • Transparan &amp; Terencana
       </div>
       <h1 style="font-size: clamp(1.9rem, 4.5vw, 2.75rem); font-weight: 800; margin-bottom: 16px; line-height: 1.25;">
@@ -373,7 +725,7 @@
       </p>
 
       <!-- 3 Pilar Kebijakan -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; max-width: 780px; margin: 0 auto; text-align: left;">
+      <div class="hero-pillars-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; max-width: 780px; margin: 0 auto; text-align: left;">
         <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 14px 18px;">
           <div style="font-weight: 700; font-size: 0.9rem; color: #ffffff; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
             <i class="fa-solid fa-shield-halved" style="color: #a5b4fc;"></i> Kepastian Biaya
@@ -419,20 +771,20 @@
   </div>
 
   <!-- Main Content Container -->
-  <main style="max-width: 1200px; margin: 0 auto; padding: 48px 24px 72px;">
+  <main class="biaya-main-container">
 
     <!-- TAHAPAN BIAYA SELEKSI & PENDAFTARAN (BANNER INFO) -->
-    <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 18px; padding: 24px 28px; margin-bottom: 40px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px;">
-      <div style="display: flex; align-items: center; gap: 16px;">
-        <div style="width: 52px; height: 52px; border-radius: 14px; background: #4f46e5; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
+    <div class="biaya-selection-banner">
+      <div class="banner-info-left" style="display: flex; align-items: center; gap: 16px;">
+        <div class="banner-icon" style="width: 52px; height: 52px; border-radius: 14px; background: #4f46e5; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0;">
           <i class="fa-solid fa-ticket"></i>
         </div>
         <div>
-          <div style="font-size: 0.85rem; font-weight: 700; color: #4f46e5; text-transform: uppercase;">Biaya Pendaftaran &amp; Seleksi Awal</div>
-          <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">Rp 350.000,- <span style="font-size: 0.82rem; font-weight: 500; color: #64748b;">(Dibayar saat mendaftar online &amp; verifikasi data)</span></div>
+          <div class="banner-title" style="font-size: 0.85rem; font-weight: 700; color: #4f46e5; text-transform: uppercase;">Biaya Pendaftaran &amp; Seleksi Awal</div>
+          <div class="banner-amount" style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">Rp 350.000,- <span class="banner-subtext" style="font-size: 0.82rem; font-weight: 500; color: #64748b;">(Dibayar saat mendaftar online &amp; verifikasi data)</span></div>
         </div>
       </div>
-      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+      <div class="banner-action-buttons" style="display: flex; gap: 12px; flex-wrap: wrap;">
         <a href="/register.html" class="btn" style="background: #4f46e5; color: #ffffff; padding: 11px 22px; font-weight: 700; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
           <i class="fa-solid fa-pen-to-square"></i> Daftar Sekarang
         </a>
@@ -455,8 +807,9 @@
       </div>
 
       <!-- Tabel Biaya Pendidikan MI -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MI)
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MI)</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -493,15 +846,16 @@
       </div>
 
       <!-- Seragam Details MI -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+      <div class="seragam-detail-box">
         <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam MI:</div>
         <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> Seragam Polo, Jersey Olahraga, Baju Putih, Celana Hitam, Celana Biru, Baju Pramuka, Celana Pramuka.</div>
         <div><strong>• Santri Putri:</strong> Seragam Olahraga, Kain Hitam &amp; Batik, Kain Biru Bawahan, Kain Coklat Bawahan, Kain Coklat Atasan, Kain Hitam dan Putih.</div>
       </div>
 
       <!-- Tabel Biaya Pangkal MI -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal Jenjang MI Berdasarkan Kuota
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal Jenjang MI Berdasarkan Kuota</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -555,8 +909,9 @@
       </div>
 
       <!-- Tabel Biaya Pendidikan MTs Reguler -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MTs Reguler)
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MTs Reguler)</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -598,15 +953,16 @@
       </div>
 
       <!-- Seragam Details MTs Reguler -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+      <div class="seragam-detail-box">
         <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam MTs Reguler:</div>
         <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Celana Biru, 3. Baju Putih, 4. Celana Hitam, 5. Baju Pramuka, 6. Celana Pramuka, 7. Jersey Olahraga, 8. Celana Training Olahraga.</div>
         <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih, 3. Kain Biru Bawahan, 4. Kain Coklat Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7. Kain Biru Atasan &amp; Minang Putih, 8. Kain Coklat Atasan &amp; Minang Coklat.</div>
       </div>
 
       <!-- Tabel Biaya Pangkal MTs Reguler -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MTs Reguler (Berdasarkan Kuota &amp; Kategori)
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MTs Reguler (Berdasarkan Kuota &amp; Kategori)</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -673,8 +1029,9 @@
       </div>
 
       <!-- Tabel Biaya Pendidikan MTs Progresif -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MTs Progresif)
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MTs Progresif)</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -716,15 +1073,16 @@
       </div>
 
       <!-- Seragam Details MTs Progresif -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+      <div class="seragam-detail-box">
         <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam MTs Progresif:</div>
         <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Celana Biru, 3. Baju Putih, 4. Celana Hitam, 5. Baju Pramuka, 6. Celana Pramuka, 7. Jersey Olahraga, 8. Celana Training Olahraga.</div>
         <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih, 3. Kain Biru Bawahan, 4. Kain Coklat Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7. Kain Biru Atasan &amp; Minang Putih, 8. Kain Coklat Atasan &amp; Minang Coklat.</div>
       </div>
 
       <!-- Tabel Biaya Pangkal MTs Progresif -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MTs Progresif
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MTs Progresif</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -778,8 +1136,9 @@
       </div>
 
       <!-- Tabel Biaya Pendidikan MA -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MA)
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MA)</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -821,15 +1180,16 @@
       </div>
 
       <!-- Seragam Details MA -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+      <div class="seragam-detail-box">
         <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam MA:</div>
         <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Celana Abu-Abu, 3. Baju Putih, 4. Celana Hitam, 5. Baju Pramuka, 6. Celana Pramuka, 7. Jersey Olahraga, 8. Celana Training Olahraga.</div>
         <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih, 3. Kain Abu Bawahan, 4. Kain Coklat Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7. Kain Putih &amp; Minang Putih, 8. Kain Coklat Atasan &amp; Minang Coklat.</div>
       </div>
 
       <!-- Tabel Biaya Pangkal MA -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MA (Berdasarkan Kuota &amp; Kategori)
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MA (Berdasarkan Kuota &amp; Kategori)</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -896,8 +1256,9 @@
       </div>
 
       <!-- Tabel Biaya Pendidikan SMK -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (SMK)
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (SMK)</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -939,15 +1300,16 @@
       </div>
 
       <!-- Seragam Details SMK -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 18px; margin-bottom: 22px; font-size: 0.88rem; color: #475569;">
+      <div class="seragam-detail-box">
         <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian Perlengkapan Seragam SMK:</div>
         <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Kain Putih, 3. Kain Hitam, 4. Baju Pramuka, 5. Celana Pramuka, 6. Kain Biru (Baju &amp; Celana), 7. Jersey Olahraga &amp; Celana Training, 8. Wearpack / Katelpak.</div>
         <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih Asrama, 3. Kain Abu Bawahan, 4. Kain Ungu Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7. Kain Putih &amp; Minang Putih, 8. Kain Ungu Atasan &amp; Minang Coklat.</div>
       </div>
 
       <!-- Tabel Biaya Pangkal SMK -->
-      <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-        <i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal SMK (Berdasarkan Kuota &amp; Kategori)
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal SMK (Berdasarkan Kuota &amp; Kategori)</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
       </h3>
       <div class="table-container">
         <table class="table-custom">
@@ -1001,12 +1363,12 @@
     </section>
 
     <!-- TAHAPAN PEMBAYARAN & DAFTAR ULANG -->
-    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; padding: 32px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); margin-top: 36px;">
+    <div class="timeline-container-card">
       <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
         <i class="fa-solid fa-timeline" style="color: #4f46e5;"></i> Alur Pembayaran &amp; Daftar Ulang Santri Diterima
       </h3>
 
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+      <div class="timeline-stages-grid">
         <div style="background: #f8fafc; border-left: 4px solid #4f46e5; border-radius: 10px; padding: 18px 20px;">
           <div style="font-size: 0.78rem; font-weight: 800; color: #4f46e5; text-transform: uppercase; margin-bottom: 4px;">Tahap 1</div>
           <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">Biaya Seleksi Online</div>
@@ -1030,7 +1392,7 @@
         <p style="color: #475569; font-size: 0.95rem; margin-bottom: 18px;">
           <em>Semoga Allah ﷻ senantiasa memberkahi rezeki dan setiap langkah kita dalam mendidik generasi penerus peradaban Islam.</em>
         </p>
-        <div style="display: inline-flex; gap: 14px; flex-wrap: wrap; justify-content: center;">
+        <div class="timeline-cta-group">
           <a href="/register.html" class="btn" style="background: #4f46e5; color: #ffffff; padding: 12px 28px; font-weight: 700; border-radius: 9999px; text-decoration: none; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
             <i class="fa-solid fa-paper-plane"></i> Daftar Akun Santri Baru
           </a>
@@ -1058,7 +1420,7 @@
     </div>
   </footer>
 
-  <script src="/js/app.js?v=20261017_v1"></script>
+  <script src="/js/app.js?v=20261017_v2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initTheme();
@@ -1077,9 +1439,20 @@
 
     function togglePublicMenu(event) {
       if (event) event.stopPropagation();
-      const navbar = document.querySelector('.public-navbar');
-      if (navbar) navbar.classList.toggle('menu-open');
+      const menu = document.getElementById('public-nav-menu') || document.querySelector('.public-navbar .nav-menu');
+      if (menu) {
+        menu.classList.toggle('open');
+        menu.classList.toggle('show');
+      }
     }
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('public-nav-menu');
+      const toggleBtn = document.getElementById('btn-toggle-public-menu');
+      if (menu && menu.classList.contains('open') && !menu.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
+        menu.classList.remove('open', 'show');
+      }
+    });
 
     function switchLevelTab(levelId, btnEl) {
       document.querySelectorAll('.level-tab-btn').forEach(btn => btn.classList.remove('active'));
