@@ -290,8 +290,10 @@ a:hover {
 }
 
 .btn-nav-dropdown-toggle {
-  background: none;
-  border: none;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   color: inherit;
   cursor: pointer;
   padding: 6px 6px;
@@ -311,19 +313,32 @@ a:hover {
 
 .nav-dropdown-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  top: 100%;
   left: 0;
-  min-width: 285px;
+  min-width: 290px;
   background: #ffffff !important;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04);
   padding: 8px;
   display: none;
   flex-direction: column;
   gap: 2px;
   z-index: 1050;
-  animation: fadeInNavDropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  margin-top: 4px;
+  animation: fadeInNavDropdown 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Invisible hover bridge to prevent menu from closing when moving cursor */
+.nav-dropdown-menu::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 0;
+  right: 0;
+  height: 16px;
+  background: transparent;
+  display: block;
 }
 
 @keyframes fadeInNavDropdown {
@@ -340,10 +355,13 @@ a:hover {
 /* Desktop Hover & Focus */
 @media (min-width: 993px) {
   .nav-item-dropdown:hover .nav-dropdown-menu,
+  .nav-item-dropdown.hover-open .nav-dropdown-menu,
+  .nav-dropdown-menu:hover,
   .nav-item-dropdown:focus-within .nav-dropdown-menu {
-    display: flex;
+    display: flex !important;
   }
-  .nav-item-dropdown:hover .btn-nav-dropdown-toggle i {
+  .nav-item-dropdown:hover .btn-nav-dropdown-toggle i,
+  .nav-item-dropdown.hover-open .btn-nav-dropdown-toggle i {
     transform: rotate(180deg);
   }
 }

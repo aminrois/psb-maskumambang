@@ -1268,6 +1268,22 @@ function toggleNavSubmenu(e, btn) {
   }
 }
 
+function initNavDropdownHoverBridge() {
+  document.querySelectorAll('.nav-item-dropdown').forEach(dropdown => {
+    let hoverTimer = null;
+    dropdown.addEventListener('mouseenter', () => {
+      if (hoverTimer) clearTimeout(hoverTimer);
+      dropdown.classList.add('hover-open');
+    });
+    dropdown.addEventListener('mouseleave', () => {
+      hoverTimer = setTimeout(() => {
+        dropdown.classList.remove('hover-open');
+      }, 300);
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded', initNavDropdownHoverBridge);
+
 function handleDashboardRoute() {
   closeSidebarDrawer();
   const hash = window.location.hash.replace('#', '') || 'overview';
