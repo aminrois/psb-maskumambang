@@ -17,8 +17,41 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <link rel="stylesheet" href="/css/main.css?v=20261020_v4">
+  <link rel="stylesheet" href="/css/main.css?v=20261020_v5">
   <link rel="stylesheet" href="/css/dashboard.css">
+  <script>
+    function togglePublicMenu(event) {
+      if (event && event.stopPropagation) event.stopPropagation();
+      const menu = document.getElementById('public-nav-menu') || document.querySelector('.public-navbar .nav-menu');
+      if (menu) {
+        menu.classList.toggle('open');
+        menu.classList.toggle('show');
+      }
+    }
+
+    function toggleNavSubmenu(event, elem) {
+      if (event) {
+        if (event.stopPropagation) event.stopPropagation();
+        if (event.preventDefault) event.preventDefault();
+      }
+      const parent = (elem || (event ? event.currentTarget : null))?.closest('.nav-item-dropdown');
+      if (!parent) return;
+
+      const dropdown = parent.querySelector('.nav-dropdown-menu');
+      const icon = parent.querySelector('.btn-nav-dropdown-toggle i');
+
+      if (dropdown) {
+        const isShowing = dropdown.classList.contains('show');
+        if (isShowing) {
+          dropdown.classList.remove('show');
+          if (icon) icon.style.transform = 'rotate(0deg)';
+        } else {
+          dropdown.classList.add('show');
+          if (icon) icon.style.transform = 'rotate(180deg)';
+        }
+      }
+    }
+  </script>
   <style>
     /* Reset & Viewport Constraints */
     *,
@@ -754,18 +787,32 @@
       }
 
       .public-navbar .btn-nav-dropdown-toggle {
-        width: 38px !important;
-        height: 38px !important;
+        width: 44px !important;
+        height: 44px !important;
         padding: 0 !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        color: #475569 !important;
+        color: #4338ca !important;
+        background: #eef2ff !important;
+        border: 1px solid #c7d2fe !important;
+        border-radius: 8px !important;
+        font-size: 0.95rem !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+      }
+
+      .public-navbar .btn-nav-dropdown-toggle:active {
+        background: #e0e7ff !important;
+        transform: scale(0.96);
       }
 
       .public-navbar .nav-dropdown-menu {
         position: static !important;
         display: none !important;
+        flex-direction: column !important;
         width: 100% !important;
         min-width: 0 !important;
         box-shadow: none !important;
@@ -780,6 +827,7 @@
 
       .public-navbar .nav-dropdown-menu.show {
         display: flex !important;
+        flex-direction: column !important;
       }
 
       .public-navbar .nav-dropdown-menu::before {
@@ -1059,12 +1107,16 @@
           <li><a href="/guide.html" class="nav-link">Panduan</a></li>
           <li class="nav-item-dropdown">
             <div class="nav-dropdown-trigger-wrap">
-              <a href="/biaya-pendidikan.html" class="nav-link active">Biaya Pendidikan</a>
+              <a href="/biaya-pendidikan.html" class="nav-link active" onclick="if(window.innerWidth<=992){toggleNavSubmenu(event,this);return false;}">Biaya Pendidikan</a>
               <button type="button" class="btn-nav-dropdown-toggle" onclick="toggleNavSubmenu(event, this)" aria-label="Buka Submenu Biaya">
                 <i class="fa-solid fa-chevron-down"></i>
               </button>
             </div>
             <div class="nav-dropdown-menu">
+              <a href="/biaya-pendidikan.html#top" class="dropdown-item dropdown-item-all" onclick="onSubmenuItemClick(event, 'all')" style="font-weight: 700; color: #4f46e5 !important; border-bottom: 1px solid #e2e8f0; margin-bottom: 4px; padding-bottom: 8px;">
+                <i class="fa-solid fa-layer-group item-icon"></i>
+                <span>Semua Biaya Pendidikan</span>
+              </a>
               <a href="/biaya-pendidikan.html#section-mi" class="dropdown-item" onclick="onSubmenuItemClick(event, 'mi')">
                 <i class="fa-solid fa-school item-icon"></i>
                 <span>Madrasah Ibtidaiyah (MI)</span>
@@ -1917,7 +1969,7 @@
     </div>
   </footer>
 
-  <script src="/js/app.js?v=20261017_v2"></script>
+  <script src="/js/app.js?v=20261020_v5"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       initTheme();

@@ -1254,16 +1254,25 @@ function closePublicMenu() {
   }
 }
 
-function toggleNavSubmenu(e, btn) {
-  if (e && e.stopPropagation) e.stopPropagation();
-  if (e && e.preventDefault) e.preventDefault();
-  const triggerBtn = btn || (e ? e.currentTarget : null);
-  const dropdown = triggerBtn?.closest('.nav-item-dropdown')?.querySelector('.nav-dropdown-menu');
+function toggleNavSubmenu(event, elem) {
+  if (event) {
+    if (event.stopPropagation) event.stopPropagation();
+    if (event.preventDefault) event.preventDefault();
+  }
+  const parent = (elem || (event ? event.currentTarget : null))?.closest('.nav-item-dropdown');
+  if (!parent) return;
+
+  const dropdown = parent.querySelector('.nav-dropdown-menu');
+  const icon = parent.querySelector('.btn-nav-dropdown-toggle i');
+
   if (dropdown) {
-    dropdown.classList.toggle('show');
-    const icon = triggerBtn?.querySelector('i');
-    if (icon) {
-      icon.style.transform = dropdown.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+    const isShowing = dropdown.classList.contains('show');
+    if (isShowing) {
+      dropdown.classList.remove('show');
+      if (icon) icon.style.transform = 'rotate(0deg)';
+    } else {
+      dropdown.classList.add('show');
+      if (icon) icon.style.transform = 'rotate(180deg)';
     }
   }
 }
@@ -9706,12 +9715,12 @@ document.addEventListener('click', function (e) {
     closeSidebarDrawer();
   } else if (
     !e.target.closest('.public-navbar') ||
-    e.target.closest('.public-navbar .nav-link:not(.nav-dropdown-link)') ||
     e.target.closest('.public-navbar .dropdown-item') ||
     e.target.closest('.public-navbar .dropdown-sub-item') ||
-    e.target.closest('.public-navbar #auth-buttons-nav .btn')
+    e.target.closest('.public-navbar #auth-buttons-nav .btn') ||
+    (e.target.closest('.public-navbar .nav-link') && !e.target.closest('.nav-item-dropdown'))
   ) {
-    if (!e.target.closest('.btn-toggle-public-menu') && !e.target.closest('.btn-nav-dropdown-toggle')) {
+    if (!e.target.closest('.btn-toggle-public-menu') && !e.target.closest('.btn-nav-dropdown-toggle') && !e.target.closest('.nav-item-dropdown')) {
       closePublicMenu();
     }
   }
