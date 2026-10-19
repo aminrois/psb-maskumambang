@@ -857,33 +857,60 @@ a:hover {
     grid-template-columns: 1fr;
   }
 
+  /* Mobile Navbar & Controls */
+  .public-navbar .nav-container {
+    padding: 0.75rem 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    position: relative !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   .btn-toggle-public-menu {
     display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-left: auto !important; /* Pins hamburger button to the far right edge! */
+    order: 2 !important;
+    flex-shrink: 0 !important;
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-md);
-    padding: 0.5rem 0.75rem;
+    width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
     font-size: 1.15rem;
     color: var(--text-main);
     cursor: pointer;
+    box-sizing: border-box !important;
+  }
+
+  .public-navbar nav {
+    display: contents !important; /* Prevents empty <nav> from acting as an in-flow flex item */
   }
 
   .public-navbar .nav-menu {
     display: none !important;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    width: 100%;
-    background: var(--bg-card);
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    background: var(--bg-card) !important;
     flex-direction: column;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-    border: 1px solid var(--border-subtle);
-    gap: 0.85rem;
-    z-index: 1000;
+    padding: 1.25rem 1.25rem !important;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.14) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 16px !important;
+    gap: 0.5rem !important;
+    z-index: 1050 !important;
+    max-height: calc(100vh - 85px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
   }
 
   .public-navbar .nav-menu.open,
@@ -899,7 +926,59 @@ a:hover {
     display: block;
     width: 100%;
     padding: 0.75rem 1rem;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    border-radius: var(--radius-md);
+    text-align: left !important;
+  }
+
+  .public-navbar .nav-item-dropdown {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+  }
+
+  .public-navbar .nav-dropdown-trigger-wrap {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+
+  .public-navbar .nav-dropdown-trigger-wrap .nav-link {
+    flex: 1 !important;
+  }
+
+  .public-navbar .btn-nav-dropdown-toggle {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .public-navbar .nav-dropdown-menu {
+    position: static !important;
+    display: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    box-shadow: none !important;
+    border: 1px solid var(--border-subtle) !important;
+    background: #f8fafc !important;
+    border-radius: 12px !important;
+    margin-top: 4px !important;
+    padding: 8px !important;
+    box-sizing: border-box !important;
+    animation: none !important;
+  }
+
+  .public-navbar .nav-dropdown-menu.show {
+    display: flex !important;
+  }
+
+  .public-navbar .nav-dropdown-menu::before {
+    display: none !important;
   }
 
   .public-navbar .nav-menu #auth-buttons-nav {
@@ -912,9 +991,12 @@ a:hover {
     border-top: 1px solid var(--border-subtle);
   }
 
-  .public-navbar .nav-menu #auth-buttons-nav .btn {
-    width: 100%;
-    text-align: center;
+  .public-navbar .nav-menu #auth-buttons-nav .btn,
+  .public-navbar .nav-menu #auth-buttons-nav a {
+    width: 100% !important;
+    text-align: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
   }
 
   .public-navbar .nav-menu #user-logged-nav .btn {

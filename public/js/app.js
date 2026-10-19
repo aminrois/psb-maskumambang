@@ -9698,14 +9698,22 @@ window.toggleNavSubmenu = toggleNavSubmenu;
 window.toggleSidebarDrawer = toggleSidebarDrawer;
 window.closeSidebarDrawer = closeSidebarDrawer;
 
-// Global Delegated Click Handlers (Auto-close on backdrop / nav click)
+// Global Delegated Click Handlers (Auto-close on backdrop / outside / nav click)
 document.addEventListener('click', function (e) {
   if (e.target.closest('.sidebar-backdrop') || e.target.closest('.sidebar-close-btn')) {
     closeSidebarDrawer();
   } else if (e.target.closest('.sidebar-nav-item')) {
     closeSidebarDrawer();
-  } else if (e.target.closest('.public-navbar .nav-link:not(.nav-dropdown-link)') || e.target.closest('.public-navbar #auth-buttons-nav .btn')) {
-    closePublicMenu();
+  } else if (
+    !e.target.closest('.public-navbar') ||
+    e.target.closest('.public-navbar .nav-link:not(.nav-dropdown-link)') ||
+    e.target.closest('.public-navbar .dropdown-item') ||
+    e.target.closest('.public-navbar .dropdown-sub-item') ||
+    e.target.closest('.public-navbar #auth-buttons-nav .btn')
+  ) {
+    if (!e.target.closest('.btn-toggle-public-menu') && !e.target.closest('.btn-nav-dropdown-toggle')) {
+      closePublicMenu();
+    }
   }
   if (!e.target.closest('.nav-item-dropdown')) {
     document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('show'));
