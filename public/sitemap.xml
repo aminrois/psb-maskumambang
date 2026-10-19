@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  <!-- Halaman Utama (Beranda) -->
+  <url>
+    <loc>https://psb.maskumambang.ac.id/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Informasi Biaya Pendidikan & Kuota -->
+  <url>
+    <loc>https://psb.maskumambang.ac.id/biaya-pendidikan.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Panduan & Alur Pendaftaran -->
+  <url>
+    <loc>https://psb.maskumambang.ac.id/guide.html</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Kontak & Lokasi Pesantren -->
+  <url>
+    <loc>https://psb.maskumambang.ac.id/kontak.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Pendaftaran Akun Santri Baru -->
+  <url>
+    <loc>https://psb.maskumambang.ac.id/register.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Login Peserta & Wali Santri -->
+  <url>
+    <loc>https://psb.maskumambang.ac.id/login.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>

@@ -131,6 +131,114 @@ async function bootstrap() {
       return next();
     }
 
+    // Dynamic XML Sitemap for Google Search Console, Bing & other search engines
+    if (pathname === '/sitemap.xml') {
+      try {
+        const settings = await settingsService.getSettings();
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+        const host = req.headers['x-forwarded-host'] || req.headers.host || `localhost:${port}`;
+        const baseUrl = `${protocol}://${host}`;
+        const siteUrl = (settings.canonical_url && settings.canonical_url.trim())
+          ? settings.canonical_url.trim().replace(/\/+$/, '')
+          : baseUrl;
+
+        const today = new Date().toISOString().split('T')[0];
+
+        const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+  <url>
+    <loc>${siteUrl}/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${siteUrl}/biaya-pendidikan.html</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${siteUrl}/guide.html</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${siteUrl}/kontak.html</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${siteUrl}/register.html</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>${siteUrl}/login.html</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
+
+        res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.send(sitemapXml);
+      } catch (err) {
+        return next();
+      }
+    }
+
+    // Dynamic Robots.txt
+    if (pathname === '/robots.txt') {
+      try {
+        const settings = await settingsService.getSettings();
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+        const host = req.headers['x-forwarded-host'] || req.headers.host || `localhost:${port}`;
+        const baseUrl = `${protocol}://${host}`;
+        const siteUrl = (settings.canonical_url && settings.canonical_url.trim())
+          ? settings.canonical_url.trim().replace(/\/+$/, '')
+          : baseUrl;
+
+        const robotsTxt = `# Robots.txt for PSB Pondok Pesantren Maskumambang
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /biaya-pendidikan.html
+Allow: /guide.html
+Allow: /kontak.html
+Allow: /register.html
+Allow: /login.html
+Allow: /static/
+Allow: /css/
+Allow: /js/
+
+# Disallow administrative, test and private endpoints
+Disallow: /dashboard.html
+Disallow: /cbt/
+Disallow: /interview/
+Disallow: /practical-test/
+Disallow: /api/
+Disallow: /uploads/
+
+# Sitemap location
+Sitemap: ${siteUrl}/sitemap.xml
+`;
+
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        return res.send(robotsTxt);
+      } catch (err) {
+        return next();
+      }
+    }
+
     let filePath: string | null = null;
     if (pathname === '/' || pathname === '') {
       filePath = path.join(publicDir, 'index.html');
@@ -175,6 +283,9 @@ async function bootstrap() {
       const metaKeywords = settings.meta_keywords || '';
       const metaAuthor = settings.meta_author || appName;
       const metaRobots = settings.meta_robots || 'index, follow';
+      const siteUrl = (settings.canonical_url && settings.canonical_url.trim())
+        ? settings.canonical_url.trim().replace(/\/+$/, '')
+        : baseUrl;
       const canonicalUrl = settings.canonical_url
         ? (settings.canonical_url.endsWith('/') ? `${settings.canonical_url}${pathname.replace(/^\//, '')}` : settings.canonical_url)
         : pageUrl;
@@ -255,6 +366,7 @@ async function bootstrap() {
     ${metaAuthor ? `<meta name="author" content="${metaAuthor}">` : ''}
     <meta name="robots" content="${metaRobots}">
     <link rel="canonical" href="${canonicalUrl}">
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="${siteUrl}/sitemap.xml">
     <link rel="icon" type="image/webp" id="app-favicon" href="${rawFavicon.startsWith('http') ? rawFavicon : `/static/img/${rawFavicon}`}">
     ${gscMeta}
     <meta property="og:type" content="${ogType}">
@@ -279,6 +391,7 @@ async function bootstrap() {
       html = html.replace(/<meta\s+name=["']description["'][\s\S]*?>/gi, '');
       html = html.replace(/<link\s+rel=["']icon["'][\s\S]*?>/gi, '');
       html = html.replace(/<link\s+rel=["']canonical["'][\s\S]*?>/gi, '');
+      html = html.replace(/<link\s+rel=["']sitemap["'][\s\S]*?>/gi, '');
       html = html.replace(/<meta\s+property=["']og:[\s\S]*?>/gi, '');
       html = html.replace(/<meta\s+name=["']twitter:[\s\S]*?>/gi, '');
 

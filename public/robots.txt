@@ -1,0 +1,23 @@
+# Robots.txt for PSB Pondok Pesantren Maskumambang
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /biaya-pendidikan.html
+Allow: /guide.html
+Allow: /kontak.html
+Allow: /register.html
+Allow: /login.html
+Allow: /static/
+Allow: /css/
+Allow: /js/
+
+# Disallow administrative, test and private endpoints
+Disallow: /dashboard.html
+Disallow: /cbt/
+Disallow: /interview/
+Disallow: /practical-test/
+Disallow: /api/
+Disallow: /uploads/
+
+# Sitemap location
+Sitemap: https://psb.maskumambang.ac.id/sitemap.xml

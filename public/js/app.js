@@ -8311,6 +8311,59 @@ async function renderAdminMetadataView() {
               </div>
             </div>
 
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 20px; margin-top: 16px;">
+              <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-heading); margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-sitemap" style="color: #10b981;"></i> Peta Situs XML (Sitemap) &amp; Robots.txt
+              </div>
+              <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px; line-height: 1.5;">
+                Peta situs (sitemap) dan robots.txt dihasilkan otomatis oleh sistem secara realtime. Kirimkan link sitemap ke Google Search Console untuk memastikan seluruh halaman publik (Beranda, Biaya Pendidikan, Panduan, Kontak, Register, Login) cepat terindeks di mesin pencari Google.
+              </p>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div style="background: var(--bg-hover); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 16px;">
+                  <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-heading); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-file-code" style="color: #10b981;"></i> XML Sitemap URL</span>
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">Aktif</span>
+                  </div>
+                  <div style="font-family: monospace; font-size: 0.85rem; color: var(--primary-600); word-break: break-all; margin: 8px 0;" id="display-sitemap-url">
+                    ${window.location.origin}/sitemap.xml
+                  </div>
+                  <div style="display: flex; gap: 8px; margin-top: 10px;">
+                    <a href="/sitemap.xml" target="_blank" class="btn btn-sm" style="font-size: 0.78rem; padding: 5px 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-main); text-decoration: none; border-radius: 6px;">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka XML
+                    </a>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="copySitemapUrl(event)" style="font-size: 0.78rem; padding: 5px 12px; border-radius: 6px;">
+                      <i class="fa-regular fa-copy"></i> Salin URL
+                    </button>
+                  </div>
+                </div>
+
+                <div style="background: var(--bg-hover); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 16px;">
+                  <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-heading); margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-robot" style="color: #6366f1;"></i> Robots.txt URL</span>
+                    <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">Aktif</span>
+                  </div>
+                  <div style="font-family: monospace; font-size: 0.85rem; color: var(--text-main); word-break: break-all; margin: 8px 0;">
+                    ${window.location.origin}/robots.txt
+                  </div>
+                  <div style="display: flex; gap: 8px; margin-top: 10px;">
+                    <a href="/robots.txt" target="_blank" class="btn btn-sm" style="font-size: 0.78rem; padding: 5px 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-main); text-decoration: none; border-radius: 6px;">
+                      <i class="fa-solid fa-arrow-up-right-from-square"></i> Lihat robots.txt
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div style="background: rgba(2, 132, 199, 0.08); border-left: 4px solid #0284c7; border-radius: 6px; padding: 12px 16px; font-size: 0.82rem; color: var(--text-main); line-height: 1.5;">
+                <strong><i class="fa-solid fa-circle-info" style="color: #0284c7;"></i> Panduan Submit Peta Situs ke Google Search Console:</strong>
+                <ol style="margin: 6px 0 0 18px; padding: 0;">
+                  <li>Masuk ke <a href="https://search.google.com/search-console" target="_blank" style="color: #0284c7; font-weight: 700; text-decoration: underline;">Google Search Console</a> dan pilih properti website PSB Maskumambang.</li>
+                  <li>Buka menu <strong>Peta Situs (Sitemaps)</strong> pada navigasi sebelah kiri.</li>
+                  <li>Pada kolom <em>Tambahkan peta situs baru</em>, ketik <code>sitemap.xml</code> lalu klik tombol <strong>KIRIM (SUBMIT)</strong>.</li>
+                </ol>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -8381,6 +8434,20 @@ function switchMetadataSubTab(tabName) {
     pane.style.display = 'block';
   }
 }
+
+window.copySitemapUrl = function(e) {
+  if (e) e.preventDefault();
+  const url = `${window.location.origin}/sitemap.xml`;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      alert('URL Sitemap berhasil disalin ke clipboard:\n' + url);
+    }).catch(() => {
+      prompt('Salin URL sitemap berikut:', url);
+    });
+  } else {
+    prompt('Salin URL sitemap berikut:', url);
+  }
+};
 
 function updateLiveSeoPreview() {
   const titleVal = document.getElementById('meta-title-input')?.value || 'PSB Maskumambang';
