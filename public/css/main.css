@@ -274,6 +274,159 @@ a:hover {
   object-fit: contain;
 }
 
+/* ========================================================
+   PUBLIC NAVBAR - DROPDOWN SUBMENU (BIAYA PENDIDIKAN)
+   ======================================================== */
+.nav-item-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nav-dropdown-trigger-wrap {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.btn-nav-dropdown-toggle {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 6px 6px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, background 0.2s;
+  opacity: 0.85;
+}
+
+.btn-nav-dropdown-toggle:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 285px;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 1050;
+  animation: fadeInNavDropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInNavDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Desktop Hover & Focus */
+@media (min-width: 993px) {
+  .nav-item-dropdown:hover .nav-dropdown-menu,
+  .nav-item-dropdown:focus-within .nav-dropdown-menu {
+    display: flex;
+  }
+  .nav-item-dropdown:hover .btn-nav-dropdown-toggle i {
+    transform: rotate(180deg);
+  }
+}
+
+.nav-dropdown-menu.show {
+  display: flex !important;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  color: #334155 !important;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.16s ease;
+}
+
+.dropdown-item:hover {
+  background: #f1f5f9;
+  color: #4f46e5 !important;
+  transform: translateX(3px);
+}
+
+.dropdown-item .item-icon {
+  font-size: 0.95rem;
+  color: #4f46e5;
+  width: 18px;
+  text-align: center;
+}
+
+.dropdown-group {
+  padding: 4px 0;
+  border-top: 1px dashed #e2e8f0;
+  border-bottom: 1px dashed #e2e8f0;
+  margin: 4px 0;
+}
+
+.dropdown-group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px 3px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #0f172a !important;
+}
+
+.dropdown-group-title .item-icon {
+  font-size: 0.95rem;
+  color: #4f46e5;
+  width: 18px;
+  text-align: center;
+}
+
+.dropdown-sub-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 20px;
+}
+
+.dropdown-sub-item {
+  padding: 6px 12px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #475569 !important;
+}
+
+.dropdown-sub-item:hover {
+  background: #eef2ff;
+  color: #4f46e5 !important;
+  font-weight: 700;
+}
+
+.dropdown-sub-item .sub-bullet {
+  font-size: 0.75rem;
+  color: #6366f1;
+}
+
 .brand-emoji {
   font-size: 1.25rem;
 }

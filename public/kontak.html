@@ -307,7 +307,47 @@
         <ul class="nav-menu" id="public-nav-menu">
           <li><a href="/" class="nav-link">Beranda</a></li>
           <li><a href="/guide.html" class="nav-link">Panduan</a></li>
-          <li><a href="/biaya-pendidikan.html" class="nav-link">Biaya Pendidikan</a></li>
+          <li class="nav-item-dropdown">
+            <div class="nav-dropdown-trigger-wrap">
+              <a href="/biaya-pendidikan.html" class="nav-link">Biaya Pendidikan</a>
+              <button type="button" class="btn-nav-dropdown-toggle" onclick="toggleNavSubmenu(event, this)" aria-label="Buka Submenu Biaya">
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+            </div>
+            <div class="nav-dropdown-menu">
+              <a href="/biaya-pendidikan.html#section-mi" class="dropdown-item">
+                <i class="fa-solid fa-school item-icon"></i>
+                <span>Madrasah Ibtidaiyah (MI)</span>
+              </a>
+
+              <div class="dropdown-group">
+                <div class="dropdown-group-title">
+                  <i class="fa-solid fa-book-open-reader item-icon"></i>
+                  <span>Madrasah Tsanawiyah (MTs)</span>
+                </div>
+                <div class="dropdown-sub-items">
+                  <a href="/biaya-pendidikan.html#section-mts-progresif" class="dropdown-item dropdown-sub-item">
+                    <i class="fa-solid fa-angle-right sub-bullet"></i>
+                    <span>Progresif</span>
+                  </a>
+                  <a href="/biaya-pendidikan.html#section-mts-reguler" class="dropdown-item dropdown-sub-item">
+                    <i class="fa-solid fa-angle-right sub-bullet"></i>
+                    <span>Reguler</span>
+                  </a>
+                </div>
+              </div>
+
+              <a href="/biaya-pendidikan.html#section-ma" class="dropdown-item">
+                <i class="fa-solid fa-graduation-cap item-icon"></i>
+                <span>Madrasah Aliyah (MA)</span>
+              </a>
+
+              <a href="/biaya-pendidikan.html#section-smk" class="dropdown-item">
+                <i class="fa-solid fa-screwdriver-wrench item-icon"></i>
+                <span>Sekolah Menengah Kejuruan (SMK)</span>
+              </a>
+            </div>
+          </li>
           <li><a href="/kontak.html" class="nav-link active">Kontak</a></li>
           <li id="auth-buttons-nav" style="display: flex; gap: 10px; flex-wrap: wrap;">
             <a href="/login.html" id="btn-nav-login"><i class="fa-regular fa-user"></i> Login</a>

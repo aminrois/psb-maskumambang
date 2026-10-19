@@ -27,6 +27,10 @@
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     html,
     body {
       overflow-x: hidden !important;
@@ -36,6 +40,10 @@
       padding: 0 !important;
       position: relative;
       -webkit-text-size-adjust: 100%;
+    }
+
+    .level-section {
+      scroll-margin-top: 85px;
     }
 
     /* Public Navbar */
@@ -783,7 +791,47 @@
         <ul class="nav-menu" id="public-nav-menu">
           <li><a href="/" class="nav-link">Beranda</a></li>
           <li><a href="/guide.html" class="nav-link">Panduan</a></li>
-          <li><a href="/biaya-pendidikan.html" class="nav-link active">Biaya Pendidikan</a></li>
+          <li class="nav-item-dropdown">
+            <div class="nav-dropdown-trigger-wrap">
+              <a href="/biaya-pendidikan.html" class="nav-link active">Biaya Pendidikan</a>
+              <button type="button" class="btn-nav-dropdown-toggle" onclick="toggleNavSubmenu(event, this)" aria-label="Buka Submenu Biaya">
+                <i class="fa-solid fa-chevron-down"></i>
+              </button>
+            </div>
+            <div class="nav-dropdown-menu">
+              <a href="/biaya-pendidikan.html#section-mi" class="dropdown-item" onclick="onSubmenuItemClick(event, 'mi')">
+                <i class="fa-solid fa-school item-icon"></i>
+                <span>Madrasah Ibtidaiyah (MI)</span>
+              </a>
+
+              <div class="dropdown-group">
+                <div class="dropdown-group-title">
+                  <i class="fa-solid fa-book-open-reader item-icon"></i>
+                  <span>Madrasah Tsanawiyah (MTs)</span>
+                </div>
+                <div class="dropdown-sub-items">
+                  <a href="/biaya-pendidikan.html#section-mts-progresif" class="dropdown-item dropdown-sub-item" onclick="onSubmenuItemClick(event, 'mts-progresif')">
+                    <i class="fa-solid fa-angle-right sub-bullet"></i>
+                    <span>Progresif</span>
+                  </a>
+                  <a href="/biaya-pendidikan.html#section-mts-reguler" class="dropdown-item dropdown-sub-item" onclick="onSubmenuItemClick(event, 'mts-reguler')">
+                    <i class="fa-solid fa-angle-right sub-bullet"></i>
+                    <span>Reguler</span>
+                  </a>
+                </div>
+              </div>
+
+              <a href="/biaya-pendidikan.html#section-ma" class="dropdown-item" onclick="onSubmenuItemClick(event, 'ma')">
+                <i class="fa-solid fa-graduation-cap item-icon"></i>
+                <span>Madrasah Aliyah (MA)</span>
+              </a>
+
+              <a href="/biaya-pendidikan.html#section-smk" class="dropdown-item" onclick="onSubmenuItemClick(event, 'smk')">
+                <i class="fa-solid fa-screwdriver-wrench item-icon"></i>
+                <span>Sekolah Menengah Kejuruan (SMK)</span>
+              </a>
+            </div>
+          </li>
           <li><a href="/kontak.html" class="nav-link">Kontak</a></li>
           <li id="auth-buttons-nav" style="display: flex; gap: 10px; flex-wrap: wrap;">
             <a href="/login.html" id="btn-nav-login"><i class="fa-regular fa-user"></i> Login</a>
@@ -860,11 +908,11 @@
       <button type="button" class="level-tab-btn" onclick="switchLevelTab('mi', this)">
         <i class="fa-solid fa-school"></i> MI (Ibtidaiyah)
       </button>
-      <button type="button" class="level-tab-btn" onclick="switchLevelTab('mts-reguler', this)">
-        <i class="fa-solid fa-book-open-reader"></i> MTs Reguler
-      </button>
       <button type="button" class="level-tab-btn" onclick="switchLevelTab('mts-progresif', this)">
         <i class="fa-solid fa-star"></i> MTs Progresif
+      </button>
+      <button type="button" class="level-tab-btn" onclick="switchLevelTab('mts-reguler', this)">
+        <i class="fa-solid fa-book-open-reader"></i> MTs Reguler
       </button>
       <button type="button" class="level-tab-btn" onclick="switchLevelTab('ma', this)">
         <i class="fa-solid fa-graduation-cap"></i> MA (Aliyah)
@@ -1017,7 +1065,123 @@
 
 
     <!-- ========================================== -->
-    <!-- 2. JENJANG MTS REGULER                     -->
+    <!-- 2. JENJANG MTS PROGRESIF                   -->
+    <!-- ========================================== -->
+    <section class="pricing-card level-section" id="section-mts-progresif">
+      <div class="pricing-header">
+        <div>
+          <div class="pricing-badge" style="background: rgba(234, 88, 12, 0.1); color: #ea580c;"><i
+              class="fa-solid fa-star"></i> Program Unggulan Progresif</div>
+          <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 8px 0 4px;">Madrasah Tsanawiyah (MTs)
+            Progresif</h2>
+          <p style="color: #64748b; font-size: 0.92rem; margin: 0;">Kelas percepatan dan pengayaan intensif dengan fokus
+            keilmuan digital, bahasa asing, dan tahfiz unggulan.</p>
+        </div>
+      </div>
+
+      <!-- Tabel Biaya Pendidikan MTs Progresif -->
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MTs
+          Progresif)</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Komponen Biaya</th>
+              <th>Santri Asrama</th>
+              <th>Santri Non-Asrama</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SPP (Bulanan)</strong></td>
+              <td class="price-highlight">Rp 2.000.000,-</td>
+              <td class="price-highlight">Rp 1.375.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kegiatan &amp; Perlengkapan</strong></td>
+              <td class="price-highlight">Rp 2.000.000,-</td>
+              <td class="price-highlight">Rp 2.000.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Ujian 1 Tahun</strong></td>
+              <td class="price-highlight">Rp 470.000,-</td>
+              <td class="price-highlight">Rp 470.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putra</strong></td>
+              <td class="price-highlight">Rp 650.000,-</td>
+              <td class="price-highlight">Rp 650.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Seragam Santri Putri</strong></td>
+              <td class="price-highlight">Rp 1.350.000,-</td>
+              <td class="price-highlight">Rp 1.350.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Seragam Details MTs Progresif -->
+      <div class="seragam-detail-box">
+        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian
+          Perlengkapan Seragam MTs Progresif:</div>
+        <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Celana Biru, 3. Baju
+          Putih, 4. Celana Hitam, 5. Baju Pramuka, 6. Celana Pramuka, 7. Jersey Olahraga, 8. Celana Training Olahraga.
+        </div>
+        <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih, 3. Kain Biru
+          Bawahan, 4. Kain Coklat Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7.
+          Kain Biru Atasan &amp; Minang Putih, 8. Kain Coklat Atasan &amp; Minang Coklat.</div>
+      </div>
+
+      <!-- Tabel Biaya Pangkal MTs Progresif -->
+      <h3 class="table-section-title">
+        <span><i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MTs Progresif</span>
+        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
+      </h3>
+      <div class="table-container">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Gelombang / Kuota</th>
+              <th>Kategori Umum</th>
+              <th>Alumni YKUI / Anak Guru</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Kuota 1</strong></td>
+              <td class="price-highlight">Rp 20.000.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 6.000.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 2</strong></td>
+              <td class="price-highlight">Rp 20.000.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 6.000.000,-</td>
+            </tr>
+            <tr>
+              <td><strong>Kuota 3</strong></td>
+              <td class="price-highlight">Rp 20.000.000,-</td>
+              <td class="price-highlight" style="color: #059669;">Rp 6.000.000,-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout-box">
+        <strong><i class="fa-solid fa-circle-info"></i> Catatan Khusus MTs Progresif:</strong>
+        <ul>
+          <li>Biaya SPP flat selama 3 tahun.</li>
+          <li>Biaya kegiatan 1 tahun belum termasuk program <em>Edu Trip</em> dan buku/kitab pelajaran.</li>
+        </ul>
+      </div>
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- 3. JENJANG MTS REGULER                     -->
     <!-- ========================================== -->
     <section class="pricing-card level-section" id="section-mts-reguler">
       <div class="pricing-header">
@@ -1145,122 +1309,6 @@
           </li>
           <li>Biaya kegiatan 1 tahun belum termasuk agenda <em>Edu Trip</em> dan biaya perlengkapan belum termasuk
             Buku/Kitab.</li>
-        </ul>
-      </div>
-    </section>
-
-
-    <!-- ========================================== -->
-    <!-- 3. JENJANG MTS PROGRESIF                   -->
-    <!-- ========================================== -->
-    <section class="pricing-card level-section" id="section-mts-progresif">
-      <div class="pricing-header">
-        <div>
-          <div class="pricing-badge" style="background: rgba(234, 88, 12, 0.1); color: #ea580c;"><i
-              class="fa-solid fa-star"></i> Program Unggulan Progresif</div>
-          <h2 style="font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 8px 0 4px;">Madrasah Tsanawiyah (MTs)
-            Progresif</h2>
-          <p style="color: #64748b; font-size: 0.92rem; margin: 0;">Kelas percepatan dan pengayaan intensif dengan fokus
-            keilmuan digital, bahasa asing, dan tahfiz unggulan.</p>
-        </div>
-      </div>
-
-      <!-- Tabel Biaya Pendidikan MTs Progresif -->
-      <h3 class="table-section-title">
-        <span><i class="fa-solid fa-receipt" style="color: #4f46e5;"></i> Rincian Biaya Operasional Pendidikan (MTs
-          Progresif)</span>
-        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
-      </h3>
-      <div class="table-container">
-        <table class="table-custom">
-          <thead>
-            <tr>
-              <th>Komponen Biaya</th>
-              <th>Santri Asrama</th>
-              <th>Santri Non-Asrama</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>SPP (Bulanan)</strong></td>
-              <td class="price-highlight">Rp 2.000.000,-</td>
-              <td class="price-highlight">Rp 1.375.000,-</td>
-            </tr>
-            <tr>
-              <td><strong>Kegiatan &amp; Perlengkapan</strong></td>
-              <td class="price-highlight">Rp 2.000.000,-</td>
-              <td class="price-highlight">Rp 2.000.000,-</td>
-            </tr>
-            <tr>
-              <td><strong>Ujian 1 Tahun</strong></td>
-              <td class="price-highlight">Rp 470.000,-</td>
-              <td class="price-highlight">Rp 470.000,-</td>
-            </tr>
-            <tr>
-              <td><strong>Seragam Santri Putra</strong></td>
-              <td class="price-highlight">Rp 650.000,-</td>
-              <td class="price-highlight">Rp 650.000,-</td>
-            </tr>
-            <tr>
-              <td><strong>Seragam Santri Putri</strong></td>
-              <td class="price-highlight">Rp 1.350.000,-</td>
-              <td class="price-highlight">Rp 1.350.000,-</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Seragam Details MTs Progresif -->
-      <div class="seragam-detail-box">
-        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px;"><i class="fa-solid fa-shirt"></i> Rincian
-          Perlengkapan Seragam MTs Progresif:</div>
-        <div style="margin-bottom: 4px;"><strong>• Santri Putra:</strong> 1. Seragam Polo, 2. Celana Biru, 3. Baju
-          Putih, 4. Celana Hitam, 5. Baju Pramuka, 6. Celana Pramuka, 7. Jersey Olahraga, 8. Celana Training Olahraga.
-        </div>
-        <div><strong>• Santri Putri:</strong> 1. Gamis Navy &amp; Jilbab, 2. Kain Hitam &amp; Putih, 3. Kain Biru
-          Bawahan, 4. Kain Coklat Bawahan, 5. Kain Hitam &amp; Batik (Plus Jilbab), 6. Seragam Olahraga &amp; Jilbab, 7.
-          Kain Biru Atasan &amp; Minang Putih, 8. Kain Coklat Atasan &amp; Minang Coklat.</div>
-      </div>
-
-      <!-- Tabel Biaya Pangkal MTs Progresif -->
-      <h3 class="table-section-title">
-        <span><i class="fa-solid fa-building-columns" style="color: #4f46e5;"></i> Biaya Pangkal MTs Progresif</span>
-        <span class="table-scroll-hint"><i class="fa-solid fa-arrows-left-right"></i> Geser tabel</span>
-      </h3>
-      <div class="table-container">
-        <table class="table-custom">
-          <thead>
-            <tr>
-              <th>Gelombang / Kuota</th>
-              <th>Kategori Umum</th>
-              <th>Alumni YKUI / Anak Guru</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>Kuota 1</strong></td>
-              <td class="price-highlight">Rp 20.000.000,-</td>
-              <td class="price-highlight" style="color: #059669;">Rp 6.000.000,-</td>
-            </tr>
-            <tr>
-              <td><strong>Kuota 2</strong></td>
-              <td class="price-highlight">Rp 20.000.000,-</td>
-              <td class="price-highlight" style="color: #059669;">Rp 6.000.000,-</td>
-            </tr>
-            <tr>
-              <td><strong>Kuota 3</strong></td>
-              <td class="price-highlight">Rp 20.000.000,-</td>
-              <td class="price-highlight" style="color: #059669;">Rp 6.000.000,-</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="callout-box">
-        <strong><i class="fa-solid fa-circle-info"></i> Catatan Khusus MTs Progresif:</strong>
-        <ul>
-          <li>Biaya SPP flat selama 3 tahun.</li>
-          <li>Biaya kegiatan 1 tahun belum termasuk program <em>Edu Trip</em> dan buku/kitab pelajaran.</li>
         </ul>
       </div>
     </section>
@@ -1629,11 +1677,86 @@
       }
     }
 
+    function toggleNavSubmenu(event, btn) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      const triggerBtn = btn || (event ? event.currentTarget : null);
+      const dropdown = triggerBtn?.closest('.nav-item-dropdown')?.querySelector('.nav-dropdown-menu');
+      if (dropdown) {
+        dropdown.classList.toggle('show');
+        const icon = triggerBtn?.querySelector('i');
+        if (icon) {
+          icon.style.transform = dropdown.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+      }
+    }
+
+    function onSubmenuItemClick(e, levelId) {
+      if (e) e.preventDefault();
+      navigateToSection(levelId);
+      // Close dropdown
+      document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('show'));
+      document.querySelectorAll('.btn-nav-dropdown-toggle i').forEach(i => i.style.transform = 'rotate(0deg)');
+      // Close mobile menu if open
+      const menu = document.getElementById('public-nav-menu');
+      if (menu) menu.classList.remove('open', 'show');
+      // Update hash without jumping
+      if (history.pushState) {
+        history.pushState(null, '', `#section-${levelId}`);
+      } else {
+        window.location.hash = `section-${levelId}`;
+      }
+    }
+
+    function navigateToSection(levelId) {
+      const cleanLevel = levelId.replace('section-', '').replace(/^#/, '');
+
+      // Pastikan semua section tampil agar seluruh konten tersedia untuk digulir
+      const sections = document.querySelectorAll('.level-section');
+      sections.forEach(sec => sec.style.display = 'block');
+
+      // Update status tombol filter
+      document.querySelectorAll('.level-tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.querySelector(`.level-tab-btn[onclick*="'${cleanLevel}'"]`);
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+      } else {
+        const allBtn = document.querySelector(`.level-tab-btn[onclick*="'all'"]`);
+        if (allBtn) allBtn.classList.add('active');
+      }
+
+      const targetSec = document.getElementById(`section-${cleanLevel}`);
+      if (targetSec) {
+        targetSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Tangani navigasi hash dari URL saat halaman pertama kali dimuat
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.location.hash) {
+        setTimeout(() => {
+          navigateToSection(window.location.hash);
+        }, 350);
+      }
+    });
+
+    window.addEventListener('hashchange', () => {
+      if (window.location.hash) {
+        navigateToSection(window.location.hash);
+      }
+    });
+
     document.addEventListener('click', (e) => {
       const menu = document.getElementById('public-nav-menu');
       const toggleBtn = document.getElementById('btn-toggle-public-menu');
       if (menu && menu.classList.contains('open') && !menu.contains(e.target) && (!toggleBtn || !toggleBtn.contains(e.target))) {
         menu.classList.remove('open', 'show');
+      }
+      if (!e.target.closest('.nav-item-dropdown')) {
+        document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('show'));
+        document.querySelectorAll('.btn-nav-dropdown-toggle i').forEach(i => i.style.transform = 'rotate(0deg)');
       }
     });
 

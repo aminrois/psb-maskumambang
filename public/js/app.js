@@ -1254,6 +1254,20 @@ function closePublicMenu() {
   }
 }
 
+function toggleNavSubmenu(e, btn) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  if (e && e.preventDefault) e.preventDefault();
+  const triggerBtn = btn || (e ? e.currentTarget : null);
+  const dropdown = triggerBtn?.closest('.nav-item-dropdown')?.querySelector('.nav-dropdown-menu');
+  if (dropdown) {
+    dropdown.classList.toggle('show');
+    const icon = triggerBtn?.querySelector('i');
+    if (icon) {
+      icon.style.transform = dropdown.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+  }
+}
+
 function handleDashboardRoute() {
   closeSidebarDrawer();
   const hash = window.location.hash.replace('#', '') || 'overview';
@@ -9664,6 +9678,7 @@ window.loadLiveCheckInLogs = loadLiveCheckInLogs;
 // UI & Responsive Drawer Navigation Handlers
 window.togglePublicMenu = togglePublicMenu;
 window.closePublicMenu = closePublicMenu;
+window.toggleNavSubmenu = toggleNavSubmenu;
 window.toggleSidebarDrawer = toggleSidebarDrawer;
 window.closeSidebarDrawer = closeSidebarDrawer;
 
@@ -9673,8 +9688,12 @@ document.addEventListener('click', function (e) {
     closeSidebarDrawer();
   } else if (e.target.closest('.sidebar-nav-item')) {
     closeSidebarDrawer();
-  } else if (e.target.closest('.public-navbar .nav-link') || e.target.closest('.public-navbar #auth-buttons-nav .btn')) {
+  } else if (e.target.closest('.public-navbar .nav-link:not(.nav-dropdown-link)') || e.target.closest('.public-navbar #auth-buttons-nav .btn')) {
     closePublicMenu();
+  }
+  if (!e.target.closest('.nav-item-dropdown')) {
+    document.querySelectorAll('.nav-dropdown-menu').forEach(m => m.classList.remove('show'));
+    document.querySelectorAll('.btn-nav-dropdown-toggle i').forEach(i => i.style.transform = 'rotate(0deg)');
   }
 });
 
