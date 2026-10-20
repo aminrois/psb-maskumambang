@@ -14,17 +14,22 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { RegistrationsService } from './registrations.service';
+import { RegistrationsExportService } from './registrations-export.service';
 import { CreateIndividualRegistrationDto } from './dto/create-individual.dto';
 import { CreateTeamRegistrationDto } from './dto/create-team.dto';
 import { SaveFormDraftDto, SubmitFullFormDto, RequestRevisionDto } from './dto/full-form.dto';
+import { ExportBatchDto } from './dto/export-batch.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { Role, RegistrationStatus, FormStatus, DocumentType } from '@prisma/client';
+import { Role, RegistrationStatus, FormStatus, DocumentType, FinalAdmissionStatus, PaymentStatus, BoardingStatus } from '@prisma/client';
 import * as fs from 'fs';
 
 @Controller('registrations')
 export class RegistrationsController {
-  constructor(private readonly registrationsService: RegistrationsService) {}
+  constructor(
+    private readonly registrationsService: RegistrationsService,
+    private readonly exportService: RegistrationsExportService,
+  ) {}
 
   @Roles(Role.PESERTA)
   @Post('individual')
@@ -120,6 +125,66 @@ export class RegistrationsController {
       page: parseInt(page, 10) || 1,
       perPage: parseInt(perPage, 10) || 25,
     });
+  }
+
+  // ==========================================
+  // EXPORT / DOWNLOAD DATA SANTRI (ZIP/PDF/XLSX)
+  // ==========================================
+
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Get('admin/export/filter-options')
+  async getExportFilterOptions() {
+    return this.exportService.getFilterOptions();
+  }
+
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Get('admin/export/preview-list')
+  async getExportPreviewList(
+    @Query('schoolId') schoolId?: string,
+    @Query('admissionWaveId') admissionWaveId?: string,
+    @Query('academicPeriodId') academicPeriodId?: string,
+    @Query('formStatus') formStatus?: FormStatus,
+    @Query('finalStatus') finalStatus?: FinalAdmissionStatus,
+    @Query('paymentStatus') paymentStatus?: PaymentStatus,
+    @Query('boardingStatus') boardingStatus?: BoardingStatus,
+    @Query('search') search?: string,
+    @Query('page') page = '1',
+    @Query('perPage') perPage = '25',
+  ) {
+    return this.exportService.getPreviewList(
+      {
+        schoolId,
+        admissionWaveId,
+        academicPeriodId,
+        formStatus,
+        finalStatus,
+        paymentStatus,
+        boardingStatus,
+        search,
+      },
+      parseInt(page, 10) || 1,
+      parseInt(perPage, 10) || 25,
+    );
+  }
+
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Get('admin/export/single/:id')
+  async downloadSingleStudentZip(
+    @Param('id') id: string,
+    @CurrentUser('id') adminUserId: string,
+    @Res() res: Response,
+  ) {
+    return this.exportService.streamSingleStudentZip(id, res, adminUserId);
+  }
+
+  @Roles(Role.ADMIN, Role.SUPER_ADMIN)
+  @Post('admin/export/batch')
+  async downloadBatchStudentsZip(
+    @Body() dto: ExportBatchDto,
+    @CurrentUser('id') adminUserId: string,
+    @Res() res: Response,
+  ) {
+    return this.exportService.streamBatchZip(dto, res, adminUserId);
   }
 
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)

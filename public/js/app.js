@@ -1012,6 +1012,7 @@ function buildRoleSidebar(role) {
       <a href="#cbt-verification" id="nav-cbt-verification" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-check"></i></span><span class="nav-label">Verifikasi CBT</span></a>
       <a href="#verifikasi-final" id="nav-verifikasi-final" class="sidebar-nav-item" style="border-left: 3px solid #10b981; background: rgba(16, 185, 129, 0.08);"><span class="nav-icon" style="color: #10b981;"><i class="fa-solid fa-award"></i></span><span class="nav-label" style="color: #ffffff; font-weight: 700;">Verifikasi Final</span><span class="badge" style="background: #10b981; color:#ffffff; font-size:0.62rem; font-weight: 800; padding:2px 6px; border-radius:4px; margin-left:auto;">FINAL</span></a>
       <a href="#daftar-peserta" id="nav-daftar-peserta" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span><span class="nav-label">Daftar Calon Siswa</span></a>
+      <a href="#download-data" id="nav-download-data" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-zipper"></i></span><span class="nav-label">Download Data</span></a>
       <a href="#checkin-scanner" id="nav-checkin-scanner" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-qrcode"></i></span><span class="nav-label">Check-In QR</span></a>
       <a href="#cetak-kartu" id="nav-cetak-kartu" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-print"></i></span><span class="nav-label">Cetak Bukti Pendaftaran</span></a>
 
@@ -1117,6 +1118,7 @@ function buildRoleSidebar(role) {
       <a href="#cbt-verification" id="nav-cbt-verification" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-check"></i></span><span class="nav-label">Verifikasi CBT</span></a>
       <a href="#verifikasi-final" id="nav-verifikasi-final" class="sidebar-nav-item" style="border-left: 3px solid #10b981; background: rgba(16, 185, 129, 0.08);"><span class="nav-icon" style="color: #10b981;"><i class="fa-solid fa-award"></i></span><span class="nav-label" style="color: #ffffff; font-weight: 700;">Verifikasi Final</span><span class="badge" style="background: #10b981; color:#ffffff; font-size:0.62rem; font-weight: 800; padding:2px 6px; border-radius:4px; margin-left:auto;">FINAL</span></a>
       <a href="#daftar-peserta" id="nav-daftar-peserta" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span><span class="nav-label">Daftar Calon Siswa</span></a>
+      <a href="#download-data" id="nav-download-data" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-zipper"></i></span><span class="nav-label">Download Data</span></a>
       <a href="#checkin-scanner" id="nav-checkin-scanner" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-qrcode"></i></span><span class="nav-label">Check-In QR</span></a>
       <a href="#cetak-kartu" id="nav-cetak-kartu" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-print"></i></span><span class="nav-label">Cetak Bukti Pendaftaran</span></a>
 
@@ -1349,6 +1351,9 @@ function handleDashboardRoute() {
   } else if (role === 'BENDAHARA') {
     if (mainRoute === 'verifikasi-pembayaran') renderBendaharaPaymentsView();
     else if (mainRoute === 'checkin-scanner') renderCheckInScannerView();
+    else if (mainRoute === 'download-data' || mainRoute === 'export-data') {
+      if (typeof renderAdminDownloadDataView === 'function') renderAdminDownloadDataView();
+    }
     else if (mainRoute === 'detail') renderPesertaRegistrationDetail(param);
     else if (mainRoute === 'card') renderParticipantCardView(param);
     else if (mainRoute === 'change-password') renderChangePasswordView();
@@ -1361,6 +1366,9 @@ function handleDashboardRoute() {
     else if (mainRoute === 'master-periode') renderAdminPeriodsView();
     else if (mainRoute === 'master-gelombang') renderAdminWavesView();
     else if (mainRoute === 'daftar-peserta') renderAdminRegistrationsView();
+    else if (mainRoute === 'download-data' || mainRoute === 'export-data') {
+      if (typeof renderAdminDownloadDataView === 'function') renderAdminDownloadDataView();
+    }
     else if (mainRoute === 'verifikasi-pembayaran') renderBendaharaPaymentsView();
     else if (mainRoute === 'checkin-scanner') renderCheckInScannerView();
     else if (mainRoute === 'cetak-kartu') renderCetakKartuView();
@@ -1450,6 +1458,9 @@ function handleDashboardRoute() {
       if (typeof renderAdminFinalVerificationView === 'function') renderAdminFinalVerificationView();
     }
     else if (mainRoute === 'daftar-peserta') renderAdminRegistrationsView();
+    else if (mainRoute === 'download-data' || mainRoute === 'export-data') {
+      if (typeof renderAdminDownloadDataView === 'function') renderAdminDownloadDataView();
+    }
     else if (mainRoute === 'cbt-dashboard') {
       if (typeof renderCbtAdminDashboard === 'function') renderCbtAdminDashboard();
     }
