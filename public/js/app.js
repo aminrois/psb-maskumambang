@@ -579,10 +579,48 @@ function exportTableDataToExcel(filename, columns, data) {
   // Filter out action columns
   const exportCols = columns.filter(c => !c.sticky && c.header !== 'Aksi');
 
-  // Header row
-  const headers = exportCols.map(c => `"${(c.header || '').replace(/"/g, '""')}"`);
+  // If SheetJS (XLSX) is loaded in page, generate clean native .xlsx
+  if (typeof window !== 'undefined' && window.XLSX) {
+    try {
+      const headers = exportCols.map(c => c.header || '');
+      const rows = data.map((item, idx) => {
+        return exportCols.map(col => {
+          let val = '';
+          if (typeof col.exportValue === 'function') {
+            val = col.exportValue(item, idx);
+          } else if (col.key && item[col.key] !== undefined) {
+            val = item[col.key];
+          } else if (typeof col.render === 'function') {
+            const rendered = col.render(item);
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = rendered;
+            val = tempDiv.textContent || tempDiv.innerText || '';
+          }
+          return (val === null || val === undefined) ? '' : String(val).trim();
+        });
+      });
 
-  // Data rows
+      const ws = window.XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      // Calculate dynamic column width
+      ws['!cols'] = headers.map((h, i) => {
+        let maxLen = String(h).length;
+        rows.forEach(r => {
+          if (r[i] && String(r[i]).length > maxLen) maxLen = String(r[i]).length;
+        });
+        return { wch: Math.min(Math.max(maxLen + 3, 10), 60) };
+      });
+
+      const wb = window.XLSX.utils.book_new();
+      window.XLSX.utils.book_append_sheet(wb, ws, 'Data');
+      window.XLSX.writeFile(wb, `${filename || 'export'}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      return;
+    } catch (err) {
+      console.warn('Gagal mengekspor via SheetJS XLSX, menggunakan fallback CSV:', err);
+    }
+  }
+
+  // CSV Fallback
+  const headers = exportCols.map(c => `"${(c.header || '').replace(/"/g, '""')}"`);
   const rows = data.map((item, idx) => {
     return exportCols.map(col => {
       let val = '';
@@ -612,6 +650,19 @@ function exportTableDataToExcel(filename, columns, data) {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+window._universalTableCache = window._universalTableCache || {};
+
+function exportUniversalTableData(tableId) {
+  const cached = window._universalTableCache && window._universalTableCache[tableId];
+  if (!cached || !cached.filtered || !cached.filtered.length) {
+    alert('Tidak ada data untuk diekspor.');
+    return;
+  }
+  exportTableDataToExcel(cached.filename || tableId, cached.columns, cached.filtered);
+}
+window.exportUniversalTableData = exportUniversalTableData;
+
 
 window.tableColFilters = window.tableColFilters || {};
 
@@ -732,6 +783,15 @@ function renderUniversalTable({
   const startDisplay = total === 0 ? 0 : startIdx + 1;
   const endDisplay = Math.min(startIdx + pageSize, total);
 
+  // Cache all filtered items (full dataset across all pages) and column definitions for export
+  window._universalTableCache = window._universalTableCache || {};
+  window._universalTableCache[tableId] = {
+    columns,
+    filtered: [...filtered],
+    data,
+    filename: exportFilename || tableId,
+  };
+
   // If container already in DOM, perform live in-place update of tbody and pagination
   const tbodyEl = document.getElementById(`${tableId}-tbody`);
   const pagEl = document.getElementById(`${tableId}-pagination`);
@@ -804,7 +864,7 @@ function renderUniversalTable({
 
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           ${(exportFilename || onExportName) ? `
-            <button type="button" onclick="${onExportName ? `${onExportName}()` : `exportTableDataToExcel('${exportFilename || tableId}', [], [])`}" style="padding: 7px 10px; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--success-500); color: var(--success-600); background: transparent; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s;" title="Ekspor ke Excel / CSV" onmouseover="this.style.background='var(--success-50)'" onmouseout="this.style.background='transparent'">
+            <button type="button" onclick="${onExportName ? `${onExportName}()` : `exportUniversalTableData('${tableId}')`}" style="padding: 7px 10px; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--success-500); color: var(--success-600); background: transparent; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s;" title="Ekspor Seluruh Data ke Excel / CSV" onmouseover="this.style.background='var(--success-50)'" onmouseout="this.style.background='transparent'">
               <i class="fa-solid fa-file-excel"></i>
             </button>
           ` : ''}
@@ -5873,13 +5933,23 @@ async function renderAdminRegistrationsView() {
   container.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat daftar seluruh peserta...</div>';
 
   try {
-    const res = await apiRequest('/api/registrations?perPage=500');
+    const res = await apiRequest('/api/registrations?perPage=5000');
     tableState.adminRegistrations.data = res.success ? res.registrations : [];
 
     container.innerHTML = `
-      <div style="margin-bottom: 24px;">
-        <h2 style="font-size: 1.6rem; color: var(--text-heading); margin-bottom: 4px;">Daftar Seluruh Calon Santri</h2>
-        <p style="color: var(--text-muted); font-size: 0.95rem;">Data pendaftar resmi calon santri baru Pondok Pesantren Maskumambang.</p>
+      <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <h2 style="font-size: 1.6rem; color: var(--text-heading); margin-bottom: 4px;">Daftar Seluruh Calon Santri</h2>
+          <p style="color: var(--text-muted); font-size: 0.95rem;">Data pendaftar resmi calon santri baru Pondok Pesantren Maskumambang.</p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn btn-outline-success" onclick="exportAdminRegistrationsExcel()" style="border: 1px solid var(--success-500); color: var(--success-600); background: transparent; padding: 8px 16px; border-radius: var(--radius-md); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='var(--success-50)'" onmouseout="this.style.background='transparent'" title="Export Seluruh Data Pendaftar ke Excel (.xlsx / .csv)">
+            <i class="fa-solid fa-file-excel"></i> Export Excel
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="renderAdminRegistrationsView()" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600;">
+            <i class="fa-solid fa-rotate-right"></i> Refresh
+          </button>
+        </div>
       </div>
 
       <div id="admin-registrations-table-slot">
@@ -5903,13 +5973,13 @@ function renderAdminRegistrationsTable() {
       },
       {
         header: 'Nama Calon Santri',
-        sortValue: r => (r.individualParticipant?.fullName || r.team?.teamName) || '',
-        render: r => `<strong>${r.individualParticipant?.fullName || r.team?.teamName || '-'}</strong>`,
+        sortValue: r => (r.individualParticipant?.fullName || r.team?.teamName || r.studentDetail?.fullName) || '',
+        render: r => `<strong>${r.studentDetail?.fullName || r.individualParticipant?.fullName || r.team?.teamName || '-'}</strong>`,
       },
       {
         header: 'Asal Sekolah',
-        sortValue: r => (r.individualParticipant?.schoolName || r.team?.schoolName) || '',
-        render: r => (r.individualParticipant?.schoolName || r.team?.schoolName) || '-',
+        sortValue: r => (r.individualParticipant?.schoolName || r.team?.schoolName || r.studentDetail?.previousSchoolName) || '',
+        render: r => (r.studentDetail?.previousSchoolName || r.individualParticipant?.schoolName || r.team?.schoolName) || '-',
       },
       {
         header: 'Sekolah Tujuan & Jurusan',
@@ -5945,8 +6015,10 @@ function renderAdminRegistrationsTable() {
       'registrationNumber',
       r => r.branch?.name,
       r => r.individualParticipant?.fullName,
+      r => r.studentDetail?.fullName,
       r => r.team?.teamName,
       r => r.individualParticipant?.schoolName,
+      r => r.studentDetail?.previousSchoolName,
       r => r.team?.schoolName,
     ],
     sortKey: ts.sortKey,
@@ -5972,11 +6044,60 @@ function renderAdminRegistrationsTable() {
   });
 }
 
-function exportAdminRegistrationsExcel() {
-  const data = tableState.adminRegistrations.data || [];
+async function exportAdminRegistrationsExcel() {
+  let data = tableState.adminRegistrations.data || [];
+
+  // Always fetch full database records (perPage=10000) so no candidate is left behind
+  try {
+    const res = await apiRequest('/api/registrations?perPage=10000');
+    if (res.success && Array.isArray(res.registrations) && res.registrations.length > 0) {
+      data = res.registrations;
+      tableState.adminRegistrations.data = data;
+    }
+  } catch (err) {
+    console.warn('Gagal memuat ulang data pendaftaran untuk export, menggunakan cache lokal:', err);
+  }
+
   if (!data || !data.length) {
-    alert('Tidak ada data peserta untuk diekspor.');
+    alert('Tidak ada data calon santri untuk diekspor.');
     return;
+  }
+
+  const ts = tableState.adminRegistrations;
+  let exportData = [...data];
+
+  // Apply active status filter if selected
+  if (ts.filterVal) {
+    exportData = exportData.filter(r => String(r.status) === String(ts.filterVal));
+  }
+
+  // Apply active search query across all records (not just page 1)
+  if (ts.search && ts.search.trim()) {
+    const q = ts.search.toLowerCase().trim();
+    exportData = exportData.filter(r => {
+      const regNum = String(r.registrationNumber || '').toLowerCase();
+      const name = String(r.studentDetail?.fullName || r.individualParticipant?.fullName || r.team?.teamName || '').toLowerCase();
+      const school = String(r.studentDetail?.previousSchoolName || r.individualParticipant?.schoolName || r.team?.schoolName || '').toLowerCase();
+      const prog = String(r.classProgram?.name || r.branch?.name || '').toLowerCase();
+      const major = String(r.classProgram?.major?.name || r.branch?.level?.name || '').toLowerCase();
+      const schoolName = String(r.classProgram?.major?.school?.name || r.branch?.level?.category?.name || '').toLowerCase();
+      return regNum.includes(q) || name.includes(q) || school.includes(q) || prog.includes(q) || major.includes(q) || schoolName.includes(q);
+    });
+  }
+
+  // Apply active column filters if any
+  const colFilters = (window.tableColFilters && window.tableColFilters['admin-registrations-table']) ? window.tableColFilters['admin-registrations-table'] : {};
+  const activeColKeys = Object.keys(colFilters).filter(k => colFilters[k] && colFilters[k].trim() !== '');
+  if (activeColKeys.length > 0) {
+    exportData = exportData.filter(r => {
+      return activeColKeys.every(k => {
+        const val = colFilters[k].toLowerCase().trim();
+        if (k === 'registrationNumber') return String(r.registrationNumber || '').toLowerCase().includes(val);
+        if (k === 'status') return String(r.status || '').toLowerCase().includes(val);
+        const name = String(r.studentDetail?.fullName || r.individualParticipant?.fullName || r.team?.teamName || '').toLowerCase();
+        return name.includes(val);
+      });
+    });
   }
 
   const cols = [
@@ -5984,18 +6105,27 @@ function exportAdminRegistrationsExcel() {
     { header: 'No. Pendaftaran', key: 'registrationNumber' },
     { header: 'Tanggal Daftar', exportValue: r => formatDate(r.createdAt) },
     { header: 'Status Pembayaran', key: 'status' },
+    { header: 'Status Berkas', exportValue: r => r.formStatus || (r.isFormUnlocked ? 'DRAFT' : 'LOCKED') },
     { header: 'Sekolah Tujuan', exportValue: r => r.classProgram?.major?.school?.name || r.branch?.level?.category?.name || '-' },
     { header: 'Jurusan', exportValue: r => r.classProgram?.major?.name || r.branch?.level?.name || '-' },
     { header: 'Program Kelas', exportValue: r => r.classProgram?.name || r.branch?.name || '-' },
-    { header: 'Nama Calon Santri', exportValue: r => r.individualParticipant?.fullName || r.team?.teamName || '-' },
-    { header: 'Jenis Kelamin', exportValue: r => r.individualParticipant?.gender === 'L' ? 'Laki-laki' : (r.individualParticipant?.gender === 'P' ? 'Perempuan' : '-') },
-    { header: 'No. WhatsApp', exportValue: r => r.individualParticipant?.whatsappNumber || '-' },
-    { header: 'Asal Sekolah', exportValue: r => (r.individualParticipant?.schoolName || r.team?.schoolName) || '-' },
+    { header: 'Gelombang', exportValue: r => r.admissionWave?.name || '-' },
+    { header: 'Periode TP', exportValue: r => r.academicPeriod?.name || '-' },
+    { header: 'Nama Calon Santri', exportValue: r => r.studentDetail?.fullName || r.individualParticipant?.fullName || r.team?.teamName || '-' },
+    { header: 'Jenis Kelamin', exportValue: r => ((r.studentDetail?.gender || r.individualParticipant?.gender || '') === 'P' ? 'Perempuan' : ((r.studentDetail?.gender || r.individualParticipant?.gender || '') === 'L' ? 'Laki-laki' : '-')) },
+    { header: 'NISN', exportValue: r => r.studentDetail?.nisn || '-' },
+    { header: 'NIK', exportValue: r => r.studentDetail?.nik || '-' },
+    { header: 'Tempat Lahir', exportValue: r => r.studentDetail?.birthPlace || '-' },
+    { header: 'Tanggal Lahir', exportValue: r => r.studentDetail?.birthDate ? formatDateIndo(r.studentDetail.birthDate) : '-' },
+    { header: 'No. WhatsApp Santri', exportValue: r => r.individualParticipant?.whatsappNumber || r.studentDetail?.phone || '-' },
+    { header: 'Asal Sekolah', exportValue: r => (r.studentDetail?.previousSchoolName || r.individualParticipant?.schoolName || r.team?.schoolName) || '-' },
     { header: 'Nama Akun Pendaftar', exportValue: r => r.user?.name || '-' },
     { header: 'Email Akun Pendaftar', exportValue: r => r.user?.email || '-' },
     { header: 'No. HP Akun Pendaftar', exportValue: r => r.user?.phoneNumber || '-' },
+    { header: 'Keputusan Final', exportValue: r => r.finalStatus === 'ACCEPTED' ? 'Diterima' : (r.finalStatus === 'WAITLISTED' ? 'Cadangan' : (r.finalStatus === 'REJECTED' ? 'Ditolak' : 'Belum Diputuskan')) },
   ];
-  exportTableDataToExcel('data_lengkap_seluruh_calon_santri', cols, data);
+
+  exportTableDataToExcel('data_seluruh_calon_santri', cols, exportData);
 }
 
 function onAdminRegPageChange(p) { tableState.adminRegistrations.page = p; updateUniversalTable('admin-registrations-table-slot', renderAdminRegistrationsTable); }

@@ -4871,7 +4871,7 @@ async function renderAdminFinalVerificationView(tabMode = null) {
   `;
 
   try {
-    const res = await apiRequest('/api/registrations/admin/final-verification-list?perPage=200');
+    const res = await apiRequest('/api/registrations/admin/final-verification-list?perPage=5000');
     const allItems = res.success ? (res.data || []) : [];
     window.finalVerificationState.allItems = allItems;
 
@@ -4908,9 +4908,14 @@ async function renderAdminFinalVerificationView(tabMode = null) {
               Daftar siswa yang telah menyelesaikan Verifikasi Berkas, Ujian CBT, dan Wawancara untuk penetapan keputusan akhir.
             </p>
           </div>
-          <button type="button" class="btn btn-secondary" onclick="renderAdminFinalVerificationView()" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 700;">
-            <i class="fa-solid fa-rotate-right"></i> Refresh Data
-          </button>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline-success" onclick="exportFinalVerificationExcel()" style="border: 1px solid #10b981; color: #10b981; background: transparent; padding: 8px 16px; border-radius: var(--radius-md, 8px); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;" onmouseover="this.style.background='rgba(16,185,129,0.1)'" onmouseout="this.style.background='transparent'" title="Export Semua Data Verifikasi Final ke Excel (.xlsx / .csv)">
+              <i class="fa-solid fa-file-excel"></i> Export Excel
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="renderAdminFinalVerificationView()" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 700;">
+              <i class="fa-solid fa-rotate-right"></i> Refresh Data
+            </button>
+          </div>
         </div>
 
         <!-- Tab Mode Switcher -->
@@ -5208,7 +5213,9 @@ function filterFinalVerificationTable() {
       const name = (reg.studentDetail?.fullName || reg.individualParticipant?.fullName || reg.user?.name || '').toLowerCase();
       const num = (reg.registrationNumber || '').toLowerCase();
       const school = (reg.schoolName || '').toLowerCase();
-      return name.includes(search) || num.includes(search) || school.includes(search);
+      const originSchool = (reg.studentDetail?.previousSchoolName || reg.individualParticipant?.schoolName || '').toLowerCase();
+      const prog = (reg.classProgramName || '').toLowerCase();
+      return name.includes(search) || num.includes(search) || school.includes(search) || originSchool.includes(search) || prog.includes(search);
     });
   }
 
@@ -5220,12 +5227,101 @@ function filterFinalVerificationTable() {
     }
   }
 
+  window.finalVerificationState.filteredItems = filtered;
+
   const tbody = document.getElementById('final-verif-table-body');
   if (tbody) {
     tbody.innerHTML = renderFinalTableRows(filtered);
   }
 }
 window.filterFinalVerificationTable = filterFinalVerificationTable;
+
+async function exportFinalVerificationExcel() {
+  // Always ensure fresh full list from server (perPage=5000) so no candidate is omitted
+  let allList = window.finalVerificationState.allItems || [];
+  if (!allList.length) {
+    try {
+      const res = await apiRequest('/api/registrations/admin/final-verification-list?perPage=5000');
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        allList = res.data;
+        window.finalVerificationState.allItems = allList;
+      }
+    } catch (e) {
+      console.warn('Gagal memuat ulang data verifikasi final untuk export:', e);
+    }
+  }
+
+  // Filter based on active tab mode (Siap Verifikasi Final vs Semua Calon Santri)
+  const isShowingCompletedOnly = window.finalVerificationTabMode === 'completed';
+  let activeList = isShowingCompletedOnly ? allList.filter(reg => {
+    const isDocOk = reg.formStatus === 'VERIFIED';
+    const isCbtOk = reg.cbtAttempt && (reg.cbtAttempt.status === 'COMPLETED' || reg.cbtAttempt.status === 'EXPIRED' || reg.cbtAttempt.verificationStatus === 'VERIFIED');
+    const isInterviewOk = reg.interview && reg.interview.status === 'COMPLETED';
+    return isDocOk && isCbtOk && isInterviewOk;
+  }) : allList;
+
+  // Apply active search filter from UI if set
+  const searchInput = (document.getElementById('final-search')?.value || '').toLowerCase().trim();
+  if (searchInput) {
+    activeList = activeList.filter(reg => {
+      const name = (reg.studentDetail?.fullName || reg.individualParticipant?.fullName || reg.user?.name || '').toLowerCase();
+      const num = (reg.registrationNumber || '').toLowerCase();
+      const school = (reg.schoolName || '').toLowerCase();
+      const originSchool = (reg.studentDetail?.previousSchoolName || reg.individualParticipant?.schoolName || '').toLowerCase();
+      const prog = (reg.classProgramName || '').toLowerCase();
+      return name.includes(searchInput) || num.includes(searchInput) || school.includes(searchInput) || originSchool.includes(searchInput) || prog.includes(searchInput);
+    });
+  }
+
+  // Apply active status filter from UI if set
+  const statusFilter = document.getElementById('final-status-filter')?.value || '';
+  if (statusFilter) {
+    if (statusFilter === 'UNDECIDED') {
+      activeList = activeList.filter(reg => !reg.finalStatus || reg.finalStatus === 'UNDECIDED');
+    } else {
+      activeList = activeList.filter(reg => reg.finalStatus === statusFilter);
+    }
+  }
+
+  if (!activeList || !activeList.length) {
+    alert('Tidak ada data calon santri verifikasi final untuk diekspor.');
+    return;
+  }
+
+  const cols = [
+    { header: 'No.', exportValue: (r, idx) => idx + 1 },
+    { header: 'No. Pendaftaran', key: 'registrationNumber' },
+    { header: 'Nama Calon Santri', exportValue: r => r.studentDetail?.fullName || r.individualParticipant?.fullName || r.user?.name || '-' },
+    { header: 'Jenis Kelamin', exportValue: r => ((r.studentDetail?.gender || r.individualParticipant?.gender || '') === 'P' ? 'Perempuan' : ((r.studentDetail?.gender || r.individualParticipant?.gender || '') === 'L' ? 'Laki-laki' : '-')) },
+    { header: 'NISN', exportValue: r => r.studentDetail?.nisn || '-' },
+    { header: 'NIK', exportValue: r => r.studentDetail?.nik || '-' },
+    { header: 'Asal Sekolah', exportValue: r => r.studentDetail?.previousSchoolName || r.individualParticipant?.schoolName || '-' },
+    { header: 'Sekolah Tujuan', exportValue: r => r.schoolName || r.classProgram?.major?.school?.name || '-' },
+    { header: 'Jurusan', exportValue: r => r.majorName || r.classProgram?.major?.name || '-' },
+    { header: 'Program Kelas', exportValue: r => r.classProgramName || r.classProgram?.name || '-' },
+    { header: 'Gelombang', exportValue: r => r.admissionWave?.name || '-' },
+    { header: 'Periode TP', exportValue: r => r.academicPeriod?.name || '-' },
+    { header: 'Status Berkas', exportValue: r => r.formStatus === 'VERIFIED' ? 'Terverifikasi (OK)' : (r.formStatus || 'DRAFT') },
+    { header: 'Status Pembayaran', exportValue: r => r.status === 'APPROVED' ? 'Lunas (Disetujui)' : (r.status || '-') },
+    { header: 'Nilai CBT', exportValue: r => (r.cbtAttempt?.totalScore !== undefined && r.cbtAttempt?.totalScore !== null) ? Number(r.cbtAttempt.totalScore).toFixed(1) : '-' },
+    { header: 'Status CBT', exportValue: r => r.cbtAttempt?.verificationStatus === 'VERIFIED' ? 'LULUS CBT' : ((r.cbtAttempt?.status === 'COMPLETED' || r.cbtAttempt?.status === 'EXPIRED') ? 'SUDAH CBT' : 'BELUM CBT') },
+    { header: 'Status Wawancara', exportValue: r => r.interview?.status === 'COMPLETED' ? 'SELESAI' : 'BELUM SELESAI' },
+    { header: 'Rekomendasi Wawancara', exportValue: r => r.interview?.recommendation || '-' },
+    { header: 'Ruang Wawancara', exportValue: r => r.interview?.schedule?.roomLocation || '-' },
+    { header: 'Catatan Wawancara', exportValue: r => r.interview?.notes || '-' },
+    { header: 'Keputusan Final', exportValue: r => r.finalStatus === 'ACCEPTED' ? 'Diterima / Lolos' : (r.finalStatus === 'WAITLISTED' ? 'Cadangan / Pending' : (r.finalStatus === 'REJECTED' ? 'Ditolak / Tidak Lolos' : 'Belum Diputuskan')) },
+    { header: 'Catatan Keputusan Final', exportValue: r => r.finalNotes || '-' },
+    { header: 'Tanggal Penetapan', exportValue: r => r.finalVerifiedAt ? formatDate(r.finalVerifiedAt) : '-' },
+    { header: 'Diverifikasi Oleh', exportValue: r => r.finalVerifiedBy?.name || '-' },
+    { header: 'Nama Akun Pendaftar', exportValue: r => r.user?.name || '-' },
+    { header: 'Email Akun Pendaftar', exportValue: r => r.user?.email || '-' },
+    { header: 'No. WhatsApp / HP', exportValue: r => r.individualParticipant?.whatsappNumber || r.studentDetail?.phone || r.user?.phoneNumber || '-' },
+  ];
+
+  const tabSuffix = isShowingCompletedOnly ? 'siap_verifikasi' : 'semua_peserta';
+  exportTableDataToExcel(`data_verifikasi_final_${tabSuffix}`, cols, activeList);
+}
+window.exportFinalVerificationExcel = exportFinalVerificationExcel;
 
 function openFinalDecisionModal(regId, targetStatus) {
   const allList = window.finalVerificationState.allItems || window.finalVerificationState.items || [];
