@@ -257,7 +257,8 @@
 
       .btn-toggle-public-menu {
         display: inline-flex !important;
-        margin-left: auto !important; /* Pins hamburger button to the far right edge! */
+        margin-left: auto !important;
+        /* Pins hamburger button to the far right edge! */
         order: 2 !important;
         flex-shrink: 0 !important;
         width: 42px !important;
@@ -273,7 +274,8 @@
       }
 
       .public-navbar nav {
-        display: contents !important; /* Prevents empty <nav> from acting as an in-flow flex item */
+        display: contents !important;
+        /* Prevents empty <nav> from acting as an in-flow flex item */
       }
 
       .public-navbar .nav-menu {
@@ -432,16 +434,14 @@
           <li><a href="/guide.html" class="nav-link">Panduan</a></li>
           <li class="nav-item-dropdown">
             <div class="nav-dropdown-trigger-wrap">
-              <a href="/biaya-pendidikan.html" class="nav-link" onclick="if(window.innerWidth<=992){toggleNavSubmenu(event,this);return false;}">Biaya Pendidikan</a>
-              <button type="button" class="btn-nav-dropdown-toggle" onclick="toggleNavSubmenu(event, this)" aria-label="Buka Submenu Biaya">
+              <a href="/biaya-pendidikan.html" class="nav-link"
+                onclick="if(window.innerWidth<=992){toggleNavSubmenu(event,this);return false;}">Biaya Pendidikan</a>
+              <button type="button" class="btn-nav-dropdown-toggle" onclick="toggleNavSubmenu(event, this)"
+                aria-label="Buka Submenu Biaya">
                 <i class="fa-solid fa-chevron-down"></i>
               </button>
             </div>
             <div class="nav-dropdown-menu">
-              <a href="/biaya-pendidikan.html" class="dropdown-item dropdown-item-all" style="font-weight: 700; color: #4f46e5 !important; border-bottom: 1px solid #e2e8f0; margin-bottom: 4px; padding-bottom: 8px;">
-                <i class="fa-solid fa-layer-group item-icon"></i>
-                <span>Semua Biaya Pendidikan</span>
-              </a>
               <a href="/biaya-pendidikan.html#section-mi" class="dropdown-item">
                 <i class="fa-solid fa-school item-icon"></i>
                 <span>Madrasah Ibtidaiyah (MI)</span>
