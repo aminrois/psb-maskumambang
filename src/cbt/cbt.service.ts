@@ -21,6 +21,7 @@ import {
 import {
   CreateCbtExamDto,
   UpdateCbtExamDto,
+  DuplicateCbtExamDto,
   CreateCbtQuestionDto,
   UpdateCbtQuestionDto,
   SubmitCbtAnswerDto,
@@ -100,6 +101,7 @@ export class CbtService {
             title: school.cbtExam.title,
             durationMinutes: school.cbtExam.durationMinutes,
             isActive: school.cbtExam.isActive,
+            randomizeQuestions: school.cbtExam.randomizeQuestions,
             totalQuestions: school.cbtExam._count.questions,
             totalAttempts: school.cbtExam._count.attempts,
           }
@@ -179,6 +181,7 @@ export class CbtService {
         description: dto.description,
         durationMinutes: dto.durationMinutes || 60,
         isActive: dto.isActive !== undefined ? dto.isActive : true,
+        randomizeQuestions: dto.randomizeQuestions !== undefined ? dto.randomizeQuestions : true,
       },
       include: {
         questions: true,
@@ -189,7 +192,7 @@ export class CbtService {
   }
 
   /**
-   * Updates CBT Exam settings (duration, active status, title).
+   * Updates CBT Exam settings (duration, active status, randomize, title).
    */
   async updateExam(examId: string, dto: UpdateCbtExamDto) {
     const exam = await this.prisma.cBTExam.findUnique({
@@ -207,10 +210,143 @@ export class CbtService {
         description: dto.description,
         durationMinutes: dto.durationMinutes,
         isActive: dto.isActive,
+        randomizeQuestions: dto.randomizeQuestions,
       },
     });
 
     return updated;
+  }
+
+  /**
+   * Duplicates an entire CBT Exam and its questions/options from source school to target school.
+   */
+  async duplicateExam(dto: DuplicateCbtExamDto) {
+    if (dto.sourceSchoolId === dto.targetSchoolId) {
+      throw new BadRequestException('Lembaga sumber dan lembaga target tidak boleh sama.');
+    }
+
+    // 1. Fetch Source School and its Exam with full questions & options
+    const sourceSchool = await this.prisma.school.findUnique({
+      where: { id: dto.sourceSchoolId },
+      include: {
+        cbtExam: {
+          include: {
+            questions: {
+              include: { options: true },
+              orderBy: { orderNumber: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!sourceSchool || !sourceSchool.cbtExam) {
+      throw new NotFoundException('Ujian CBT pada lembaga sumber tidak ditemukan.');
+    }
+
+    const sourceExam = sourceSchool.cbtExam;
+    if (!sourceExam.questions || sourceExam.questions.length === 0) {
+      throw new BadRequestException(`Lembaga "${sourceSchool.name}" belum memiliki butir soal untuk diduplikasi.`);
+    }
+
+    // 2. Fetch Target School and its Exam
+    const targetSchool = await this.prisma.school.findUnique({
+      where: { id: dto.targetSchoolId },
+      include: {
+        cbtExam: {
+          include: {
+            questions: true,
+            attempts: true,
+          },
+        },
+      },
+    });
+
+    if (!targetSchool) {
+      throw new NotFoundException('Lembaga target tidak ditemukan.');
+    }
+
+    // 3. Safety check: Block overwrite if candidates have already attempted the target exam
+    if (targetSchool.cbtExam) {
+      if (targetSchool.cbtExam.attempts && targetSchool.cbtExam.attempts.length > 0) {
+        throw new BadRequestException(
+          `Lembaga target "${targetSchool.name}" sudah memiliki peserta yang mengerjakan/telah submit ujian CBT. Duplikasi tidak dapat dilakukan untuk mencegah kerusakan data nilai peserta.`
+        );
+      }
+
+      if (targetSchool.cbtExam.questions.length > 0 && !dto.overwriteExisting) {
+        return {
+          success: false,
+          requireConfirmation: true,
+          existingQuestionCount: targetSchool.cbtExam.questions.length,
+          message: `Lembaga target "${targetSchool.name}" sudah memiliki ${targetSchool.cbtExam.questions.length} butir soal. Apakah Anda ingin menimpa (overwrite) soal tersebut?`,
+        };
+      }
+    }
+
+    // 4. Atomic transaction to clone exam and questions
+    const clonedCount = await this.prisma.$transaction(async (tx) => {
+      // Upsert target CBTExam
+      const targetExam = await tx.cBTExam.upsert({
+        where: { schoolId: targetSchool.id },
+        create: {
+          schoolId: targetSchool.id,
+          title: `Ujian CBT — ${targetSchool.name}`,
+          description: sourceExam.description,
+          durationMinutes: sourceExam.durationMinutes,
+          isActive: sourceExam.isActive,
+          randomizeQuestions: sourceExam.randomizeQuestions,
+        },
+        update: {
+          title: `Ujian CBT — ${targetSchool.name}`,
+          description: sourceExam.description,
+          durationMinutes: sourceExam.durationMinutes,
+          isActive: sourceExam.isActive,
+          randomizeQuestions: sourceExam.randomizeQuestions,
+        },
+      });
+
+      // If overwriting, remove existing questions
+      if (targetSchool.cbtExam && targetSchool.cbtExam.questions.length > 0) {
+        await tx.cBTQuestion.deleteMany({
+          where: { examId: targetExam.id },
+        });
+      }
+
+      // Clone each question and its options
+      for (const q of sourceExam.questions) {
+        const newQ = await tx.cBTQuestion.create({
+          data: {
+            examId: targetExam.id,
+            type: q.type,
+            question: q.question,
+            score: q.score,
+            orderNumber: q.orderNumber,
+          },
+        });
+
+        if (q.options && q.options.length > 0) {
+          await tx.cBTQuestionOption.createMany({
+            data: q.options.map((opt) => ({
+              questionId: newQ.id,
+              content: opt.content,
+              isCorrect: opt.isCorrect,
+              orderNumber: opt.orderNumber,
+            })),
+          });
+        }
+      }
+
+      return sourceExam.questions.length;
+    });
+
+    return {
+      success: true,
+      message: `Berhasil menduplikasi ${clonedCount} butir soal dari "${sourceSchool.name}" ke "${targetSchool.name}".`,
+      targetSchoolId: targetSchool.id,
+      targetSchoolName: targetSchool.name,
+      totalQuestions: clonedCount,
+    };
   }
 
   /**
@@ -1226,13 +1362,15 @@ export class CbtService {
       }
     }
 
-    // Create fresh attempt with randomized question & option order snapshot
+    // Order questions based on exam configuration: randomized or sequential (urut)
     const now = new Date();
     const expiresAt = new Date(
       now.getTime() + exam.durationMinutes * 60 * 1000,
     );
 
-    const shuffledQuestions = this.shuffleArray([...exam.questions]);
+    const questionsList = exam.randomizeQuestions !== false
+      ? this.shuffleArray([...exam.questions])
+      : [...exam.questions].sort((a, b) => a.orderNumber - b.orderNumber);
 
     const result = await this.prisma.$transaction(async (tx) => {
       const attempt = await tx.cBTAttempt.create({
@@ -1246,11 +1384,13 @@ export class CbtService {
       });
 
       // Prepare snapshot rows
-      const attemptQuestionsData = shuffledQuestions.map((q, idx) => {
+      const attemptQuestionsData = questionsList.map((q, idx) => {
         let optionOrderJson: string | null = null;
         if (q.type === CBTQuestionType.MULTIPLE_CHOICE && q.options.length > 0) {
-          const shuffledOptions = this.shuffleArray([...q.options]);
-          optionOrderJson = JSON.stringify(shuffledOptions.map((o) => o.id));
+          const orderedOptions = exam.randomizeQuestions !== false
+            ? this.shuffleArray([...q.options])
+            : [...q.options].sort((a, b) => a.orderNumber - b.orderNumber);
+          optionOrderJson = JSON.stringify(orderedOptions.map((o) => o.id));
         }
 
         return {

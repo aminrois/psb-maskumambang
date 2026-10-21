@@ -128,11 +128,12 @@ async function renderCbtAdminDashboard() {
               <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
                 <thead>
                   <tr style="border-bottom: 2px solid var(--border-subtle); color: var(--text-muted); text-align: left; background: var(--bg-body);">
-                    <th style="padding: 10px 12px; width: 30%;">Lembaga</th>
-                    <th style="padding: 10px 12px; width: 20%;">Jumlah Soal</th>
-                    <th style="padding: 10px 12px; width: 20%;">Durasi Ujian</th>
-                    <th style="padding: 10px 12px; width: 20%;">Status</th>
-                    <th style="padding: 10px 12px; width: 10%; text-align: right;">Aksi</th>
+                    <th style="padding: 10px 12px; width: 26%;">Lembaga</th>
+                    <th style="padding: 10px 12px; width: 14%;">Jumlah Soal</th>
+                    <th style="padding: 10px 12px; width: 14%;">Durasi Ujian</th>
+                    <th style="padding: 10px 12px; width: 16%;">Urutan Soal</th>
+                    <th style="padding: 10px 12px; width: 12%;">Status</th>
+                    <th style="padding: 10px 12px; width: 18%; text-align: right;">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -155,12 +156,24 @@ async function renderCbtAdminDashboard() {
                       </td>
                       <td style="padding: 10px 12px;">
                         ${school.exam 
+                          ? (school.exam.randomizeQuestions !== false 
+                            ? '<span class="badge" style="background: rgba(14, 165, 233, 0.12); color: #0284c7; font-size: 0.75rem;"><i class="fa-solid fa-shuffle"></i> Acak</span>' 
+                            : '<span class="badge" style="background: rgba(168, 85, 247, 0.12); color: #9333ea; font-size: 0.75rem;"><i class="fa-solid fa-arrow-down-1-9"></i> Urut</span>') 
+                          : '<span style="color: var(--text-dim);">-</span>'}
+                      </td>
+                      <td style="padding: 10px 12px;">
+                        ${school.exam 
                           ? (school.exam.isActive 
                             ? '<span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-check"></i> Aktif</span>' 
                             : '<span class="badge badge-secondary" style="font-size: 0.75rem;"><i class="fa-solid fa-pause"></i> Nonaktif</span>') 
                           : '<span class="badge badge-warning" style="font-size: 0.75rem;">Belum dibuat</span>'}
                       </td>
-                      <td style="padding: 10px 12px; text-align: right;">
+                      <td style="padding: 10px 12px; text-align: right; white-space: nowrap;">
+                        ${school.exam && school.exam.totalQuestions > 0 ? `
+                          <button type="button" class="btn btn-xs btn-outline-primary" onclick="openDuplicateCbtModal('${school.id}')" style="margin-right: 6px; white-space: nowrap;" title="Duplikasi Soal ke Lembaga Lain">
+                            <i class="fa-solid fa-copy"></i> Duplikasi
+                          </button>
+                        ` : ''}
                         <button type="button" class="btn btn-xs btn-primary" onclick="openCbtManageDirectly('${school.id}')" style="white-space: nowrap;">
                           <i class="fa-solid fa-gear"></i> Kelola
                         </button>
@@ -192,6 +205,186 @@ async function renderCbtAdminDashboard() {
 function openCbtManageDirectly(schoolId) {
   window.cbtAdminState.selectedSchoolId = schoolId;
   window.location.hash = `#cbt-manage/${schoolId}`;
+}
+
+// ----------------------------------------------------------------------------
+// DUPLIKASI SOAL UJIAN PER LEMBAGA
+// ----------------------------------------------------------------------------
+
+function openDuplicateCbtModal(sourceSchoolId) {
+  const structure = window.cbtAdminState.cachedStructure || [];
+  const source = structure.find(s => s.id === sourceSchoolId);
+  if (!source || !source.exam || !source.exam.totalQuestions) {
+    showToast('Lembaga sumber belum memiliki butir soal untuk diduplikasi.', 'warning');
+    return;
+  }
+
+  const targets = structure.filter(s => s.id !== sourceSchoolId);
+  if (targets.length === 0) {
+    showToast('Tidak ada lembaga tujuan lain yang tersedia di sistem.', 'warning');
+    return;
+  }
+
+  const bodyHtml = `
+    <div style="font-size: 0.9rem;">
+      <div style="padding: 12px 16px; background: var(--bg-body); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-bottom: 16px;">
+        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--primary-600); margin-bottom: 2px;">Lembaga Asal (Sumber Soal)</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-heading);">
+            <i class="fa-solid fa-school" style="margin-right: 6px; color: var(--primary-600);"></i>
+            ${escapeHtml(source.name)}
+          </div>
+          <span class="badge badge-primary" style="font-size: 0.8rem; font-weight: 700; padding: 4px 10px;">
+            <i class="fa-solid fa-list-check"></i> ${source.exam.totalQuestions} Butir Soal
+          </span>
+        </div>
+      </div>
+
+      <form id="form-duplicate-cbt" onsubmit="handleDuplicateCbtSubmit(event, '${sourceSchoolId}')">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label class="form-label" style="font-weight: 700; font-size: 0.875rem; margin-bottom: 6px; display: block;">
+            Pilih Lembaga Tujuan (Penerima Salinan Soal)
+          </label>
+          <select id="duplicate-target-school-id" class="form-select" onchange="onDuplicateTargetChange(this)" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.9rem;">
+            <option value="">-- Pilih Lembaga Tujuan --</option>
+            ${targets.map(t => {
+              const hasQ = t.exam && t.exam.totalQuestions > 0;
+              const hasAttempts = t.exam && t.exam.totalAttempts > 0;
+              const statusText = hasAttempts
+                ? `(Terkunci: Sudah ada ${t.exam.totalAttempts} Peserta Ujian)`
+                : hasQ
+                  ? `(Sudah ada ${t.exam.totalQuestions} butir soal)`
+                  : '(Belum ada soal)';
+              return `<option value="${t.id}" data-has-questions="${hasQ}" data-has-attempts="${hasAttempts}" data-questions="${hasQ ? t.exam.totalQuestions : 0}" ${hasAttempts ? 'disabled style="color: #94a3b8;"' : ''}>
+                ${escapeHtml(t.name)} — ${statusText}
+              </option>`;
+            }).join('')}
+          </select>
+          <small style="color: var(--text-muted); font-size: 0.78rem; display: block; margin-top: 4px;">
+            Seluruh pertanyaan, kunci jawaban, pilihan ganda, bobot nilai, dan pengaturan ujian akan disalin utuh ke lembaga tujuan.
+          </small>
+        </div>
+
+        <div id="duplicate-warning-box" style="display: none; padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px; font-size: 0.85rem; line-height: 1.4;">
+        </div>
+
+        <div id="duplicate-overwrite-wrap" style="display: none; margin-bottom: 18px; padding: 12px 14px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-md);">
+          <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; margin: 0;">
+            <input type="checkbox" id="duplicate-overwrite-check" style="margin-top: 3px;">
+            <span style="font-size: 0.825rem; color: #dc2626; font-weight: 600;">
+              Ya, saya mengerti dan setuju untuk menimpa (mengganti) seluruh butir soal lama di lembaga tujuan dengan salinan soal baru ini.
+            </span>
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+          <button type="submit" id="btn-submit-duplicate" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px;">
+            <i class="fa-solid fa-copy"></i> Duplikasi Sekarang
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  openModal('Duplikasi Soal CBT Antar Lembaga', bodyHtml);
+}
+
+function onDuplicateTargetChange(selectEl) {
+  const selectedOpt = selectEl.options[selectEl.selectedIndex];
+  const hasQuestions = selectedOpt && selectedOpt.getAttribute('data-has-questions') === 'true';
+  const hasAttempts = selectedOpt && selectedOpt.getAttribute('data-has-attempts') === 'true';
+  const qCount = selectedOpt ? selectedOpt.getAttribute('data-questions') : 0;
+
+  const warnBox = document.getElementById('duplicate-warning-box');
+  const overwriteWrap = document.getElementById('duplicate-overwrite-wrap');
+  const overwriteCheck = document.getElementById('duplicate-overwrite-check');
+  const submitBtn = document.getElementById('btn-submit-duplicate');
+
+  if (overwriteCheck) overwriteCheck.checked = false;
+
+  if (hasAttempts) {
+    if (warnBox) {
+      warnBox.style.display = 'block';
+      warnBox.className = 'alert alert-danger';
+      warnBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Lembaga target ini sudah memiliki data pengerjaan peserta ujian CBT. Demi menjaga integritas data nilai santri, duplikasi ke lembaga ini tidak diizinkan.';
+    }
+    if (overwriteWrap) overwriteWrap.style.display = 'none';
+    if (submitBtn) submitBtn.disabled = true;
+    return;
+  }
+
+  if (hasQuestions) {
+    if (warnBox) {
+      warnBox.style.display = 'block';
+      warnBox.className = 'alert alert-warning';
+      warnBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>Perhatian:</strong> Lembaga target ini sudah memiliki <strong>${qCount} butir soal</strong>. Jika Anda ingin melanjutkan, harap centang kotak konfirmasi di bawah untuk menimpa soal lama.`;
+    }
+    if (overwriteWrap) overwriteWrap.style.display = 'block';
+    if (submitBtn) submitBtn.disabled = false;
+  } else {
+    if (warnBox) warnBox.style.display = 'none';
+    if (overwriteWrap) overwriteWrap.style.display = 'none';
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+async function handleDuplicateCbtSubmit(e, sourceSchoolId) {
+  e.preventDefault();
+  const selectEl = document.getElementById('duplicate-target-school-id');
+  const targetSchoolId = selectEl?.value;
+  if (!targetSchoolId) {
+    showToast('Silakan pilih lembaga tujuan terlebih dahulu.', 'warning');
+    return;
+  }
+
+  const selectedOpt = selectEl.options[selectEl.selectedIndex];
+  const hasQuestions = selectedOpt && selectedOpt.getAttribute('data-has-questions') === 'true';
+  const overwriteCheck = document.getElementById('duplicate-overwrite-check');
+
+  if (hasQuestions && (!overwriteCheck || !overwriteCheck.checked)) {
+    showToast('Harap centang persetujuan penimpaan soal lama terlebih dahulu.', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit-duplicate');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menduplikasi Soal...';
+
+  try {
+    const res = await apiRequest('/api/cbt/admin/exams/duplicate', {
+      method: 'POST',
+      body: {
+        sourceSchoolId,
+        targetSchoolId,
+        overwriteExisting: hasQuestions ? true : false,
+      },
+    });
+
+    if (res.success) {
+      showToast(res.message || 'Berhasil menduplikasi soal!', 'success');
+      closeModal();
+      window.cbtAdminState.cachedStructure = [];
+      
+      const targetName = res.data?.targetSchoolName || 'Lembaga Target';
+      setTimeout(() => {
+        if (confirm(`Duplikasi berhasil!\n\nApakah Anda ingin langsung membuka halaman "Kelola Ujian & Soal" untuk ${targetName}?`)) {
+          openCbtManageDirectly(targetSchoolId);
+        } else {
+          renderCbtAdminDashboard();
+        }
+      }, 250);
+    } else {
+      showToast(res.message || 'Gagal menduplikasi soal.', 'danger');
+    }
+  } catch (err) {
+    showToast(err.message || 'Terjadi kesalahan saat menduplikasi soal.', 'danger');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-copy"></i> Duplikasi Sekarang';
+    }
+  }
 }
 
 // ============================================================================
@@ -341,12 +534,13 @@ async function loadCbtSchoolExamDetails(schoolId) {
             <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text-heading); margin: 2px 0;">${exam.title || `Ujian CBT ${school.name}`}</h3>
             <div style="font-size: 0.85rem; color: var(--text-muted);">${school.name}</div>
           </div>
-          <div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             ${exam.isActive ? '<span class="badge badge-success" style="font-size: 0.85rem; padding: 6px 12px;"><i class="fa-solid fa-circle-check"></i> Ujian Aktif</span>' : '<span class="badge badge-secondary" style="font-size: 0.85rem; padding: 6px 12px;"><i class="fa-solid fa-pause"></i> Ujian Nonaktif</span>'}
+            ${exam.randomizeQuestions !== false ? '<span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; font-size: 0.85rem; padding: 6px 12px;"><i class="fa-solid fa-shuffle"></i> Soal Diacak</span>' : '<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #9333ea; font-size: 0.85rem; padding: 6px 12px;"><i class="fa-solid fa-arrow-down-1-9"></i> Soal Urut</span>'}
           </div>
         </div>
 
-        <form id="form-exam-settings" onsubmit="handleSaveExamSettings(event, '${exam.id}')" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) auto; gap: 16px; align-items: flex-end; background: var(--bg-body); padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+        <form id="form-exam-settings" onsubmit="handleSaveExamSettings(event, '${exam.id}')" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; gap: 16px; align-items: flex-end; background: var(--bg-body); padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
           
           <div class="form-group" style="margin: 0;">
             <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: block;">Status Ujian</label>
@@ -359,6 +553,14 @@ async function loadCbtSchoolExamDetails(schoolId) {
           <div class="form-group" style="margin: 0;">
             <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: block;">Durasi Ujian (Menit)</label>
             <input type="number" id="exam-duration" class="form-control" value="${exam.durationMinutes || 60}" min="5" max="360" required style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+          </div>
+
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: block;">Urutan Soal</label>
+            <select id="exam-randomize" class="form-select" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              <option value="true" ${exam.randomizeQuestions !== false ? 'selected' : ''}>Acak (Diacak untuk Setiap Peserta)</option>
+              <option value="false" ${exam.randomizeQuestions === false ? 'selected' : ''}>Urut (Sesuai Nomor Urut Soal)</option>
+            </select>
           </div>
 
           <div style="display: flex; gap: 16px; align-items: center;">
@@ -498,6 +700,14 @@ function openCreateExamModal(schoolId, schoolName) {
         <input type="number" id="new-exam-duration" class="form-control" value="60" min="5" max="360" required style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
       </div>
 
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label class="form-label" style="font-weight: 600; font-size: 0.875rem; margin-bottom: 4px; display: block;">Urutan Soal</label>
+        <select id="new-exam-randomize" class="form-select" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+          <option value="true" selected>Acak (Diacak untuk Setiap Peserta)</option>
+          <option value="false">Urut (Sesuai Nomor Urut Soal)</option>
+        </select>
+      </div>
+
       <div class="form-group" style="margin-bottom: 20px;">
         <label class="form-label" style="font-weight: 600; font-size: 0.875rem; margin-bottom: 4px; display: block;">Status Awal</label>
         <select id="new-exam-status" class="form-select" style="width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
@@ -528,11 +738,12 @@ async function handleCreateExamSubmit(e, schoolId) {
   const title = document.getElementById('new-exam-title')?.value.trim();
   const durationMinutes = Number(document.getElementById('new-exam-duration')?.value);
   const isActive = document.getElementById('new-exam-status')?.value === 'true';
+  const randomizeQuestions = document.getElementById('new-exam-randomize')?.value === 'true';
 
   try {
     const res = await apiRequest('/api/cbt/admin/exams', {
       method: 'POST',
-      body: { schoolId, title, durationMinutes, isActive },
+      body: { schoolId, title, durationMinutes, isActive, randomizeQuestions },
     });
     if (res.success) {
       showToast('Ujian CBT berhasil dibuat!', 'success');
@@ -559,11 +770,12 @@ async function handleSaveExamSettings(e, examId) {
 
   const durationMinutes = Number(document.getElementById('exam-duration')?.value);
   const isActive = document.getElementById('exam-is-active')?.value === 'true';
+  const randomizeQuestions = document.getElementById('exam-randomize')?.value === 'true';
 
   try {
     const res = await apiRequest(`/api/cbt/admin/exams/${examId}`, {
       method: 'PATCH',
-      body: { durationMinutes, isActive },
+      body: { durationMinutes, isActive, randomizeQuestions },
     });
     if (res.success) {
       showToast('Pengaturan ujian berhasil disimpan!', 'success');

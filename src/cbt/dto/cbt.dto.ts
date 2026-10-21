@@ -35,6 +35,10 @@ export class CreateCbtExamDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  randomizeQuestions?: boolean;
 }
 
 export class UpdateCbtExamDto {
@@ -55,6 +59,24 @@ export class UpdateCbtExamDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  randomizeQuestions?: boolean;
+}
+
+export class DuplicateCbtExamDto {
+  @IsString()
+  @IsNotEmpty()
+  sourceSchoolId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  targetSchoolId!: string;
+
+  @IsBoolean()
+  @IsOptional()
+  overwriteExisting?: boolean;
 }
 
 export class QuestionOptionDto {

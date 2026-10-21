@@ -18,6 +18,7 @@ import { Role } from '@prisma/client';
 import {
   CreateCbtExamDto,
   UpdateCbtExamDto,
+  DuplicateCbtExamDto,
   CreateCbtQuestionDto,
   UpdateCbtQuestionDto,
   SubmitCbtAnswerDto,
@@ -56,6 +57,17 @@ export class CbtController {
     return {
       success: true,
       message: 'Ujian CBT berhasil dibuat untuk Program Kelas ini.',
+      data,
+    };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Post('admin/exams/duplicate')
+  async duplicateExam(@Body() dto: DuplicateCbtExamDto) {
+    const data = await this.cbtService.duplicateExam(dto);
+    return {
+      success: true,
+      message: data.message,
       data,
     };
   }
