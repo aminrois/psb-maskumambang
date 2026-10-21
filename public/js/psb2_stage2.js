@@ -962,6 +962,9 @@ async function openAdminVerificationDetailModal(regId) {
             <button type="button" class="btn btn-sm btn-primary" onclick="openAdminEditStudentModal('${regId}')" title="Edit Data Calon Santri">
               <i class="fa-solid fa-pen-to-square"></i> Edit Data Calon Santri
             </button>
+            <button type="button" class="btn btn-sm btn-success" onclick="if(typeof openExemptCbtModal==='function'){openExemptCbtModal('${regId}', '${escapeHtml(d.registrationNumber)}', '${escapeHtml(st.fullName || d.userName || 'Calon Santri')}', '${escapeHtml(d.schoolName || '')}');}else{showToast('Fitur CBT sedang dimuat...','warning');}" title="Tandai Bebas CBT (Ujian Offline)">
+              <i class="fa-solid fa-user-check"></i> Bebas CBT (Ujian Offline)
+            </button>
             <button type="button" class="btn btn-sm btn-secondary" onclick="printFullStudentForm('${regId}')">
               <i class="fa-solid fa-print"></i> Print Data
             </button>
@@ -5123,6 +5126,10 @@ function renderFinalTableRows(items) {
               </button>
               <button type="button" class="final-decision-item reject" onclick="selectFinalDecision('${reg.id}', 'REJECTED')">
                 <i class="fa-solid fa-xmark" style="width: 14px;"></i> <span>Tolak / Tidak Lolos</span>
+              </button>
+              <div style="height: 1px; background: var(--border-subtle); margin: 2px 0;"></div>
+              <button type="button" class="final-decision-item" onclick="if(typeof openExemptCbtModal==='function'){openExemptCbtModal('${reg.id}', '${escapeHtml(regNum)}', '${escapeHtml(name)}', '${escapeHtml(schoolProgram)}');}else{showToast('Fitur CBT sedang dimuat...','warning');}">
+                <i class="fa-solid fa-user-check" style="width: 14px; color: #16a34a;"></i> <span>Bebas CBT (Offline)</span>
               </button>
               ${reg.finalStatus && reg.finalStatus !== 'UNDECIDED' ? `
                 <div style="height: 1px; background: var(--border-subtle); margin: 2px 0;"></div>

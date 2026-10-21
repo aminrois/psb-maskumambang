@@ -26,6 +26,7 @@ import {
   ImportCbtQuestionsDto,
   VerifyCbtAttemptDto,
   RejectCbtAttemptDto,
+  ExemptCbtDto,
 } from './dto/cbt.dto';
 
 @Controller('cbt')
@@ -218,6 +219,28 @@ export class CbtController {
     @CurrentUser('id') adminUserId: string,
   ) {
     return this.cbtService.resetAttempt(attemptId, adminUserId);
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Get('admin/candidates-for-exemption')
+  async getCandidatesForExemption(
+    @Query('schoolId') schoolId?: string,
+    @Query('search') search?: string,
+  ) {
+    const data = await this.cbtService.getCandidatesForExemption({
+      schoolId,
+      search,
+    });
+    return { success: true, data };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Post('admin/exempt')
+  async exemptCbt(
+    @CurrentUser('id') adminUserId: string,
+    @Body() dto: ExemptCbtDto,
+  ) {
+    return this.cbtService.exemptCbt(dto, adminUserId);
   }
 
   // ==========================================================================

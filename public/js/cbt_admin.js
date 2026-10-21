@@ -2536,7 +2536,10 @@ async function renderCbtVerificationView() {
               Verifikasi kelulusan ujian calon santri yang telah menyelesaikan CBT sebelum melanjutkan ke tahap Wawancara.
             </p>
           </div>
-          <div style="display: flex; gap: 10px;">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary" onclick="openExemptCbtModal()" style="display: inline-flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-user-check"></i> + Bebas CBT (Ujian Offline)
+            </button>
             <a href="#cbt-results" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
               <i class="fa-solid fa-square-poll-vertical"></i> Hasil Ujian
             </a>
@@ -2892,8 +2895,252 @@ async function handleConfirmRejectCbt(event, attemptId) {
 }
 
 // ============================================================================
+// 5.1 BEBAS CBT / UJIAN OFFLINE / MANDIRI
+// ============================================================================
+
+let exemptCandidateSearchTimer = null;
+let currentSelectedExemptRegId = null;
+
+function openExemptCbtModal(prefillRegId, prefillRegNum, prefillName, prefillSchool) {
+  currentSelectedExemptRegId = prefillRegId || null;
+
+  const isPrefilled = Boolean(prefillRegId);
+  const safeName = escapeHtml(prefillName || '');
+  const safeRegNum = escapeHtml(prefillRegNum || '');
+  const safeSchool = escapeHtml(prefillSchool || '');
+
+  const bodyHtml = `
+    <form onsubmit="handleConfirmExemptCbt(event)">
+      <div style="margin-bottom: 16px;">
+        <p style="margin: 0; font-size: 0.875rem; color: var(--text-main); line-height: 1.5;">
+          Fitur ini digunakan jika calon santri tidak perlu mengerjakan ujian CBT online (misalnya karena telah mengikuti <strong>Ujian Offline / Tes Mandiri / Ujian Tersendiri</strong>).
+        </p>
+      </div>
+
+      <!-- Candidate Selection -->
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" style="font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; display: block;">
+          Calon Santri:
+        </label>
+        
+        ${isPrefilled ? `
+          <input type="hidden" id="exempt-reg-id" value="${escapeHtml(prefillRegId)}">
+          <div style="padding: 12px 14px; background: rgba(14, 165, 233, 0.08); border: 1.5px solid #0284c7; border-radius: var(--radius-md); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div>
+              <div style="font-weight: 800; color: var(--text-heading); font-size: 0.95rem;">${safeName}</div>
+              <div style="font-size: 0.8rem; color: var(--primary-600); font-weight: 600; margin-top: 2px;">
+                No. Registrasi: <code>${safeRegNum}</code> ${safeSchool ? `&bull; ${safeSchool}` : ''}
+              </div>
+            </div>
+            <span class="badge badge-primary" style="font-size: 0.75rem;">Terpilih</span>
+          </div>
+        ` : `
+          <div style="position: relative;">
+            <input type="hidden" id="exempt-reg-id" value="">
+            <input type="text" id="exempt-search-input" class="form-control" placeholder="Cari nama santri atau no. registrasi..." oninput="handleExemptCandidateSearch(this.value)" autocomplete="off" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;">
+            <div id="exempt-candidate-results" style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 1050; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); max-height: 220px; overflow-y: auto; box-shadow: var(--shadow-lg); margin-top: 4px;"></div>
+          </div>
+          <div id="exempt-selected-box" style="display: none; margin-top: 10px; padding: 12px 14px; background: rgba(14, 165, 233, 0.08); border: 1.5px solid #0284c7; border-radius: var(--radius-md);">
+            <!-- Populated on select -->
+          </div>
+        `}
+      </div>
+
+      <!-- Optional Score Input -->
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: flex; justify-content: space-between;">
+          <span>Nilai Tes Offline / Mandiri:</span>
+          <span style="font-weight: normal; color: var(--text-muted); font-size: 0.75rem;">(Opsional, default: 100)</span>
+        </label>
+        <input type="number" id="exempt-score-input" class="form-control" placeholder="Kosongkan jika tidak ada rincian nilai (otomatis 100)" min="0" max="100" step="0.1" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;">
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+          Bisa diisi dengan nilai riil tes offline santri (misal: 85), atau dibiarkan kosong agar sistem mencatat nilai kelulusan penuh (100).
+        </div>
+      </div>
+
+      <!-- Optional Notes Input -->
+      <div class="form-group" style="margin-bottom: 18px;">
+        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: flex; justify-content: space-between;">
+          <span>Keterangan / Catatan Verifikasi:</span>
+          <span style="font-weight: normal; color: var(--text-muted); font-size: 0.75rem;">(Opsional)</span>
+        </label>
+        <textarea id="exempt-notes-input" class="form-control" rows="2" placeholder="Contoh: Lulus Ujian Offline / Jalur Tes Mandiri / Santri Pindahan" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;"></textarea>
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
+          Catatan verifikasi internal untuk arsip panitia (tidak diumumkan secara khusus ke akun peserta).
+        </div>
+      </div>
+
+      <div style="background: rgba(34, 197, 94, 0.08); border-left: 3px solid #22c55e; padding: 10px 14px; border-radius: 4px; margin-bottom: 20px; font-size: 0.8rem; color: #15803d;">
+        <i class="fa-solid fa-circle-check"></i> Status CBT santri akan langsung <strong>Terverifikasi (LULUS CBT)</strong> sehingga santri dapat langsung lanjut ke tahap Tes Praktik & Wawancara.
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+        <button type="submit" id="btn-confirm-exempt" class="btn btn-success" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+          <i class="fa-solid fa-check-double"></i> Simpan & Luluskan CBT
+        </button>
+      </div>
+    </form>
+  `;
+
+  openModal('Tandai Bebas CBT / Ujian Offline', bodyHtml);
+}
+
+function handleExemptCandidateSearch(searchTerm) {
+  clearTimeout(exemptCandidateSearchTimer);
+  const resultsDiv = document.getElementById('exempt-candidate-results');
+  if (!resultsDiv) return;
+
+  const term = searchTerm?.trim();
+  if (!term || term.length < 2) {
+    resultsDiv.style.display = 'none';
+    resultsDiv.innerHTML = '';
+    return;
+  }
+
+  resultsDiv.style.display = 'block';
+  resultsDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;"><i class="fa-solid fa-spinner fa-spin"></i> Mencari santri...</div>';
+
+  exemptCandidateSearchTimer = setTimeout(async () => {
+    try {
+      const res = await apiRequest(`/api/cbt/admin/candidates-for-exemption?search=${encodeURIComponent(term)}`);
+      if (!res.success || !res.data) throw new Error(res.message || 'Gagal mencari calon santri.');
+
+      const candidates = res.data;
+      if (candidates.length === 0) {
+        resultsDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">Tidak ditemukan calon santri terverifikasi dengan kata kunci tersebut.</div>';
+        return;
+      }
+
+      resultsDiv.innerHTML = candidates.map(c => `
+        <div style="padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: background 0.2s;" 
+             onmouseover="this.style.background='var(--bg-body)'" 
+             onmouseout="this.style.background='transparent'" 
+             onclick="selectExemptCandidate('${c.registrationId}', '${escapeHtml(c.registrationNumber)}', '${escapeHtml(c.candidateName)}', '${escapeHtml(c.schoolName)} &bull; ${escapeHtml(c.classProgramName)}', ${c.isCbtVerified})">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-weight: 700; color: var(--text-heading); font-size: 0.875rem;">${escapeHtml(c.candidateName)}</div>
+            ${c.isCbtVerified ? '<span class="badge badge-success" style="font-size: 0.65rem;">Sudah Lulus CBT</span>' : '<span class="badge badge-secondary" style="font-size: 0.65rem;">Belum CBT</span>'}
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+            <code>${escapeHtml(c.registrationNumber)}</code> &bull; ${escapeHtml(c.schoolName)} - ${escapeHtml(c.classProgramName)}
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      resultsDiv.innerHTML = `<div style="padding: 12px; color: #dc2626; font-size: 0.8rem;">${err.message}</div>`;
+    }
+  }, 300);
+}
+
+function selectExemptCandidate(regId, regNum, name, schoolProgram, isAlreadyVerified) {
+  const hiddenInput = document.getElementById('exempt-reg-id');
+  const resultsDiv = document.getElementById('exempt-candidate-results');
+  const searchInput = document.getElementById('exempt-search-input');
+  const selectedBox = document.getElementById('exempt-selected-box');
+
+  if (hiddenInput) hiddenInput.value = regId;
+  if (resultsDiv) resultsDiv.style.display = 'none';
+  if (searchInput) searchInput.value = `${name} (${regNum})`;
+
+  if (selectedBox) {
+    selectedBox.style.display = 'block';
+    selectedBox.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+        <div>
+          <div style="font-weight: 800; color: var(--text-heading); font-size: 0.9rem;">${name}</div>
+          <div style="font-size: 0.775rem; color: var(--primary-600); font-weight: 600; margin-top: 2px;">
+            <code>${regNum}</code> &bull; ${schoolProgram}
+          </div>
+          ${isAlreadyVerified ? '<div style="font-size: 0.72rem; color: #16a34a; font-weight: 700; margin-top: 3px;"><i class="fa-solid fa-circle-check"></i> Santri ini sudah berstatus Lulus CBT sebelumnya (nilai/catatan akan diperbarui).</div>' : ''}
+        </div>
+        <button type="button" class="btn btn-xs btn-outline-danger" onclick="clearSelectedExemptCandidate()" style="padding: 4px 8px; font-size: 0.75rem;">
+          <i class="fa-solid fa-xmark"></i> Ganti
+        </button>
+      </div>
+    `;
+  }
+}
+
+function clearSelectedExemptCandidate() {
+  const hiddenInput = document.getElementById('exempt-reg-id');
+  const searchInput = document.getElementById('exempt-search-input');
+  const selectedBox = document.getElementById('exempt-selected-box');
+
+  if (hiddenInput) hiddenInput.value = '';
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.focus();
+  }
+  if (selectedBox) {
+    selectedBox.style.display = 'none';
+    selectedBox.innerHTML = '';
+  }
+}
+
+async function handleConfirmExemptCbt(event) {
+  event.preventDefault();
+  const regId = document.getElementById('exempt-reg-id')?.value;
+  if (!regId) {
+    showToast('Silakan pilih calon santri terlebih dahulu.', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('btn-confirm-exempt');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+  }
+
+  const scoreRaw = document.getElementById('exempt-score-input')?.value;
+  const notes = document.getElementById('exempt-notes-input')?.value || '';
+
+  const payload = {
+    registrationId: regId,
+    notes: notes.trim() || undefined,
+  };
+
+  if (scoreRaw !== '' && scoreRaw !== undefined && scoreRaw !== null) {
+    const parsed = parseFloat(scoreRaw);
+    if (!isNaN(parsed)) {
+      payload.score = parsed;
+    }
+  }
+
+  try {
+    const res = await apiRequest('/api/cbt/admin/exempt', {
+      method: 'POST',
+      body: payload,
+    });
+
+    if (res.success) {
+      showToast(res.message || 'Status CBT calon santri berhasil diverifikasi sebagai Bebas CBT!', 'success');
+      closeModal();
+
+      // Refresh verification table if present
+      if (typeof loadCbtVerificationTable === 'function' && document.getElementById('cbt-verification-table-slot')) {
+        loadCbtVerificationTable();
+      }
+      // Refresh final verification table if present
+      if (typeof loadFinalVerificationTable === 'function' && document.getElementById('final-verification-table-container')) {
+        loadFinalVerificationTable();
+      }
+    } else {
+      showToast(res.message || 'Gagal menyimpan status bebas CBT.', 'danger');
+    }
+  } catch (err) {
+    showToast(err.message || 'Terjadi kesalahan.', 'danger');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Simpan & Luluskan CBT';
+    }
+  }
+}
+
+// ============================================================================
 // 6. RESET UJIAN PESERTA CBT
 // ============================================================================
+
 
 function openResetCbtModal(target, candidateName) {
   let attemptId = target;
@@ -3195,6 +3442,11 @@ window.openVerifyCbtModal = openVerifyCbtModal;
 window.handleConfirmVerifyCbt = handleConfirmVerifyCbt;
 window.openRejectCbtModal = openRejectCbtModal;
 window.handleConfirmRejectCbt = handleConfirmRejectCbt;
+window.openExemptCbtModal = openExemptCbtModal;
+window.handleExemptCandidateSearch = handleExemptCandidateSearch;
+window.selectExemptCandidate = selectExemptCandidate;
+window.clearSelectedExemptCandidate = clearSelectedExemptCandidate;
+window.handleConfirmExemptCbt = handleConfirmExemptCbt;
 window.openCbtManageDirectly = openCbtManageDirectly;
 window.onCbtSchoolFilterChange = onCbtSchoolFilterChange;
 window.onCbtMajorFilterChange = onCbtMajorFilterChange;

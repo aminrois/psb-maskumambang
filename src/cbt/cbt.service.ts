@@ -28,6 +28,7 @@ import {
   GradeCbtEssayDto,
   VerifyCbtAttemptDto,
   RejectCbtAttemptDto,
+  ExemptCbtDto,
 } from './dto/cbt.dto';
 
 @Injectable()
@@ -1140,6 +1141,187 @@ export class CbtService {
     };
   }
 
+  /**
+   * Retrieves verified registrations eligible for CBT exemption (offline/independent test).
+   */
+  async getCandidatesForExemption(query: { schoolId?: string; search?: string }) {
+    const whereClause: Prisma.RegistrationWhereInput = {
+      formStatus: FormStatus.VERIFIED,
+    };
+
+    if (query.schoolId) {
+      whereClause.classProgram = { major: { schoolId: query.schoolId } };
+    }
+
+    if (query.search?.trim()) {
+      const s = query.search.trim();
+      whereClause.OR = [
+        { registrationNumber: { contains: s, mode: 'insensitive' } },
+        { individualParticipant: { fullName: { contains: s, mode: 'insensitive' } } },
+        { studentDetail: { fullName: { contains: s, mode: 'insensitive' } } },
+        { user: { name: { contains: s, mode: 'insensitive' } } },
+      ];
+    }
+
+    const registrations = await this.prisma.registration.findMany({
+      where: whereClause,
+      take: 50,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: true,
+        individualParticipant: true,
+        studentDetail: true,
+        classProgram: {
+          include: {
+            major: {
+              include: {
+                school: true,
+              },
+            },
+          },
+        },
+        cbtAttempt: {
+          select: {
+            id: true,
+            status: true,
+            verificationStatus: true,
+            totalScore: true,
+            verificationNotes: true,
+          },
+        },
+      },
+    });
+
+    return registrations.map((r) => {
+      const candidateName =
+        r.studentDetail?.fullName ||
+        r.individualParticipant?.fullName ||
+        r.user.name;
+
+      const att = r.cbtAttempt;
+
+      return {
+        registrationId: r.id,
+        registrationNumber: r.registrationNumber,
+        candidateName,
+        schoolId: r.classProgram.major.school.id,
+        schoolName: r.classProgram.major.school.name,
+        majorName: r.classProgram.major.name,
+        classProgramName: r.classProgram.name,
+        isCbtVerified: att?.verificationStatus === CBTVerificationStatus.VERIFIED,
+        cbtStatus: att?.status || 'NOT_STARTED',
+        cbtVerificationStatus: att?.verificationStatus || null,
+        cbtScore: att?.totalScore != null ? Number(att.totalScore) : null,
+        verificationNotes: att?.verificationNotes || null,
+      };
+    });
+  }
+
+  /**
+   * Exempts a candidate from CBT by marking their CBT attempt as COMPLETED and VERIFIED.
+   * Useful for candidates who took an offline / independent test.
+   */
+  async exemptCbt(dto: ExemptCbtDto, adminUserId: string) {
+    const registration = await this.prisma.registration.findUnique({
+      where: { id: dto.registrationId },
+      include: {
+        user: true,
+        studentDetail: true,
+        individualParticipant: true,
+        classProgram: {
+          include: {
+            major: {
+              include: {
+                school: {
+                  include: {
+                    cbtExam: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        cbtAttempt: true,
+      },
+    });
+
+    if (!registration) {
+      throw new NotFoundException('Data pendaftaran santri tidak ditemukan.');
+    }
+
+    const candidateName =
+      registration.studentDetail?.fullName ||
+      registration.individualParticipant?.fullName ||
+      registration.user.name;
+
+    const school = registration.classProgram.major.school;
+    let exam = school.cbtExam;
+
+    if (!exam) {
+      exam = await this.prisma.cBTExam.upsert({
+        where: { schoolId: school.id },
+        update: {},
+        create: {
+          schoolId: school.id,
+          title: `Ujian CBT - ${school.name}`,
+          durationMinutes: 60,
+          isActive: true,
+          randomizeQuestions: true,
+        },
+      });
+    }
+
+    const now = new Date();
+    const finalScore =
+      dto.score !== undefined && dto.score !== null && !isNaN(Number(dto.score))
+        ? Number(dto.score)
+        : 100;
+    const finalNotes =
+      dto.notes && dto.notes.trim().length > 0
+        ? dto.notes.trim()
+        : 'Ujian Offline / Bebas CBT';
+
+    const attempt = await this.prisma.cBTAttempt.upsert({
+      where: { registrationId: registration.id },
+      create: {
+        examId: exam.id,
+        registrationId: registration.id,
+        status: CBTAttemptStatus.COMPLETED,
+        verificationStatus: CBTVerificationStatus.VERIFIED,
+        gradingStatus: CBTGradingStatus.GRADED,
+        startedAt: now,
+        completedAt: now,
+        multipleChoiceScore: new Prisma.Decimal(finalScore),
+        essayScore: new Prisma.Decimal(0),
+        totalScore: new Prisma.Decimal(finalScore),
+        verificationNotes: finalNotes,
+        verifiedAt: now,
+        verifiedByUserId: adminUserId,
+      },
+      update: {
+        status: CBTAttemptStatus.COMPLETED,
+        verificationStatus: CBTVerificationStatus.VERIFIED,
+        gradingStatus: CBTGradingStatus.GRADED,
+        completedAt: now,
+        multipleChoiceScore: new Prisma.Decimal(finalScore),
+        totalScore: new Prisma.Decimal(finalScore),
+        verificationNotes: finalNotes,
+        verifiedAt: now,
+        verifiedByUserId: adminUserId,
+      },
+      include: {
+        verifiedBy: { select: { id: true, name: true } },
+      },
+    });
+
+    return {
+      success: true,
+      message: `Status CBT calon santri '${candidateName}' berhasil diverifikasi (Bebas CBT / Ujian Offline). Nilai: ${finalScore}. Santri dapat melanjutkan ke tahap berikutnya.`,
+      data: attempt,
+    };
+  }
+
+
   // ==========================================================================
   // 3. PESERTA: ELIGIBILITY, START, EXAM RUNNER & FINISH
   // ==========================================================================
@@ -1207,7 +1389,65 @@ export class CbtService {
       };
     }
 
+    let attempt = reg.cbtAttempt;
+
+    // Auto-expire check if currently in progress
+    if (
+      attempt &&
+      attempt.status === CBTAttemptStatus.IN_PROGRESS &&
+      attempt.expiresAt &&
+      new Date() >= attempt.expiresAt
+    ) {
+      await this.autoFinishExpiredAttempt(attempt.id);
+      attempt = await this.prisma.cBTAttempt.findUnique({
+        where: { id: attempt.id },
+      });
+    }
+
     const exam = reg.classProgram.major.school.cbtExam;
+
+    // If candidate has completed CBT or has been verified (e.g. exempted via offline exam)
+    if (
+      attempt &&
+      (attempt.status === CBTAttemptStatus.COMPLETED ||
+        attempt.status === CBTAttemptStatus.EXPIRED ||
+        attempt.verificationStatus === CBTVerificationStatus.VERIFIED)
+    ) {
+      return {
+        hasRegistration: true,
+        eligible: true,
+        isEligible: true,
+        examAvailable: true,
+        attemptState: 'COMPLETED',
+        candidateName:
+          reg.studentDetail?.fullName ||
+          reg.individualParticipant?.fullName ||
+          reg.user.name,
+        registrationNumber: reg.registrationNumber,
+        schoolName: reg.classProgram.major.school.name,
+        majorName: reg.classProgram.major.name,
+        classProgramName: reg.classProgram.name,
+        exam: {
+          id: exam?.id || attempt.examId,
+          title: exam?.title || 'Ujian Seleksi Masuk',
+          description: exam?.description || '',
+          totalQuestions: exam?._count?.questions || 0,
+          durationMinutes: exam?.durationMinutes || 60,
+        },
+        attempt: {
+          id: attempt.id,
+          status: attempt.status,
+          startedAt: attempt.startedAt,
+          expiresAt: attempt.expiresAt,
+          completedAt: attempt.completedAt,
+          multipleChoiceScore: Number(attempt.multipleChoiceScore),
+          essayScore: Number(attempt.essayScore),
+          totalScore: Number(attempt.totalScore),
+          gradingStatus: attempt.gradingStatus,
+          verificationStatus: attempt.verificationStatus,
+        },
+      };
+    }
 
     if (!exam || !exam.isActive || exam._count.questions === 0) {
       return {
@@ -1228,21 +1468,6 @@ export class CbtService {
       };
     }
 
-    let attempt = reg.cbtAttempt;
-
-    // Auto-expire check if currently in progress
-    if (
-      attempt &&
-      attempt.status === CBTAttemptStatus.IN_PROGRESS &&
-      attempt.expiresAt &&
-      new Date() >= attempt.expiresAt
-    ) {
-      await this.autoFinishExpiredAttempt(attempt.id);
-      attempt = await this.prisma.cBTAttempt.findUnique({
-        where: { id: attempt.id },
-      });
-    }
-
     let attemptState = 'READY';
     if (!attempt || attempt.status === CBTAttemptStatus.NOT_STARTED) {
       attemptState = 'READY';
@@ -1254,6 +1479,7 @@ export class CbtService {
     ) {
       attemptState = 'COMPLETED';
     }
+
 
     return {
       hasRegistration: true,

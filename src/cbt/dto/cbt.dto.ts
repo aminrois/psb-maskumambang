@@ -202,3 +202,20 @@ export class RejectCbtAttemptDto {
   notes?: string;
 }
 
+export class ExemptCbtDto {
+  @IsString()
+  @IsNotEmpty()
+  registrationId!: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Max(100)
+  score?: number;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+
