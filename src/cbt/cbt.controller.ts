@@ -52,6 +52,13 @@ export class CbtController {
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Get('admin/exams/:id')
+  async getExamById(@Param('id') id: string) {
+    const data = await this.cbtService.getExamById(id);
+    return { success: true, data };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Post('admin/exams')
   async createExam(@Body() dto: CreateCbtExamDto) {
     const data = await this.cbtService.createExam(dto);

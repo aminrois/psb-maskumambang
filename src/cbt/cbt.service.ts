@@ -157,6 +157,32 @@ export class CbtService {
   }
 
   /**
+   * Retrieves exam configuration and questions by Exam ID.
+   */
+  async getExamById(id: string) {
+    const exam = await this.prisma.cBTExam.findUnique({
+      where: { id },
+      include: {
+        school: { select: { id: true, name: true, initial: true } },
+        questions: {
+          orderBy: { orderNumber: 'asc' },
+          include: {
+            options: {
+              orderBy: { orderNumber: 'asc' },
+            },
+          },
+        },
+      },
+    });
+
+    if (!exam) {
+      throw new NotFoundException('Ujian CBT tidak ditemukan.');
+    }
+
+    return exam;
+  }
+
+  /**
    * Creates a new CBT Exam configuration for a School (Lembaga).
    */
   async createExam(dto: CreateCbtExamDto) {
