@@ -214,6 +214,23 @@ export class PaymentsController {
     };
   }
 
+  @Roles(Role.BENDAHARA, Role.SUPER_ADMIN)
+  @Post('manual-confirm')
+  async manualConfirmPayment(
+    @Body() dto: { registrationId: string; amount?: number; notes?: string; senderBank?: string; senderAccountName?: string },
+    @CurrentUser('id') staffId: string,
+  ) {
+    if (!dto.registrationId) {
+      throw new BadRequestException('ID Pendaftaran (registrationId) wajib disertakan.');
+    }
+    const payment = await this.paymentsService.confirmManualPayment(dto.registrationId, staffId, dto);
+    return {
+      success: true,
+      message: 'Pembayaran berhasil dikonfirmasi secara manual oleh panitia. Akses formulir pendaftaran telah terbuka!',
+      data: payment,
+    };
+  }
+
   // --- Protected File Streaming (IDOR Guard) ---
 
   @Get('file/:filename')

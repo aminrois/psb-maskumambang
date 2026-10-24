@@ -192,17 +192,27 @@ export class PaymentsService {
       throw new ForbiddenException('Akses ditolak: Anda bukan pemilik pendaftaran ini.');
     }
 
-    // Validate payment account
-    const account = await this.prisma.paymentAccount.findUnique({
-      where: { id: dto.paymentAccountId },
-    });
-
-    if (!account || !account.isActive) {
-      throw new BadRequestException('Rekening bank pembayaran tidak valid atau sedang tidak aktif.');
+    // Validate payment account with fallback to first active account
+    let account = null;
+    if (dto.paymentAccountId) {
+      account = await this.prisma.paymentAccount.findUnique({
+        where: { id: dto.paymentAccountId },
+      });
     }
 
-    // Validate binary content & magic bytes
-    const validatedFile = FileValidatorUtil.validateImageBuffer(fileBuffer, originalFilename);
+    if (!account || !account.isActive) {
+      account = await this.prisma.paymentAccount.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' },
+      });
+    }
+
+    if (!account) {
+      throw new BadRequestException('Rekening bank pembayaran tidak valid atau belum dikonfigurasi panitia.');
+    }
+
+    // Validate binary content & magic bytes (supports PNG, JPG, JPEG, WEBP, HEIC, and PDF resi m-banking)
+    const validatedFile = FileValidatorUtil.validatePaymentProofBuffer(fileBuffer, originalFilename);
 
     // Save file to disk
     const diskPath = path.join(this.uploadDir, validatedFile.storageFilename);
@@ -293,7 +303,7 @@ export class PaymentsService {
       throw new BadRequestException('Rekening bank pembayaran tidak valid.');
     }
 
-    const validatedFile = FileValidatorUtil.validateImageBuffer(fileBuffer, originalFilename);
+    const validatedFile = FileValidatorUtil.validatePaymentProofBuffer(fileBuffer, originalFilename);
     const diskPath = path.join(this.uploadDir, validatedFile.storageFilename);
     await fs.promises.writeFile(diskPath, fileBuffer);
 
@@ -357,6 +367,16 @@ export class PaymentsService {
             individualParticipant: { fullName: { contains: q, mode: 'insensitive' } },
           },
         },
+        {
+          registration: {
+            studentDetail: { fullName: { contains: q, mode: 'insensitive' } },
+          },
+        },
+        {
+          registration: {
+            user: { name: { contains: q, mode: 'insensitive' } },
+          },
+        },
       ];
     }
 
@@ -369,6 +389,7 @@ export class PaymentsService {
             include: {
               classProgram: { include: { major: { include: { school: true } } } },
               individualParticipant: true,
+              studentDetail: true,
               team: true,
               user: { select: { id: true, name: true, email: true, phoneNumber: true } },
             },
@@ -384,6 +405,79 @@ export class PaymentsService {
       }),
       this.prisma.payment.count({ where }),
     ]);
+
+    // Also include registrations in WAITING_VERIFICATION that haven't created any Payment record yet
+    // (e.g. upload interrupted or pending manual cash confirmation)
+    let uncreatedPayments: any[] = [];
+    if (!status || status === PaymentStatus.WAITING_VERIFICATION) {
+      const pendingRegsWithoutPayment = await this.prisma.registration.findMany({
+        where: {
+          status: RegistrationStatus.WAITING_VERIFICATION,
+          payments: { none: {} },
+          ...(search && search.trim() ? {
+            OR: [
+              { registrationNumber: { contains: search.trim(), mode: 'insensitive' } },
+              { individualParticipant: { fullName: { contains: search.trim(), mode: 'insensitive' } } },
+              { studentDetail: { fullName: { contains: search.trim(), mode: 'insensitive' } } },
+              { user: { name: { contains: search.trim(), mode: 'insensitive' } } },
+            ],
+          } : {}),
+        },
+        include: {
+          classProgram: { include: { major: { include: { school: true } } } },
+          admissionWave: true,
+          individualParticipant: true,
+          studentDetail: true,
+          team: true,
+          user: { select: { id: true, name: true, email: true, phoneNumber: true } },
+        },
+      });
+
+      uncreatedPayments = pendingRegsWithoutPayment.map((reg) => {
+        const fee = reg.admissionWave?.registrationFee
+          ? Number(reg.admissionWave.registrationFee)
+          : (reg.classProgram?.registrationFee ? Number(reg.classProgram.registrationFee) : 500000.00);
+
+        const cp = reg.classProgram;
+        const major = cp?.major;
+        const school = major?.school;
+        const branchAlias = cp ? {
+          ...cp,
+          levelId: cp.majorId,
+          level: major ? {
+            ...major,
+            categoryId: major.schoolId,
+            category: school,
+          } : null,
+        } : null;
+
+        return {
+          id: `unpaid-${reg.id}`,
+          registrationId: reg.id,
+          paymentAccountId: null,
+          amount: fee,
+          proofImagePath: null,
+          senderBank: 'Belum Upload',
+          senderAccountName: reg.studentDetail?.fullName || reg.individualParticipant?.fullName || reg.user?.name || '-',
+          paymentDate: reg.createdAt,
+          status: PaymentStatus.WAITING_VERIFICATION,
+          notes: 'Belum upload bukti bayar atau menunggu verifikasi manual / tunai.',
+          isMissingProof: true,
+          createdAt: reg.createdAt,
+          updatedAt: reg.updatedAt,
+          paymentAccount: null,
+          verificationLogs: [],
+          registration: {
+            ...reg,
+            branchId: reg.classProgramId,
+            branch: branchAlias,
+            schoolName: school?.name || '',
+            majorName: major?.name || '',
+            classProgramName: cp?.name || '',
+          },
+        };
+      });
+    }
 
     const formattedPayments = payments.map(p => {
       const reg = p.registration;
@@ -413,13 +507,16 @@ export class PaymentsService {
       };
     });
 
+    const combinedPayments = [...uncreatedPayments, ...formattedPayments];
+    const totalCount = total + uncreatedPayments.length;
+
     return {
-      payments: formattedPayments,
+      payments: combinedPayments,
       pagination: {
-        total,
+        total: totalCount,
         page,
         perPage,
-        totalPages: Math.ceil(total / perPage),
+        totalPages: Math.ceil(totalCount / perPage),
       },
     };
   }
@@ -599,6 +696,87 @@ export class PaymentsService {
     return updated;
   }
 
+  /**
+   * Super Admin & Bendahara: Confirms payment manually for cash, offline, or waiver payments.
+   */
+  async confirmManualPayment(
+    registrationId: string,
+    staffId: string,
+    dto?: { amount?: number; notes?: string; senderBank?: string; senderAccountName?: string },
+  ) {
+    const reg = await this.prisma.registration.findUnique({
+      where: { id: registrationId },
+      include: {
+        admissionWave: true,
+        classProgram: { include: { major: { include: { school: true } } } },
+        user: true,
+      },
+    });
+
+    if (!reg) {
+      throw new NotFoundException('Data pendaftaran tidak ditemukan.');
+    }
+
+    const actualFee = dto?.amount && Number(dto.amount) > 0
+      ? Number(dto.amount)
+      : (reg.admissionWave?.registrationFee
+          ? Number(reg.admissionWave.registrationFee)
+          : (reg.classProgram?.registrationFee ? Number(reg.classProgram.registrationFee) : 500000.00));
+
+    let account = await this.prisma.paymentAccount.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const payment = await this.prisma.$transaction(async (tx) => {
+      const p = await tx.payment.create({
+        data: {
+          registrationId: reg.id,
+          paymentAccountId: account?.id || null,
+          amount: actualFee,
+          proofImagePath: 'manual_verification_by_admin.png',
+          senderBank: dto?.senderBank?.trim() || 'KASIR / TUNAI',
+          senderAccountName: dto?.senderAccountName?.trim() || 'Konfirmasi Panitia',
+          paymentDate: new Date(),
+          status: PaymentStatus.APPROVED,
+          notes: dto?.notes?.trim() || 'Konfirmasi pembayaran tunai / verifikasi langsung oleh panitia',
+        },
+      });
+
+      const newFormStatus = reg.formStatus === 'LOCKED' ? 'DRAFT' : reg.formStatus;
+
+      await tx.registration.update({
+        where: { id: reg.id },
+        data: {
+          status: RegistrationStatus.APPROVED,
+          isFormUnlocked: true,
+          formStatus: newFormStatus as any,
+        },
+      });
+
+      await tx.paymentVerificationLog.create({
+        data: {
+          paymentId: p.id,
+          verifiedByUserId: staffId,
+          action: VerificationAction.APPROVED,
+          rejectionReason: null,
+        },
+      });
+
+      return p;
+    });
+
+    await this.auditService.log({
+      userId: staffId,
+      action: 'APPROVE_PAYMENT',
+      targetTable: 'payments',
+      targetId: payment.id,
+      details: `Konfirmasi pembayaran manual panitia untuk pendaftaran ${reg.registrationNumber} (${reg.user?.name}) - Nominal Rp ${actualFee}`,
+    });
+
+    return payment;
+  }
+
   // --- Protected File Streaming (IDOR Guard) ---
 
   /**
@@ -607,6 +785,22 @@ export class PaymentsService {
    */
   async getPaymentProofFile(filename: string, requesterUserId: string, requesterRole: Role) {
     const sanitized = FileValidatorUtil.sanitizeFilename(filename);
+
+    if (sanitized.startsWith('manual_')) {
+      const placeholderPath = path.join(this.uploadDir, 'manual_verification_by_admin.png');
+      if (!fs.existsSync(placeholderPath)) {
+        if (!fs.existsSync(this.uploadDir)) fs.mkdirSync(this.uploadDir, { recursive: true });
+        const dummyPng = Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          'base64',
+        );
+        fs.writeFileSync(placeholderPath, dummyPng);
+      }
+      return {
+        filePath: placeholderPath,
+        filename: sanitized,
+      };
+    }
 
     const candidatePaths = [
       path.join(this.uploadDir, sanitized),

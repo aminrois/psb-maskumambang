@@ -2904,7 +2904,7 @@ async function renderPesertaRegistrationWizard() {
                 <span>File Bukti Transfer / Screenshot QRIS</span>
                 <span class="badge badge-success" style="font-size: 0.72rem; font-weight: 600; padding: 2px 8px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Auto Compress Aktif</span>
               </label>
-              <input type="file" id="wiz-pay-file" class="form-control" accept="image/png, image/jpeg, image/webp" onchange="previewProofImage(this)" required style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+              <input type="file" id="wiz-pay-file" class="form-control" accept="image/*, application/pdf, .pdf, .jpg, .jpeg, .png, .webp, .heic, .heif" onchange="previewProofImage(this)" required style="width: 100%; padding: 11px 14px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
               <div id="wiz-compress-info" style="display: none; margin-top: 8px;"></div>
             </div>
           </div>
@@ -3254,6 +3254,34 @@ async function previewProofImage(input) {
     const origSizeKB = Math.round(origFile.size / 1024);
     const origSizeText = origSizeKB > 1024 ? `${(origSizeKB / 1024).toFixed(1)} MB` : `${origSizeKB} KB`;
 
+    const isPdf = origFile.type === 'application/pdf' || origFile.name.toLowerCase().endsWith('.pdf');
+
+    if (isPdf) {
+      if (img) img.style.display = 'none';
+      let pdfSlot = document.getElementById('wiz-pdf-preview-box');
+      if (!pdfSlot) {
+        pdfSlot = document.createElement('div');
+        pdfSlot.id = 'wiz-pdf-preview-box';
+        slot.appendChild(pdfSlot);
+      }
+      pdfSlot.style.display = 'block';
+      pdfSlot.innerHTML = `
+        <div style="padding: 16px; background: rgba(239, 68, 68, 0.08); border: 1.5px dashed #ef4444; border-radius: 8px; color: #b91c1c; text-align: center;">
+          <i class="fa-solid fa-file-pdf" style="font-size: 2.8rem; margin-bottom: 8px; display: block; color: #dc2626;"></i>
+          <div style="font-weight: 700; font-size: 0.95rem; color: #0f172a; word-break: break-all;">${escapeHtml(origFile.name)}</div>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;">Dokumen Resi Transfer PDF (${origSizeText}) &bull; Siap dikirim</div>
+        </div>
+      `;
+      slot.style.display = 'block';
+      if (infoEl) infoEl.style.display = 'none';
+      input._compressedFile = origFile;
+      return;
+    }
+
+    const pdfSlot = document.getElementById('wiz-pdf-preview-box');
+    if (pdfSlot) pdfSlot.style.display = 'none';
+    if (img) img.style.display = 'inline-block';
+
     if (infoEl) {
       infoEl.innerHTML = `<span style="color: var(--primary-600); font-size: 0.8rem;"><i class="fa-solid fa-spinner fa-spin"></i> Mengoptimalkan & mengompresi foto...</span>`;
       infoEl.style.display = 'block';
@@ -3443,6 +3471,13 @@ async function renderPesertaRegistrationDetail(regId) {
     const rejectionLog = latestPayment?.verificationLogs?.find(l => l.action === 'REJECTED');
     const isFormUnlocked = reg.isFormUnlocked || reg.status === 'APPROVED';
 
+    if (!state.paymentAccounts || state.paymentAccounts.length === 0) {
+      try {
+        const accRes = await apiRequest('/api/payments/accounts');
+        if (accRes && accRes.success) state.paymentAccounts = accRes.data || [];
+      } catch (e) { state.paymentAccounts = []; }
+    }
+
     container.innerHTML = `
       <div style="max-width: 900px; margin: 0 auto;">
         
@@ -3555,7 +3590,7 @@ async function renderPesertaRegistrationDetail(regId) {
               <form onsubmit="handleReuploadSubmit(event, '${reg.id}')">
                 <div class="form-group" style="margin-bottom: 14px;">
                   <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Pilih File Bukti Transfer Baru</label>
-                  <input type="file" id="reupload-file" class="form-control" accept="image/png, image/jpeg, image/webp" required style="width: 100%; padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <input type="file" id="reupload-file" class="form-control" accept="image/*, application/pdf, .pdf, .jpg, .jpeg, .png, .webp, .heic, .heif" required style="width: 100%; padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
                   <div id="reupload-compress-info" style="display: none; margin-top: 6px;"></div>
                 </div>
                 <button type="submit" id="reupload-btn" class="btn btn-primary"><i class="fa-solid fa-cloud-arrow-up"></i> Kirim Bukti Baru</button>
@@ -3574,19 +3609,80 @@ async function renderPesertaRegistrationDetail(regId) {
               </div>
               <div style="text-align: center;">
                 <div style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 6px; font-weight: 700;">Bukti Transfer:</div>
-                <div style="background: #0f172a; border-radius: 8px; overflow: hidden; text-align: center; border: 1px solid var(--border-subtle); padding: 4px; max-height: 140px; display: flex; align-items: center; justify-content: center;">
-                  <img src="/api/payments/file/${encodeURIComponent(latestPayment.proofImagePath)}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" alt="Bukti Transfer" style="max-width: 100%; max-height: 130px; border-radius: 4px; object-fit: contain;" onerror="this.style.display='none'; document.getElementById('det-proof-fb').style.display='block';">
-                  <div id="det-proof-fb" style="display: none; color: var(--text-muted); font-size: 0.8rem; padding: 10px;">
-                    <i class="fa-solid fa-file-image" style="font-size: 1.5rem; color: var(--primary-500); margin-bottom: 4px;"></i><br>Bukti terunggah
+                ${(latestPayment.proofImagePath && latestPayment.proofImagePath.toLowerCase().endsWith('.pdf')) ? `
+                  <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid #f87171; border-radius: 8px; padding: 16px 8px; text-align: center;">
+                    <i class="fa-solid fa-file-pdf" style="font-size: 2.5rem; color: #dc2626; margin-bottom: 6px; display: block;"></i>
+                    <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-heading); display: block; margin-bottom: 6px;">Dokumen Resi PDF</span>
+                    <a href="/api/payments/file/${encodeURIComponent(latestPayment.proofImagePath)}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" target="_blank" class="btn btn-xs btn-outline-danger" style="text-decoration: none;">
+                      <i class="fa-solid fa-eye"></i> Buka File PDF
+                    </a>
                   </div>
-                </div>
-                <a href="/api/payments/file/${encodeURIComponent(latestPayment.proofImagePath)}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--primary-600); margin-top: 6px; font-weight: 600; text-decoration: none;">
-                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Lihat Bukti Penuh
-                </a>
+                ` : (latestPayment.proofImagePath && latestPayment.proofImagePath.startsWith('manual_')) ? `
+                  <div style="background: rgba(34, 197, 94, 0.08); border: 1px solid #86efac; border-radius: 8px; padding: 16px 8px; text-align: center;">
+                    <i class="fa-solid fa-hand-holding-dollar" style="font-size: 2.5rem; color: #16a34a; margin-bottom: 6px; display: block;"></i>
+                    <span style="font-size: 0.8rem; font-weight: 700; color: #15803d; display: block;">Kasir / Tunai</span>
+                  </div>
+                ` : `
+                  <div style="background: #0f172a; border-radius: 8px; overflow: hidden; text-align: center; border: 1px solid var(--border-subtle); padding: 4px; max-height: 140px; display: flex; align-items: center; justify-content: center;">
+                    <img src="/api/payments/file/${encodeURIComponent(latestPayment.proofImagePath)}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" alt="Bukti Transfer" style="max-width: 100%; max-height: 130px; border-radius: 4px; object-fit: contain;" onerror="this.style.display='none'; document.getElementById('det-proof-fb').style.display='block';">
+                    <div id="det-proof-fb" style="display: none; color: var(--text-muted); font-size: 0.8rem; padding: 10px;">
+                      <i class="fa-solid fa-file-image" style="font-size: 1.5rem; color: var(--primary-500); margin-bottom: 4px;"></i><br>Bukti terunggah
+                    </div>
+                  </div>
+                  <a href="/api/payments/file/${encodeURIComponent(latestPayment.proofImagePath)}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" target="_blank" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--primary-600); margin-top: 6px; font-weight: 600; text-decoration: none;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Lihat Bukti Penuh
+                  </a>
+                `}
               </div>
             </div>
           ` : `
-            <p style="color: var(--text-muted);">Belum ada riwayat pembayaran.</p>
+            <div style="background: rgba(234, 179, 8, 0.07); border: 1.5px solid #eab308; border-radius: var(--radius-md); padding: 20px;">
+              <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem; color: #ca8a04; margin-top: 2px;"></i>
+                <div>
+                  <h4 style="font-size: 1.05rem; color: var(--text-heading); margin: 0 0 4px 0;">Bukti Transfer Belum Terunggah</h4>
+                  <p style="margin: 0; color: var(--text-muted); font-size: 0.88rem; line-height: 1.5;">
+                    Data pendaftaran Anda telah tercatat dengan baik. Silakan unggah bukti transfer pembayaran formulir sebesar <strong>${formatCurrency(reg.admissionWave?.registrationFee || reg.classProgram?.registrationFee || 500000)}</strong> agar segera diverifikasi oleh Panitia PSB.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Upload form for pending initial payment -->
+              <form id="initial-pay-upload-form" onsubmit="handleInitialPaymentUpload(event, '${reg.id}')" style="background: var(--bg-card); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                  <div class="form-group">
+                    <label class="form-label" style="display: block; font-size: 0.825rem; font-weight: 600; margin-bottom: 4px;">Bank / Rekening Tujuan Panitia</label>
+                    <select id="init-pay-account" class="form-select" required style="width: 100%; padding: 9px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;">
+                      ${(state.paymentAccounts || []).map(acc => `<option value="${acc.id}">${escapeHtml(acc.bankName)} (${escapeHtml(acc.accountNumber)}) - a.n. ${escapeHtml(acc.accountHolder)}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" style="display: block; font-size: 0.825rem; font-weight: 600; margin-bottom: 4px;">Bank Pengirim / QRIS</label>
+                    <input type="text" id="init-pay-bank" class="form-control" placeholder="Contoh: BCA / Mandiri / BRI / QRIS" style="width: 100%; padding: 9px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" style="display: block; font-size: 0.825rem; font-weight: 600; margin-bottom: 4px;">Nama Pemilik Rekening Pengirim</label>
+                    <input type="text" id="init-pay-sender" class="form-control" placeholder="Nama pemilik rekening / orang tua" required style="width: 100%; padding: 9px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" style="display: block; font-size: 0.825rem; font-weight: 600; margin-bottom: 4px;">Tanggal Pembayaran</label>
+                    <input type="date" id="init-pay-date" class="form-control" value="${new Date().toISOString().split('T')[0]}" required style="width: 100%; padding: 9px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;">
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                  <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.825rem; font-weight: 600; margin-bottom: 4px;">
+                    <span>File Bukti Transfer / Resi Mobile Banking</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 400;">Mendukung Foto (JPG, PNG, WebP, HEIC) atau Dokumen Resi PDF</span>
+                  </label>
+                  <input type="file" id="init-pay-file" class="form-control" accept="image/*, application/pdf, .pdf, .jpg, .jpeg, .png, .webp, .heic, .heif" required style="width: 100%; padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;">
+                </div>
+
+                <button type="submit" id="init-pay-btn" class="btn btn-primary" style="font-weight: 700; padding: 10px 20px;">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Unggah Bukti Pembayaran Sekarang
+                </button>
+              </form>
+            </div>
           `}
         </div>
 
@@ -3661,6 +3757,60 @@ async function handleReuploadSubmit(e, regId) {
     btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Kirim Bukti Baru';
   }
 }
+
+async function handleInitialPaymentUpload(e, regId) {
+  e.preventDefault();
+  const fileInput = document.getElementById('init-pay-file');
+  const btn = document.getElementById('init-pay-btn');
+
+  if (!fileInput || !fileInput.files || !fileInput.files[0]) {
+    alert('Silakan pilih file bukti transfer pembayaran.');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengompresi & mengunggah bukti...';
+
+  try {
+    const rawFile = fileInput.files[0];
+    let fileToSend = rawFile;
+    if (rawFile.type && rawFile.type.startsWith('image/')) {
+      try {
+        fileToSend = await compressImageFile(rawFile);
+      } catch (err) {
+        fileToSend = rawFile;
+      }
+    }
+
+    const formData = new FormData();
+    formData.append('registrationId', regId);
+    formData.append('paymentAccountId', document.getElementById('init-pay-account')?.value || '');
+    formData.append('senderBank', document.getElementById('init-pay-bank')?.value || '');
+    formData.append('senderAccountName', document.getElementById('init-pay-sender')?.value || '');
+    formData.append('paymentDate', document.getElementById('init-pay-date')?.value || new Date().toISOString().split('T')[0]);
+    formData.append('payment_proof', fileToSend);
+
+    const res = await apiRequest('/api/payments/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (res.success) {
+      showToast('Bukti transfer berhasil diunggah! Pendaftaran Anda kini menunggu verifikasi panitia.', 'success');
+      renderPesertaRegistrationDetail(regId);
+    } else {
+      throw new Error(res.message || 'Gagal mengunggah bukti transfer.');
+    }
+  } catch (err) {
+    alert(err.message || 'Terjadi kesalahan saat mengunggah bukti transfer.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Unggah Bukti Pembayaran Sekarang';
+    }
+  }
+}
+window.handleInitialPaymentUpload = handleInitialPaymentUpload;
 
 // Global holder for currently opened modal card
 let currentActiveCardData = null;
@@ -4673,17 +4823,32 @@ function renderBendaharaPaymentsTable() {
       {
         header: 'Status',
         key: 'status',
-        render: p => getStatusBadge(p.status),
+        render: p => {
+          if (p.isMissingProof) {
+            return '<span class="badge badge-warning" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a; font-size: 0.75rem;"><i class="fa-solid fa-triangle-exclamation"></i> Belum Upload</span>';
+          }
+          return getStatusBadge(p.status);
+        },
       },
       {
         header: 'Aksi',
         sticky: true,
         sortable: false,
-        render: p => `
-          <button class="btn btn-sm btn-primary" style="padding: 4px 10px;" data-payment-id="${p.id}" onclick="openPaymentVerifyModal(this)">
-            <i class="fa-solid fa-eye"></i> Periksa Bukti
-          </button>
-        `,
+        render: p => {
+          if (p.isMissingProof) {
+            const studentName = p.registration?.studentDetail?.fullName || p.registration?.individualParticipant?.fullName || p.registration?.team?.teamName || p.registration?.user?.name || 'Calon Siswa';
+            return `
+              <button class="btn btn-sm btn-success" style="padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px; font-weight: 700;" onclick="openManualPaymentConfirmModal('${p.registrationId}', '${escapeQuotes(studentName)}', '${p.registration?.registrationNumber || '-'}')">
+                <i class="fa-solid fa-hand-holding-dollar"></i> Bayar Manual
+              </button>
+            `;
+          }
+          return `
+            <button class="btn btn-sm btn-primary" style="padding: 4px 10px;" data-payment-id="${p.id}" onclick="openPaymentVerifyModal(this)">
+              <i class="fa-solid fa-eye"></i> Periksa Bukti
+            </button>
+          `;
+        },
       },
     ],
     data: filteredData,
@@ -4881,16 +5046,33 @@ function openPaymentVerifyModal(target, filename, regNum, participantName, amoun
 
       <div>
         <div style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">Bukti Transfer:</div>
-        <div style="background: #0f172a; border-radius: 8px; overflow: hidden; text-align: center; border: 1px solid var(--border-subtle); min-height: 160px; max-height: 220px; display: flex; align-items: center; justify-content: center; padding: 6px;">
-          <img src="/api/payments/file/${encodeURIComponent(filename || '')}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" alt="Bukti Transfer" style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px;" onerror="this.style.display='none'; document.getElementById('proof-fallback-link').style.display='block';">
-          <div id="proof-fallback-link" style="display: none; color: var(--text-muted); font-size: 0.85rem; padding: 20px;">
-            <i class="fa-solid fa-file-image" style="font-size: 2rem; color: var(--primary-500); margin-bottom: 8px;"></i><br>
-            File bukti transfer terunggah
+        ${(filename && filename.toLowerCase().endsWith('.pdf')) ? `
+          <div style="background: rgba(239, 68, 68, 0.08); border: 1.5px dashed #ef4444; border-radius: 8px; text-align: center; padding: 20px 14px; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <i class="fa-solid fa-file-pdf" style="font-size: 3rem; color: #dc2626; margin-bottom: 8px;"></i>
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-heading); margin-bottom: 4px;">Dokumen Resi Transfer (PDF)</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Bukti pembayaran dari Mobile Banking berupa PDF</div>
+            <a href="/api/payments/file/${encodeURIComponent(filename)}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" target="_blank" class="btn btn-sm btn-primary" style="display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka File PDF Resi
+            </a>
           </div>
-        </div>
-        <a href="/api/payments/file/${encodeURIComponent(filename || '')}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--primary-600); margin-top: 8px; font-weight: 600; text-decoration: none;">
-          <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Gambar di Tab Baru
-        </a>
+        ` : (filename && filename.startsWith('manual_')) ? `
+          <div style="background: rgba(34, 197, 94, 0.08); border: 1.5px dashed #22c55e; border-radius: 8px; text-align: center; padding: 20px 14px; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <i class="fa-solid fa-hand-holding-dollar" style="font-size: 3rem; color: #16a34a; margin-bottom: 8px;"></i>
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-heading); margin-bottom: 4px;">Konfirmasi Kasir / Tunai</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Pembayaran tunai di sekretariat / offline panitia</div>
+          </div>
+        ` : `
+          <div style="background: #0f172a; border-radius: 8px; overflow: hidden; text-align: center; border: 1px solid var(--border-subtle); min-height: 160px; max-height: 220px; display: flex; align-items: center; justify-content: center; padding: 6px;">
+            <img src="/api/payments/file/${encodeURIComponent(filename || '')}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" alt="Bukti Transfer" style="max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px;" onerror="this.style.display='none'; document.getElementById('proof-fallback-link').style.display='block';">
+            <div id="proof-fallback-link" style="display: none; color: var(--text-muted); font-size: 0.85rem; padding: 20px;">
+              <i class="fa-solid fa-file-image" style="font-size: 2rem; color: var(--primary-500); margin-bottom: 8px;"></i><br>
+              File bukti transfer terunggah
+            </div>
+          </div>
+          <a href="/api/payments/file/${encodeURIComponent(filename || '')}?token=${encodeURIComponent(state.token || safeStorage.getItem('lomba_jwt_token') || '')}" target="_blank" style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--primary-600); margin-top: 8px; font-weight: 600; text-decoration: none;">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Gambar di Tab Baru
+          </a>
+        `}
       </div>
     </div>
 
@@ -4939,6 +5121,147 @@ async function executeRejectPayment(paymentId, rejectionReason) {
     }
   } catch (err) {
     alert(err.message);
+  }
+}
+
+// --- MANUAL / OFFLINE PAYMENT CONFIRMATION ---
+async function openManualPaymentConfirmModal(regId, studentName, regNum) {
+  // Ensure payment accounts are loaded
+  if (!state.paymentAccounts || state.paymentAccounts.length === 0) {
+    try {
+      const res = await apiRequest('/api/payments/accounts');
+      if (res && res.success) {
+        state.paymentAccounts = res.accounts || [];
+      }
+    } catch (e) {
+      console.warn('Gagal memuat akun pembayaran:', e);
+    }
+  }
+
+  const accounts = (state.paymentAccounts || []).filter(a => a.isActive);
+
+  openAppModal(`
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="font-size: 1.25rem; color: var(--text-heading); margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-hand-holding-dollar" style="color: var(--success-600);"></i> Konfirmasi Pembayaran Manual / Tunai
+      </h3>
+      <button onclick="closeAppModal()" style="background: none; border: none; font-size: 1.4rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+    </div>
+
+    <div style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px 14px; margin-bottom: 18px;">
+      <div style="font-size: 0.85rem; color: var(--text-muted);">Calon Santri: <strong style="color: var(--text-heading); font-size: 0.95rem;">${escapeHtml(studentName || '-')}</strong></div>
+      <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">No. Registrasi: <code style="font-weight: 700; color: var(--primary-600);">${escapeHtml(regNum || '-')}</code></div>
+    </div>
+
+    <form id="form-manual-payment" onsubmit="executeManualPaymentConfirm(event, '${escapeHtml(regId)}')">
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Metode / Rekening Tujuan</label>
+        <select id="manual-payment-account" class="form-select" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-body); color: var(--text-main);">
+          <option value="">Tunai / Kasir PSB Offline (Tanpa Rekening)</option>
+          ${accounts.map(a => `<option value="${a.id}">${escapeHtml(a.bankName)} - ${escapeHtml(a.accountNumber)} (a.n. ${escapeHtml(a.accountHolder)})</option>`).join('')}
+        </select>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+        <div>
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Nominal Pembayaran (Rp)</label>
+          <input type="number" id="manual-payment-amount" class="form-control" placeholder="Contoh: 500000" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-body); color: var(--text-main);">
+          <small style="color: var(--text-muted); font-size: 0.72rem;">Kosongkan bila sesuai nominal gelombang.</small>
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Tanggal Pembayaran</label>
+          <input type="date" id="manual-payment-date" class="form-control" value="${new Date().toISOString().split('T')[0]}" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-body); color: var(--text-main);">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+        <div>
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Bank / Saluran Penyetor</label>
+          <input type="text" id="manual-payment-bank" class="form-control" placeholder="Contoh: Tunai / Kasir / Mandiri" value="Tunai" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-body); color: var(--text-main);">
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Nama Penyetor / Wali</label>
+          <input type="text" id="manual-payment-sender" class="form-control" placeholder="Nama Orang Tua / Penyetor" value="${escapeHtml(studentName || '')}" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-body); color: var(--text-main);">
+        </div>
+      </div>
+
+      <div style="margin-bottom: 18px;">
+        <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Catatan (Opsional)</label>
+        <textarea id="manual-payment-notes" class="form-control" rows="2" style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-body); color: var(--text-main); font-size: 0.85rem;">Dikonfirmasi manual oleh panitia/bendahara</textarea>
+      </div>
+
+      <div id="manual-confirm-alert" style="display: none; padding: 10px; border-radius: 6px; margin-bottom: 14px; font-size: 0.85rem;"></div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
+        <button type="button" class="btn btn-secondary" onclick="closeAppModal()">Batal</button>
+        <button type="submit" id="btn-submit-manual-confirm" class="btn btn-success" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+          <i class="fa-solid fa-check-circle"></i> Konfirmasi Lunas & Buka Berkas
+        </button>
+      </div>
+    </form>
+  `);
+}
+
+async function executeManualPaymentConfirm(e, regId) {
+  if (e && e.preventDefault) e.preventDefault();
+  const btn = document.getElementById('btn-submit-manual-confirm');
+  const alertEl = document.getElementById('manual-confirm-alert');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+  }
+
+  try {
+    const accountId = document.getElementById('manual-payment-account')?.value || undefined;
+    const amountVal = document.getElementById('manual-payment-amount')?.value;
+    const paymentDate = document.getElementById('manual-payment-date')?.value || undefined;
+    const senderBank = document.getElementById('manual-payment-bank')?.value || 'Tunai';
+    const senderAccountName = document.getElementById('manual-payment-sender')?.value || undefined;
+    const notes = document.getElementById('manual-payment-notes')?.value || undefined;
+
+    const payload = {
+      registrationId: regId,
+      paymentAccountId: accountId || undefined,
+      amount: amountVal ? parseFloat(amountVal) : undefined,
+      paymentDate,
+      senderBank,
+      senderAccountName,
+      notes,
+    };
+
+    const res = await apiRequest('/api/payments/manual-confirm', {
+      method: 'POST',
+      body: payload,
+    });
+
+    if (res && res.success) {
+      alert('Pembayaran manual berhasil dikonfirmasi! Status pendaftaran santri kini Lunas (APPROVED) dan formulir pendaftaran telah dibuka.');
+      closeAppModal();
+
+      const hash = window.location.hash || '';
+      if (hash.startsWith('#verifikasi-pembayaran')) {
+        renderBendaharaPaymentsView();
+      } else if (hash.startsWith('#pendaftar') || hash.startsWith('#admin-registrations')) {
+        if (typeof renderAdminRegistrationsView === 'function') renderAdminRegistrationsView();
+        else updateUniversalTable('admin-registrations-table-slot', renderAdminRegistrationsTable);
+      } else {
+        navigateTo(hash.replace('#', '') || 'dashboard');
+      }
+    } else {
+      throw new Error(res?.message || 'Gagal mengonfirmasi pembayaran manual.');
+    }
+  } catch (err) {
+    if (alertEl) {
+      alertEl.style.display = 'block';
+      alertEl.className = 'alert alert-danger';
+      alertEl.textContent = err.message || 'Terjadi kesalahan sistem.';
+    } else {
+      alert(err.message || 'Terjadi kesalahan.');
+    }
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> Konfirmasi Lunas & Buka Berkas';
+    }
   }
 }
 
@@ -5833,6 +6156,7 @@ async function renderAdminDashboard() {
                 ${pendingActions.map(reg => {
       const studentName = reg.studentDetail?.fullName || reg.individualParticipant?.fullName || reg.fullName || 'Calon Siswa';
       const isPayPending = reg.status === 'WAITING_VERIFICATION';
+      const hasPayment = Array.isArray(reg.payments) && reg.payments.length > 0;
       return `
                     <tr style="border-bottom: 1px solid var(--border-subtle);">
                       <td style="padding: 10px 8px; font-family: monospace; font-weight: 700; color: var(--primary-600);">
@@ -5845,18 +6169,28 @@ async function renderAdminDashboard() {
                         ${reg.schoolName || reg.classProgram?.major?.school?.name || '-'} &bull; ${reg.classProgramName || reg.classProgram?.name || '-'}
                       </td>
                       <td style="padding: 10px 8px; text-align: center;">
-                        ${isPayPending ? `
-                          <span class="badge badge-warning"><i class="fa-solid fa-receipt"></i> Verifikasi Pembayaran</span>
-                        ` : `
+                        ${isPayPending ? (
+                          hasPayment ? `
+                            <span class="badge badge-warning"><i class="fa-solid fa-receipt"></i> Verifikasi Pembayaran</span>
+                          ` : `
+                            <span class="badge badge-warning" style="background: #fef3c7; color: #b45309; border: 1px solid #fde68a;" title="Pendaftar belum berhasil mengunggah bukti bayar"><i class="fa-solid fa-triangle-exclamation"></i> Belum Upload Bukti</span>
+                          `
+                        ) : `
                           <span class="badge badge-info"><i class="fa-solid fa-file-signature"></i> Verifikasi Berkas</span>
                         `}
                       </td>
                       <td style="padding: 10px 8px; text-align: right;">
-                        ${isPayPending ? `
-                          <a href="#verifikasi-pembayaran" class="btn btn-xs btn-warning" style="text-decoration: none;">
-                            <i class="fa-solid fa-check"></i> Cek Pembayaran
-                          </a>
-                        ` : `
+                        ${isPayPending ? (
+                          hasPayment ? `
+                            <a href="#verifikasi-pembayaran" class="btn btn-xs btn-warning" style="text-decoration: none;">
+                              <i class="fa-solid fa-check"></i> Cek Pembayaran
+                            </a>
+                          ` : `
+                            <button type="button" class="btn btn-xs btn-success" onclick="openManualPaymentConfirmModal('${reg.id}', '${escapeQuotes(studentName)}', '${reg.registrationNumber}')" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
+                              <i class="fa-solid fa-hand-holding-dollar"></i> Bayar Manual
+                            </button>
+                          `
+                        ) : `
                           <a href="#verifikasi-data" class="btn btn-xs btn-primary" style="text-decoration: none;">
                             <i class="fa-solid fa-clipboard-check"></i> Verifikasi Data
                           </a>
@@ -6004,6 +6338,9 @@ function renderAdminRegistrationsTable() {
           let btns = `<button type="button" class="btn btn-sm btn-primary" style="padding: 4px 10px;" onclick="openAdminVerificationDetailModal('${r.id}')"><i class="fa-solid fa-eye"></i> Detail</button> `;
           if (r.status === 'APPROVED') {
             btns += `<button type="button" class="btn btn-sm btn-success" style="padding: 4px 10px;" onclick="openParticipantCardModal('${r.id}')" title="Lihat & Cetak Kartu"><i class="fa-solid fa-id-card"></i> Kartu</button>`;
+          } else if (r.status === 'WAITING_VERIFICATION') {
+            const studentName = r.studentDetail?.fullName || r.individualParticipant?.fullName || r.team?.teamName || r.user?.name || 'Calon Siswa';
+            btns += `<button type="button" class="btn btn-sm btn-success" style="padding: 4px 10px; background: #059669; border-color: #059669;" onclick="openManualPaymentConfirmModal('${r.id}', '${escapeQuotes(studentName)}', '${r.registrationNumber}')" title="Konfirmasi Pembayaran Manual / Tunai"><i class="fa-solid fa-hand-holding-dollar"></i> Bayar Manual</button>`;
           }
           return `<div style="display: flex; flex-direction: column; gap: 4px;">${btns}</div>`;
         },
@@ -9756,6 +10093,8 @@ window.openPaymentVerifyModal = openPaymentVerifyModal;
 window.executeApprovePayment = executeApprovePayment;
 window.promptRejectPayment = promptRejectPayment;
 window.executeRejectPayment = executeRejectPayment;
+window.openManualPaymentConfirmModal = openManualPaymentConfirmModal;
+window.executeManualPaymentConfirm = executeManualPaymentConfirm;
 window.executeCheckIn = executeCheckIn;
 window.handleManualCheckInSubmit = handleManualCheckInSubmit;
 window.loadLiveCheckInLogs = loadLiveCheckInLogs;

@@ -71,9 +71,66 @@ export class FileValidatorUtil {
       };
     }
 
+    // Check HEIC / HEIF signature: bytes 4-8 'ftyp', major brand 'heic', 'heix', 'hevc', 'mif1', 'msf1'
+    if (
+      buffer.length >= 12 &&
+      buffer.toString('ascii', 4, 8) === 'ftyp'
+    ) {
+      const brand = buffer.toString('ascii', 8, 12).toLowerCase();
+      if (['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1'].includes(brand)) {
+        return {
+          extension: 'heic',
+          mimeType: 'image/heic',
+          storageFilename: this.generateRandomFilename('heic', 'img'),
+        };
+      }
+    }
+
     throw new BadRequestException(
-      'Format file tidak valid atau rusak. Hanya format PNG, JPG, dan WEBP asli yang diizinkan.',
+      'Format file tidak valid atau rusak. Hanya format PNG, JPG, WEBP, dan HEIC asli yang diizinkan.',
     );
+  }
+
+  /**
+   * Validates binary buffer specifically for Payment Proofs (Struk transfer bank, screenshot QRIS, resi PDF).
+   * Allowed formats: PNG, JPEG/JPG, WEBP, HEIC/HEIF, and PDF.
+   */
+  static validatePaymentProofBuffer(buffer: Buffer, originalFilename?: string): ValidatedFileResult {
+    if (!buffer || buffer.length === 0) {
+      throw new BadRequestException('File bukti pembayaran tidak boleh kosong.');
+    }
+
+    if (buffer.length > this.MAX_FILE_SIZE) {
+      throw new BadRequestException('Ukuran file bukti pembayaran melebihi batas maksimum 10MB.');
+    }
+
+    // 1. Check PDF signature: %PDF (25 50 44 46)
+    if (
+      buffer.length >= 4 &&
+      buffer[0] === 0x25 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x44 &&
+      buffer[3] === 0x46
+    ) {
+      return {
+        extension: 'pdf',
+        mimeType: 'application/pdf',
+        storageFilename: this.generateRandomFilename('pdf', 'proof'),
+      };
+    }
+
+    // 2. Check standard image signatures (PNG, JPG, WEBP, HEIC)
+    try {
+      const imgRes = this.validateImageBuffer(buffer, originalFilename);
+      return {
+        ...imgRes,
+        storageFilename: this.generateRandomFilename(imgRes.extension, 'proof'),
+      };
+    } catch {
+      throw new BadRequestException(
+        'Format file bukti transfer tidak valid. Unggah foto bukti transfer dalam format JPG, JPEG, PNG, WEBP, atau file resi PDF dari Mobile Banking.',
+      );
+    }
   }
 
   /**
