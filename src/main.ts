@@ -421,8 +421,8 @@ Sitemap: ${siteUrl}/sitemap.xml
   app.useStaticAssets(publicDir, {
     maxAge: '7d',
     setHeaders: (res, filePath) => {
-      // HTML files should NOT be cached (always fresh)
-      if (filePath.endsWith('.html')) {
+      // HTML files and cbt_admin.js should NOT be cached by browser
+      if (filePath.endsWith('.html') || filePath.endsWith('cbt_admin.js')) {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       }
     },

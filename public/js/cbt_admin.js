@@ -2351,15 +2351,9 @@ async function exportQuestionsToExcel(target, examTitle) {
   }
 
   try {
-    let exam = null;
-    const currentExam = window.cbtAdminState?.currentExam;
-    if (currentExam && currentExam.id === examId && Array.isArray(currentExam.questions) && currentExam.questions.length > 0) {
-      exam = currentExam;
-    } else {
-      const res = await apiRequest(`/api/cbt/admin/exams/${examId}`);
-      if (!res.success || !res.data) throw new Error(res.message || 'Gagal mengambil data soal ujian.');
-      exam = res.data;
-    }
+    const res = await apiRequest(`/api/cbt/admin/exams/${examId}`);
+    if (!res.success || !res.data) throw new Error(res.message || 'Gagal mengambil data soal ujian.');
+    const exam = res.data;
 
     const questions = exam.questions || [];
     if (questions.length === 0) {
