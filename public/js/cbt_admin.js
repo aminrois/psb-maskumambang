@@ -2148,7 +2148,7 @@ function _buildExcelWorkbook(headers, rows, sheetName = 'Soal CBT') {
 }
 
 /**
- * Download template Excel kosong dengan contoh soal
+ * Download template Excel dengan dukungan kolom gambar soal dan gambar opsi
  */
 function downloadQuestionTemplate() {
   const XLSX = window.XLSX;
@@ -2157,13 +2157,110 @@ function downloadQuestionTemplate() {
     return;
   }
 
-  const headers = ['type', 'question', 'score', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_key'];
+  const headers = [
+    'type',
+    'question',
+    'gambar_soal',
+    'score',
+    'option_a',
+    'gambar_a',
+    'option_b',
+    'gambar_b',
+    'option_c',
+    'gambar_c',
+    'option_d',
+    'gambar_d',
+    'option_e',
+    'gambar_e',
+    'correct_key',
+  ];
+
   const sampleRows = [
-    ['MULTIPLE_CHOICE', 'Berapa hasil dari 15 + 25?', 5, '30', '35', '40', '45', '50', 'C'],
-    ['MULTIPLE_CHOICE', 'Rukun iman yang kedua adalah beriman kepada...?', 5, 'Allah SWT', 'Malaikat-malaikat Allah', 'Kitab-kitab Allah', 'Rasul-rasul Allah', 'Hari Kiamat', 'B'],
-    ['MULTIPLE_CHOICE', 'Ibu kota negara Indonesia saat ini adalah...?', 5, 'Surabaya', 'Bandung', 'Jakarta', 'Nusantara', 'Medan', 'D'],
-    ['ESSAY', 'Jelaskan secara singkat apa yang dimaksud dengan Ihsan menurut hadits Jibril!', 10, '', '', '', '', '', ''],
-    ['ESSAY', 'Sebutkan 5 rukun Islam secara berurutan!', 10, '', '', '', '', '', ''],
+    [
+      'MULTIPLE_CHOICE',
+      'Berapa hasil penjumlahan dari 15 + 25?',
+      '',
+      5,
+      '30',
+      '',
+      '35',
+      '',
+      '40',
+      '',
+      '45',
+      '',
+      '50',
+      '',
+      'C',
+    ],
+    [
+      'MULTIPLE_CHOICE',
+      'Perhatikan gambar peta Indonesia berikut! Pulau yang ditunjukkan oleh tanda panah merah adalah pulau...?',
+      'peta_indonesia.png',
+      5,
+      'Pulau Sumatera',
+      '',
+      'Pulau Jawa',
+      '',
+      'Pulau Kalimantan',
+      '',
+      'Pulau Sulawesi',
+      '',
+      'Pulau Papua',
+      '',
+      'A',
+    ],
+    [
+      'MULTIPLE_CHOICE',
+      'Manakah di bawah ini yang merupakan jaring-jaring bangun ruang prisma segitiga?',
+      '',
+      5,
+      'Gambar A',
+      'prisma.png',
+      'Gambar B',
+      'kubus.png',
+      'Gambar C',
+      'balok.png',
+      'Gambar D',
+      'limas.png',
+      '',
+      '',
+      'A',
+    ],
+    [
+      'ESSAY',
+      'Amatilah struktur mikroskop pada gambar di bawah! Jelaskan fungsi dari lensa objektif!',
+      'mikroskop.jpg',
+      10,
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+    ],
+    [
+      'ESSAY',
+      'Sebutkan 5 rukun Islam secara berurutan dan jelaskan maknanya secara singkat!',
+      '',
+      10,
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+    ],
   ];
 
   try {
@@ -2171,24 +2268,34 @@ function downloadQuestionTemplate() {
 
     // Sheet panduan
     const guideData = [
-      ['PANDUAN PENGISIAN TEMPLATE SOAL CBT'],
+      ['PANDUAN PENGISIAN TEMPLATE SOAL CBT (DILENGKAPI GAMBAR)'],
       [''],
       ['Kolom', 'Keterangan', 'Contoh Nilai'],
-      ['type', 'Jenis soal. Wajib diisi.', 'MULTIPLE_CHOICE atau ESSAY'],
-      ['question', 'Teks pertanyaan soal. Wajib diisi.', 'Berapa hasil dari 2 + 2?'],
-      ['score', 'Nilai/bobot soal (angka).', '5'],
-      ['option_a', 'Pilihan jawaban A (hanya untuk PG).', '10'],
-      ['option_b', 'Pilihan jawaban B (hanya untuk PG).', '20'],
-      ['option_c', 'Pilihan jawaban C (hanya untuk PG).', '4'],
-      ['option_d', 'Pilihan jawaban D (hanya untuk PG).', '8'],
-      ['option_e', 'Pilihan jawaban E - opsional (hanya untuk PG).', ''],
-      ['correct_key', 'Kunci jawaban: A, B, C, D, atau E (hanya untuk PG).', 'C'],
+      ['type', 'Jenis soal. Wajib diisi: MULTIPLE_CHOICE (PG) atau ESSAY (Esai).', 'MULTIPLE_CHOICE atau ESSAY'],
+      ['question', 'Teks pertanyaan butir soal. Wajib diisi.', 'Perhatikan gambar peta di samping!'],
+      ['gambar_soal', 'Nama file gambar soal (misal: soal1.png) atau URL gambar. Kosongkan jika tanpa gambar.', 'soal1.png atau https://...'],
+      ['score', 'Nilai/bobot soal (angka desimal/bulat). Default: 5 untuk PG, 10 untuk Essay.', '5'],
+      ['option_a', 'Teks pilihan jawaban A (wajib untuk PG).', 'Pulau Sumatera'],
+      ['gambar_a', 'Nama file gambar untuk pilihan A (opsional, jika opsi berupa gambar).', 'opsi_a.png'],
+      ['option_b', 'Teks pilihan jawaban B (wajib untuk PG).', 'Pulau Jawa'],
+      ['gambar_b', 'Nama file gambar untuk pilihan B (opsional).', 'opsi_b.png'],
+      ['option_c', 'Teks pilihan jawaban C (wajib untuk PG).', 'Pulau Kalimantan'],
+      ['gambar_c', 'Nama file gambar untuk pilihan C (opsional).', ''],
+      ['option_d', 'Teks pilihan jawaban D (wajib untuk PG).', 'Pulau Sulawesi'],
+      ['gambar_d', 'Nama file gambar untuk pilihan D (opsional).', ''],
+      ['option_e', 'Teks pilihan jawaban E (opsional untuk PG).', 'Pulau Papua'],
+      ['gambar_e', 'Nama file gambar untuk pilihan E (opsional).', ''],
+      ['correct_key', 'Kunci jawaban benar: A, B, C, D, atau E (hanya untuk PG).', 'A'],
       [''],
-      ['CATATAN:', 'Untuk soal ESSAY, kosongkan kolom option_a s/d option_e dan correct_key.', ''],
-      ['CATATAN:', 'Soal bergambar harus diinput secara manual melalui editor di aplikasi.', ''],
+      ['PETUNJUK IMPORT SOAL BERGAMBAR:'],
+      ['1. Cara ZIP (Paling Praktis)', 'Kumpulkan file Excel ini dan file-file gambar ke dalam 1 file .zip (bisa di dalam folder atau langsung). Lalu upload file .zip tersebut saat import.', 'soal_ujian.zip'],
+      ['2. Cara Excel + Foto', 'Pilih file Excel ini, lalu di kotak file gambar pendukung, pilih semua file foto soalnya sekaligus (Ctrl+A).', 'soal.xlsx + foto-foto'],
+      ['3. Format Gambar', 'Mendukung format gambar: PNG, JPG, JPEG, WEBP, GIF.', 'soal1.png'],
+      ['4. Untuk Soal Esai', 'Kosongkan kolom option_a s/d option_e, gambar_a s/d gambar_e, dan correct_key.', ''],
     ];
+
     const wsGuide = XLSX.utils.aoa_to_sheet(guideData);
-    wsGuide['!cols'] = [{ wch: 16 }, { wch: 58 }, { wch: 28 }];
+    wsGuide['!cols'] = [{ wch: 18 }, { wch: 65 }, { wch: 30 }];
     XLSX.utils.book_append_sheet(wb, wsGuide, 'Panduan');
 
     XLSX.writeFile(wb, 'template_import_soal_cbt.xlsx');
@@ -2199,7 +2306,7 @@ function downloadQuestionTemplate() {
 }
 
 /**
- * Export semua soal ujian ke file Excel (.xlsx)
+ * Export semua soal ujian ke file Excel (.xlsx) atau file ZIP jika memiliki gambar
  */
 async function exportQuestionsToExcel(target, examTitle) {
   const XLSX = window.XLSX;
@@ -2209,12 +2316,20 @@ async function exportQuestionsToExcel(target, examTitle) {
   }
 
   let examId = target;
+  let btnEl = null;
   if (target && typeof target === 'object' && target.nodeType) {
+    btnEl = target;
     examId = target.dataset?.examId || target.getAttribute('data-exam-id');
   }
   if (!examTitle) {
     const currentExam = window.cbtAdminState?.currentExam;
     examTitle = (currentExam && currentExam.id === examId) ? (currentExam.title || 'Soal_Ujian') : 'Soal_Ujian';
+  }
+
+  const originalBtnHtml = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengekspor...';
   }
 
   try {
@@ -2229,53 +2344,192 @@ async function exportQuestionsToExcel(target, examTitle) {
       return;
     }
 
-    const headers = ['type', 'question', 'score', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_key'];
-    const rows = questions.map(q => {
-      // Strip HTML tags dari teks soal untuk Excel
-      const questionText = q.question.replace(/<[^>]*>?/gm, '').trim() || q.question;
-      const score = Number(q.score);
+    const headers = [
+      'type',
+      'question',
+      'gambar_soal',
+      'score',
+      'option_a',
+      'gambar_a',
+      'option_b',
+      'gambar_b',
+      'option_c',
+      'gambar_c',
+      'option_d',
+      'gambar_d',
+      'option_e',
+      'gambar_e',
+      'correct_key',
+    ];
+
+    const allImagesToExport = []; // Array of { url: string, filename: string }
+    const usedFilenames = new Set();
+
+    const getCleanFilename = (originalSrc, defaultPrefix) => {
+      let ext = 'png';
+      let originalName = '';
+      try {
+        const cleanPath = originalSrc.split('?')[0].split('#')[0];
+        const parts = cleanPath.split('/');
+        originalName = parts[parts.length - 1];
+        const match = originalName.match(/\.([a-zA-Z0-9]+)$/);
+        if (match) ext = match[1].toLowerCase();
+      } catch (e) {}
+
+      let baseName = originalName || `${defaultPrefix}.${ext}`;
+      let candidate = baseName;
+      let counter = 1;
+      while (usedFilenames.has(candidate)) {
+        const dotIdx = baseName.lastIndexOf('.');
+        const namePart = dotIdx > 0 ? baseName.substring(0, dotIdx) : baseName;
+        candidate = `${namePart}_${counter}.${ext}`;
+        counter++;
+      }
+      usedFilenames.add(candidate);
+      return candidate;
+    };
+
+    const extractTextAndImages = (htmlStr, defaultPrefix) => {
+      if (!htmlStr) return { text: '', imageName: '' };
+      const div = document.createElement('div');
+      div.innerHTML = htmlStr;
+
+      let imageName = '';
+      const img = div.querySelector('img');
+      if (img) {
+        const src = img.getAttribute('src');
+        if (src) {
+          imageName = getCleanFilename(src, defaultPrefix);
+          allImagesToExport.push({ url: src, filename: imageName });
+        }
+        img.remove();
+      }
+
+      const text = div.innerText.trim();
+      return { text, imageName };
+    };
+
+    const rows = questions.map((q, idx) => {
+      const qNum = idx + 1;
+      const qParsed = extractTextAndImages(q.question, `soal_${qNum}`);
+      const score = Number(q.score) || 5;
       const opts = (q.options || []).sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0));
 
-      let optA = '', optB = '', optC = '', optD = '', optE = '', correctKey = '';
+      let optA = '', imgA = '';
+      let optB = '', imgB = '';
+      let optC = '', imgC = '';
+      let optD = '', imgD = '';
+      let optE = '', imgE = '';
+      let correctKey = '';
+
       if (q.type === 'MULTIPLE_CHOICE') {
-        optA = (opts[0]?.content || '').replace(/<[^>]*>?/gm, '').trim();
-        optB = (opts[1]?.content || '').replace(/<[^>]*>?/gm, '').trim();
-        optC = (opts[2]?.content || '').replace(/<[^>]*>?/gm, '').trim();
-        optD = (opts[3]?.content || '').replace(/<[^>]*>?/gm, '').trim();
-        optE = (opts[4]?.content || '').replace(/<[^>]*>?/gm, '').trim();
+        const pA = extractTextAndImages(opts[0]?.content, `soal_${qNum}_opt_a`);
+        optA = pA.text; imgA = pA.imageName;
+
+        const pB = extractTextAndImages(opts[1]?.content, `soal_${qNum}_opt_b`);
+        optB = pB.text; imgB = pB.imageName;
+
+        const pC = extractTextAndImages(opts[2]?.content, `soal_${qNum}_opt_c`);
+        optC = pC.text; imgC = pC.imageName;
+
+        const pD = extractTextAndImages(opts[3]?.content, `soal_${qNum}_opt_d`);
+        optD = pD.text; imgD = pD.imageName;
+
+        const pE = extractTextAndImages(opts[4]?.content, `soal_${qNum}_opt_e`);
+        optE = pE.text; imgE = pE.imageName;
+
         const correctIdx = opts.findIndex(o => o.isCorrect);
         if (correctIdx >= 0) correctKey = String.fromCharCode(65 + correctIdx);
       }
 
-      return [q.type, questionText, score, optA, optB, optC, optD, optE, correctKey];
+      return [
+        q.type,
+        qParsed.text,
+        qParsed.imageName,
+        score,
+        optA,
+        imgA,
+        optB,
+        imgB,
+        optC,
+        imgC,
+        optD,
+        imgD,
+        optE,
+        imgE,
+        correctKey,
+      ];
     });
 
     const wb = _buildExcelWorkbook(headers, rows, 'Soal CBT');
     const cleanTitle = (examTitle || 'Soal_Ujian').replace(/[^a-zA-Z0-9_\-]/g, '_');
-    XLSX.writeFile(wb, `soal_${cleanTitle}_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    showToast(`Berhasil mengekspor ${questions.length} soal ke Excel!`, 'success');
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    // If there are images and JSZip is available, bundle into ZIP with images folder!
+    if (allImagesToExport.length > 0 && typeof window.JSZip !== 'undefined') {
+      showToast(`Mengemas ${questions.length} butir soal dan ${allImagesToExport.length} berkas gambar ke ZIP...`, 'info');
+      const zip = new window.JSZip();
+
+      const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      zip.file(`soal_${cleanTitle}.xlsx`, wbArray);
+
+      const imgFolder = zip.folder('gambar');
+      for (const item of allImagesToExport) {
+        try {
+          const fetchUrl = item.url.startsWith('http')
+            ? item.url
+            : (window.location.origin + (item.url.startsWith('/') ? '' : '/') + item.url);
+          const response = await fetch(fetchUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            imgFolder.file(item.filename, blob);
+          }
+        } catch (fetchErr) {
+          console.warn('Gagal mengunduh gambar untuk diekspor:', item.url, fetchErr);
+        }
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const downloadUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `soal_${cleanTitle}_${dateStr}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+
+      showToast(`Berhasil mengekspor ${questions.length} soal dan ${allImagesToExport.length} gambar ke file ZIP!`, 'success');
+    } else {
+      // Plain Excel export
+      XLSX.writeFile(wb, `soal_${cleanTitle}_${dateStr}.xlsx`);
+      showToast(`Berhasil mengekspor ${questions.length} soal ke Excel!`, 'success');
+    }
   } catch (err) {
     showToast(err.message || 'Gagal mengekspor soal.', 'danger');
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = originalBtnHtml;
+    }
   }
 }
 
 /**
- * Parse file Excel (.xlsx atau .xls) menjadi array soal
+ * Parse file Excel (.xlsx atau .xls) menjadi array soal dengan pencocokan gambar
  * @param {ArrayBuffer} arrayBuffer
+ * @param {Map<string, File>} imageFilesMap - Map nama file gambar (lowercase) -> File
  * @returns {Array} questions
  */
-function parseExcelToQuestions(arrayBuffer) {
+function parseExcelToQuestions(arrayBuffer, imageFilesMap = new Map()) {
   const XLSX = window.XLSX;
   if (!XLSX) throw new Error('Library SheetJS (XLSX) belum termuat. Coba refresh halaman.');
 
   const wb = XLSX.read(arrayBuffer, { type: 'array' });
-
-  // Ambil sheet pertama (bukan sheet Panduan)
   const sheetName = wb.SheetNames.find(n => !/panduan/i.test(n)) || wb.SheetNames[0];
   const ws = wb.Sheets[sheetName];
   if (!ws) throw new Error('Sheet tidak ditemukan dalam file Excel.');
 
-  // Konversi ke array of objects
   const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
   if (!rawRows || rawRows.length === 0) {
     throw new Error('File Excel kosong atau tidak memiliki baris data soal.');
@@ -2283,8 +2537,32 @@ function parseExcelToQuestions(arrayBuffer) {
 
   const questions = [];
 
+  const findMatchedImage = (imgName) => {
+    if (!imgName) return null;
+    const cleanName = String(imgName).trim();
+    if (!cleanName) return null;
+
+    if (cleanName.startsWith('http://') || cleanName.startsWith('https://') || cleanName.startsWith('/uploads/')) {
+      return { url: cleanName, isRemote: true, name: cleanName };
+    }
+
+    if (!imageFilesMap || imageFilesMap.size === 0) return null;
+
+    const lower = cleanName.toLowerCase();
+    const base = lower.split('/').pop()?.split('\\').pop() || lower;
+
+    if (imageFilesMap.has(lower)) {
+      const f = imageFilesMap.get(lower);
+      return { file: f, url: URL.createObjectURL(f), name: f.name };
+    }
+    if (imageFilesMap.has(base)) {
+      const f = imageFilesMap.get(base);
+      return { file: f, url: URL.createObjectURL(f), name: f.name };
+    }
+    return null;
+  };
+
   rawRows.forEach((rowObj, rIdx) => {
-    // Normalisasi key ke lowercase tanpa spasi
     const row = {};
     Object.keys(rowObj).forEach(k => {
       row[k.toLowerCase().replace(/[^a-z0-9_]/g, '')] = rowObj[k];
@@ -2293,18 +2571,49 @@ function parseExcelToQuestions(arrayBuffer) {
     const typeRaw = String(row.type || row.questiontype || row.jenissoal || '').toUpperCase().trim();
     const type = (typeRaw.includes('ESSAY') || typeRaw.includes('ESAI')) ? 'ESSAY' : 'MULTIPLE_CHOICE';
     const questionText = String(row.question || row.pertanyaan || row.soal || '').trim();
-    if (!questionText) return; // skip baris kosong
+    const imageSoalName = String(row.gambar_soal || row.gambar || row.imagesoal || row.image || row.foto_soal || row.foto || '').trim();
+
+    if (!questionText && !imageSoalName) return;
 
     const score = parseFloat(row.score || row.nilai || row.bobot || '5') || 5;
+    const qImageMatch = findMatchedImage(imageSoalName);
 
     if (type === 'ESSAY') {
-      questions.push({ type: 'ESSAY', question: questionText, score, options: [] });
+      questions.push({
+        type: 'ESSAY',
+        question: questionText,
+        imageFileName: imageSoalName,
+        imageMatch: qImageMatch,
+        score,
+        options: [],
+      });
     } else {
       const optA = String(row.option_a || row.opsia || row.piliha || row.pilihana || '').trim();
+      const imgOptA = String(row.gambar_a || row.image_a || row.gambara || row.foto_a || '').trim();
+
       const optB = String(row.option_b || row.opsib || row.pilihb || row.pilihanb || '').trim();
+      const imgOptB = String(row.gambar_b || row.image_b || row.gambarb || row.foto_b || '').trim();
+
       const optC = String(row.option_c || row.opsic || row.pilihc || row.pilihanc || '').trim();
+      const imgOptC = String(row.gambar_c || row.image_c || row.gambarc || row.foto_c || '').trim();
+
       const optD = String(row.option_d || row.opsid || row.pilihd || row.pilihand || '').trim();
+      const imgOptD = String(row.gambar_d || row.image_d || row.gambard || row.foto_d || '').trim();
+
       const optE = String(row.option_e || row.opsie || row.pilihe || row.pilihane || '').trim();
+      const imgOptE = String(row.gambar_e || row.image_e || row.gambare || row.foto_e || '').trim();
+
+      const rawOpts = [
+        { text: optA, imgName: imgOptA, match: findMatchedImage(imgOptA) },
+        { text: optB, imgName: imgOptB, match: findMatchedImage(imgOptB) },
+        { text: optC, imgName: imgOptC, match: findMatchedImage(imgOptC) },
+        { text: optD, imgName: imgOptD, match: findMatchedImage(imgOptD) },
+        { text: optE, imgName: imgOptE, match: findMatchedImage(imgOptE) },
+      ].filter(o => o.text !== '' || o.imgName !== '');
+
+      if (rawOpts.length < 2) {
+        throw new Error(`Baris ${rIdx + 2}: Soal pilihan ganda harus memiliki minimal 2 opsi jawaban.`);
+      }
 
       const correctKeyRaw = String(row.correct_key || row.kuncijawaban || row.kunci || 'A').toUpperCase().trim();
       let correctIdx = 0;
@@ -2313,19 +2622,23 @@ function parseExcelToQuestions(arrayBuffer) {
       else if (correctKeyRaw === 'D' || correctKeyRaw === '3') correctIdx = 3;
       else if (correctKeyRaw === 'E' || correctKeyRaw === '4') correctIdx = 4;
 
-      const rawOpts = [optA, optB, optC, optD, optE].filter(o => o !== '');
-      if (rawOpts.length < 2) {
-        throw new Error(`Baris ${rIdx + 2}: Soal pilihan ganda harus memiliki minimal 2 opsi jawaban.`);
-      }
-
-      const options = rawOpts.map((content, idx) => ({
-        content,
+      const options = rawOpts.map((o, idx) => ({
+        content: o.text,
+        imageFileName: o.imgName,
+        imageMatch: o.match,
         isCorrect: idx === correctIdx,
         orderNumber: idx + 1,
       }));
       if (!options.some(o => o.isCorrect)) options[0].isCorrect = true;
 
-      questions.push({ type: 'MULTIPLE_CHOICE', question: questionText, score, options });
+      questions.push({
+        type: 'MULTIPLE_CHOICE',
+        question: questionText,
+        imageFileName: imageSoalName,
+        imageMatch: qImageMatch,
+        score,
+        options,
+      });
     }
   });
 
@@ -2333,55 +2646,204 @@ function parseExcelToQuestions(arrayBuffer) {
   return questions;
 }
 
-
-
 window.parsedImportQuestions = [];
+window.importImagesMap = new Map();
+window.importRawExcelBuffer = null;
 
+/**
+ * Render tabel pratinjau soal di modal import
+ */
+function renderImportPreviewTable() {
+  const questions = window.parsedImportQuestions || [];
+  const previewContainer = document.getElementById('import-preview-container');
+  const previewCount = document.getElementById('import-preview-count');
+  const previewImagesCount = document.getElementById('import-preview-images-count');
+  const previewTbody = document.getElementById('import-preview-tbody');
+  const btnSubmit = document.getElementById('btn-submit-import');
+
+  if (previewCount) previewCount.innerText = String(questions.length);
+
+  let totalImagesMatched = 0;
+  let totalImagesNeeded = 0;
+
+  questions.forEach(q => {
+    if (q.imageFileName) {
+      totalImagesNeeded++;
+      if (q.imageMatch) totalImagesMatched++;
+    }
+    (q.options || []).forEach(o => {
+      if (o.imageFileName) {
+        totalImagesNeeded++;
+        if (o.imageMatch) totalImagesMatched++;
+      }
+    });
+  });
+
+  if (previewImagesCount) {
+    if (totalImagesNeeded > 0) {
+      previewImagesCount.style.display = 'inline-block';
+      previewImagesCount.innerHTML = `&bull; <span style="color: ${totalImagesMatched === totalImagesNeeded ? '#16a34a' : '#d97706'}; font-weight: 700;">${totalImagesMatched}/${totalImagesNeeded} Gambar Terhubung</span>`;
+    } else {
+      previewImagesCount.style.display = 'none';
+    }
+  }
+
+  if (previewTbody) {
+    previewTbody.innerHTML = questions.map((q, idx) => {
+      let correctKeyStr = '-';
+      if (q.type === 'MULTIPLE_CHOICE') {
+        const correctIdx = (q.options || []).findIndex(o => o.isCorrect);
+        if (correctIdx >= 0) correctKeyStr = String.fromCharCode(65 + correctIdx);
+      }
+
+      // Render Question Thumbnail if image exists
+      let qImageBadge = '';
+      if (q.imageMatch && q.imageMatch.url) {
+        qImageBadge = `
+          <div style="margin-top: 6px; display: inline-flex; align-items: center; gap: 8px; background: rgba(34, 197, 94, 0.08); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(34, 197, 94, 0.25);">
+            <img src="${q.imageMatch.url}" style="height: 38px; max-width: 65px; object-fit: contain; border-radius: 4px; border: 1px solid var(--border-subtle); background: #000; cursor: pointer;" onclick="window.showImageZoomModal('${q.imageMatch.url}', 'Gambar Soal No. ${idx + 1}')" title="Klik untuk memperbesar">
+            <span style="font-size: 0.72rem; color: #15803d; font-weight: 600;"><i class="fa-solid fa-image"></i> ${escapeHtml(q.imageFileName || 'Gambar')}</span>
+          </div>
+        `;
+      } else if (q.imageFileName) {
+        qImageBadge = `
+          <div style="margin-top: 4px;">
+            <span class="badge badge-warning" style="font-size: 0.7rem; background: #fef3c7; color: #b45309; border: 1px solid #fde68a;">
+              <i class="fa-solid fa-triangle-exclamation"></i> Foto belum dipilih: ${escapeHtml(q.imageFileName)}
+            </span>
+          </div>
+        `;
+      }
+
+      // Render Options details for Multiple Choice
+      let optionsHtml = '';
+      if (q.type === 'MULTIPLE_CHOICE') {
+        optionsHtml = `
+          <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 3px; font-size: 0.75rem;">
+            ${(q.options || []).map((o, oIdx) => {
+              const letter = String.fromCharCode(65 + oIdx);
+              let optImg = '';
+              if (o.imageMatch && o.imageMatch.url) {
+                optImg = `<img src="${o.imageMatch.url}" style="height: 20px; max-width: 32px; object-fit: cover; border-radius: 2px; vertical-align: middle; border: 1px solid var(--border-subtle); cursor: pointer;" onclick="window.showImageZoomModal('${o.imageMatch.url}', 'Gambar Pilihan ${letter}')">`;
+              } else if (o.imageFileName) {
+                optImg = `<span style="color:#d97706; font-size:0.65rem;">[${escapeHtml(o.imageFileName)}]</span>`;
+              }
+              const isCor = o.isCorrect;
+              return `
+                <div style="color: ${isCor ? '#15803d' : 'var(--text-muted)'}; font-weight: ${isCor ? '700' : '400'};">
+                  <strong>${letter}.</strong> ${escapeHtml(o.content || '')} ${optImg} ${isCor ? '✓' : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      return `
+        <tr style="border-bottom: 1px solid var(--border-subtle); vertical-align: top;">
+          <td style="padding: 8px 10px; font-weight: 700; text-align: center;">${idx + 1}</td>
+          <td style="padding: 8px 10px;">
+            <span class="badge ${q.type === 'MULTIPLE_CHOICE' ? 'badge-primary' : 'badge-info'}" style="font-size: 0.7rem;">
+              ${q.type === 'MULTIPLE_CHOICE' ? 'PG' : 'ESSAY'}
+            </span>
+          </td>
+          <td style="padding: 8px 10px; max-width: 360px;">
+            <div style="font-weight: 600; color: var(--text-heading); line-height: 1.4;">${escapeHtml(q.question || '(Tanpa Teks - Hanya Gambar)')}</div>
+            ${qImageBadge}
+            ${optionsHtml}
+          </td>
+          <td style="padding: 8px 10px; text-align: center; font-weight: 700; color: #16a34a;">${q.score}</td>
+          <td style="padding: 8px 10px; text-align: center; font-weight: 800; color: var(--primary-600);">${correctKeyStr}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  if (previewContainer) previewContainer.style.display = questions.length > 0 ? 'block' : 'none';
+  if (btnSubmit) btnSubmit.disabled = questions.length === 0;
+}
+
+/**
+ * Buka modal Import Soal Ujian (Mendukung .xlsx, .xls, dan .zip)
+ */
 function openImportQuestionsModal(examId) {
   window.parsedImportQuestions = [];
+  window.importImagesMap = new Map();
+  window.importRawExcelBuffer = null;
 
   const bodyHtml = `
     <div style="display: flex; flex-direction: column; gap: 16px;">
       <div class="alert alert-info" style="font-size: 0.85rem; padding: 12px 16px; margin: 0; display: flex; align-items: flex-start; gap: 10px;">
-        <i class="fa-solid fa-circle-info" style="font-size: 1.1rem; margin-top: 2px;"></i>
+        <i class="fa-solid fa-circle-info" style="font-size: 1.2rem; margin-top: 2px; color: var(--primary-600);"></i>
         <div>
-          <strong>Panduan Import Soal Excel:</strong>
-          <ul style="margin: 6px 0 0 0; padding-left: 18px; line-height: 1.5;">
-            <li>Gunakan format file <strong>Excel (.xlsx atau .xls)</strong>.</li>
-            <li>Kolom yang dibutuhkan: <code>type, question, score, option_a, option_b, option_c, option_d, option_e, correct_key</code>.</li>
-            <li>Nilai kolom <code>type</code>: <code>MULTIPLE_CHOICE</code> untuk pilihan ganda, atau <code>ESSAY</code> untuk soal esai.</li>
-            <li>Untuk soal esai, kosongkan kolom opsi dan <code>correct_key</code>.</li>
-            <li>Download template untuk contoh format yang benar.</li>
+          <strong style="color: var(--text-heading);">Panduan Import Soal CBT (Mendukung Gambar):</strong>
+          <ul style="margin: 6px 0 0 0; padding-left: 18px; line-height: 1.5; color: var(--text-main);">
+            <li><strong>Cara 1 (File ZIP):</strong> Unggah 1 file <code>.zip</code> yang berisi file Excel beserta gambar-gambarnya. Sistem akan otomatis menghubungkannya.</li>
+            <li><strong>Cara 2 (File Excel + Foto):</strong> Unggah file <code>.xlsx</code> / <code>.xls</code>, lalu pilih foto-foto soalnya sekaligus di kotak file gambar pendukung.</li>
+            <li><strong>Cara 3 (File Excel Teks):</strong> Langsung unggah file Excel untuk soal biasa tanpa gambar.</li>
           </ul>
         </div>
       </div>
 
       <div style="display: flex; justify-content: flex-end;">
         <button type="button" class="btn btn-sm btn-secondary" onclick="downloadQuestionTemplate()" style="display: inline-flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-file-excel"></i> Download Template Excel
+          <i class="fa-solid fa-file-excel" style="color: #16a34a;"></i> Download Template Excel Terbaru
         </button>
       </div>
 
       <div class="form-group" style="margin: 0;">
         <label class="form-label" style="font-weight: 700; font-size: 0.875rem; margin-bottom: 6px; display: block;">
-          Pilih File Excel (.xlsx / .xls)
+          1. Pilih File Soal (.xlsx / .xls / .zip) <span style="color: var(--danger-600); font-weight: 800;">*</span>
         </label>
-        <input type="file" id="import-excel-file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="form-control" onchange="handleExcelFileSelected(event)" style="padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); width: 100%;">
+        <input 
+          type="file" 
+          id="import-excel-file" 
+          accept=".xlsx,.xls,.zip,application/zip,application/x-zip-compressed,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" 
+          class="form-control" 
+          onchange="handleImportFileSelected(event)" 
+          style="padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); width: 100%;"
+        >
       </div>
 
+      <!-- Supporting Images Upload Group (Shown if Excel has images or optional) -->
+      <div id="import-supporting-images-group" class="form-group" style="display: none; margin: 0; background: var(--bg-body); padding: 14px; border-radius: var(--radius-md); border: 1px dashed var(--border-subtle);">
+        <label class="form-label" style="font-weight: 700; font-size: 0.85rem; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="display: flex; align-items: center; gap: 6px; color: var(--text-heading);">
+            <i class="fa-solid fa-images" style="color: var(--primary-600);"></i> 2. Pilih File Gambar Pendukung Soal
+          </span>
+          <span id="selected-images-count-badge" class="badge badge-info" style="font-size: 0.72rem;">0 Gambar Terpilih</span>
+        </label>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 8px 0; line-height: 1.4;">
+          Pilih semua file foto/gambar yang tercantum di kolom <code>gambar_soal</code> atau gambar pilihan (bisa pilih banyak gambar sekaligus / blok <code>Ctrl+A</code>).
+        </p>
+        <input 
+          type="file" 
+          id="import-images-file" 
+          accept="image/png,image/jpeg,image/webp,image/gif" 
+          multiple 
+          class="form-control" 
+          onchange="handleSupportingImagesSelected(event)" 
+          style="padding: 8px 12px; font-size: 0.85rem; width: 100%;"
+        >
+      </div>
+
+      <!-- Preview Container -->
       <div id="import-preview-container" style="display: none;">
-        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-heading); margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
-          <i class="fa-solid fa-list-check" style="color: var(--primary-600);"></i> Preview Soal yang Akan Diimpor (<span id="import-preview-count">0</span> Soal)
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-heading); margin: 0 0 8px 0; display: flex; align-items: center; justify-content: space-between;">
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-list-check" style="color: var(--primary-600);"></i> Preview Butir Soal (<span id="import-preview-count">0</span> Soal)
+          </span>
+          <span id="import-preview-images-count" style="font-size: 0.8rem; display: none;"></span>
         </h4>
-        <div style="max-height: 240px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-body); padding: 8px;">
-          <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">
+        <div style="max-height: 280px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-body); padding: 4px;">
+          <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
             <thead>
-              <tr style="border-bottom: 1px solid var(--border-subtle); text-align: left; color: var(--text-heading);">
-                <th style="padding: 6px 8px; width: 8%;">No</th>
-                <th style="padding: 6px 8px; width: 16%;">Jenis</th>
-                <th style="padding: 6px 8px; width: 56%;">Pertanyaan</th>
-                <th style="padding: 6px 8px; width: 10%; text-align: center;">Nilai</th>
-                <th style="padding: 6px 8px; width: 10%; text-align: center;">Kunci</th>
+              <tr style="border-bottom: 2px solid var(--border-subtle); text-align: left; color: var(--text-heading); background: var(--bg-card); position: sticky; top: 0; z-index: 1;">
+                <th style="padding: 8px 10px; width: 6%; text-align: center;">No</th>
+                <th style="padding: 8px 10px; width: 14%;">Jenis</th>
+                <th style="padding: 8px 10px; width: 60%;">Pertanyaan & Gambar</th>
+                <th style="padding: 8px 10px; width: 10%; text-align: center;">Nilai</th>
+                <th style="padding: 8px 10px; width: 10%; text-align: center;">Kunci</th>
               </tr>
             </thead>
             <tbody id="import-preview-tbody"></tbody>
@@ -2398,70 +2860,148 @@ function openImportQuestionsModal(examId) {
     </div>
   `;
 
-  openModal('Import Soal Ujian (Excel)', bodyHtml, 'modal-lg');
+  openModal('Import Soal Ujian (Excel / ZIP Bergambar)', bodyHtml, 'modal-lg');
 }
 
 /**
- * Handler: file Excel dipilih → parse dan tampilkan preview
+ * Handler: Saat file soal dipilih (baik .zip maupun .xlsx/.xls)
  */
-function handleExcelFileSelected(event) {
+async function handleImportFileSelected(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
+  const btnSubmit = document.getElementById('btn-submit-import');
+  if (btnSubmit) btnSubmit.disabled = true;
+
+  const isZip = file.name.toLowerCase().endsWith('.zip') || file.type.includes('zip');
+
+  if (isZip) {
+    if (typeof window.JSZip === 'undefined') {
+      showToast('Library ZIP belum termuat. Coba refresh halaman.', 'danger');
+      return;
+    }
+
     try {
-      const questions = parseExcelToQuestions(e.target.result);
-      window.parsedImportQuestions = questions;
+      showToast('Membaca berkas ZIP dan mengekstrak aset...', 'info');
+      const zip = await window.JSZip.loadAsync(file);
 
-      const previewContainer = document.getElementById('import-preview-container');
-      const previewCount = document.getElementById('import-preview-count');
-      const previewTbody = document.getElementById('import-preview-tbody');
-      const btnSubmit = document.getElementById('btn-submit-import');
+      // 1. Cari file Excel di dalam ZIP
+      let excelEntry = null;
+      let excelFileName = '';
+      const zipFiles = Object.keys(zip.files);
 
-      if (previewCount) previewCount.innerText = String(questions.length);
-
-      if (previewTbody) {
-        previewTbody.innerHTML = questions.map((q, idx) => {
-          let correctKeyStr = '-';
-          if (q.type === 'MULTIPLE_CHOICE') {
-            const correctIdx = (q.options || []).findIndex(o => o.isCorrect);
-            if (correctIdx >= 0) correctKeyStr = String.fromCharCode(65 + correctIdx);
-          }
-          return `
-            <tr style="border-bottom: 1px solid var(--border-subtle);">
-              <td style="padding: 6px 8px; font-weight: 700;">${idx + 1}</td>
-              <td style="padding: 6px 8px;">
-                <span class="badge ${q.type === 'MULTIPLE_CHOICE' ? 'badge-primary' : 'badge-info'}" style="font-size: 0.7rem;">
-                  ${q.type === 'MULTIPLE_CHOICE' ? 'PG' : 'ESSAY'}
-                </span>
-              </td>
-              <td style="padding: 6px 8px; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                ${escapeHtml(q.question)}
-              </td>
-              <td style="padding: 6px 8px; text-align: center; font-weight: 700; color: #16a34a;">${q.score}</td>
-              <td style="padding: 6px 8px; text-align: center; font-weight: 800; color: var(--primary-600);">${correctKeyStr}</td>
-            </tr>
-          `;
-        }).join('');
+      for (const p of zipFiles) {
+        if (p.includes('__MACOSX') || p.endsWith('.DS_Store') || zip.files[p].dir) continue;
+        const low = p.toLowerCase();
+        if (low.endsWith('.xlsx') || low.endsWith('.xls')) {
+          excelEntry = zip.files[p];
+          excelFileName = p;
+          break;
+        }
       }
 
-      if (previewContainer) previewContainer.style.display = 'block';
-      if (btnSubmit) btnSubmit.disabled = false;
+      if (!excelEntry) {
+        throw new Error('Tidak ditemukan file Excel (.xlsx / .xls) di dalam berkas ZIP ini.');
+      }
 
-      showToast(`Berhasil membaca ${questions.length} butir soal dari file Excel.`, 'success');
+      // 2. Ekstrak seluruh file gambar di dalam ZIP ke Map
+      window.importImagesMap = new Map();
+      const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+
+      for (const p of zipFiles) {
+        if (p.includes('__MACOSX') || p.endsWith('.DS_Store') || zip.files[p].dir) continue;
+        const low = p.toLowerCase();
+        if (imageExtensions.some(ext => low.endsWith(ext))) {
+          const blob = await zip.files[p].async('blob');
+          const baseName = p.split('/').pop()?.split('\\').pop() || p;
+          const mimeType = low.endsWith('.png') ? 'image/png' : (low.endsWith('.webp') ? 'image/webp' : (low.endsWith('.gif') ? 'image/gif' : 'image/jpeg'));
+          const imgFile = new File([blob], baseName, { type: mimeType });
+
+          window.importImagesMap.set(baseName.toLowerCase(), imgFile);
+          window.importImagesMap.set(low, imgFile);
+        }
+      }
+
+      // 3. Baca dan parse file Excel
+      const excelBuffer = await excelEntry.async('arraybuffer');
+      window.importRawExcelBuffer = excelBuffer;
+      const questions = parseExcelToQuestions(excelBuffer, window.importImagesMap);
+      window.parsedImportQuestions = questions;
+
+      // Sembunyikan input gambar terpisah karena sudah diambil dari ZIP
+      const supportingGroup = document.getElementById('import-supporting-images-group');
+      if (supportingGroup) supportingGroup.style.display = 'none';
+
+      renderImportPreviewTable();
+      showToast(`Berhasil membaca ${questions.length} butir soal dan ${window.importImagesMap.size} gambar dari ZIP!`, 'success');
     } catch (err) {
-      showToast(err.message || 'Gagal memproses file Excel.', 'danger');
+      showToast(err.message || 'Gagal memproses file ZIP.', 'danger');
       window.parsedImportQuestions = [];
-      const btnSubmit = document.getElementById('btn-submit-import');
-      if (btnSubmit) btnSubmit.disabled = true;
-      const previewContainer = document.getElementById('import-preview-container');
-      if (previewContainer) previewContainer.style.display = 'none';
+      renderImportPreviewTable();
     }
-  };
-  reader.readAsArrayBuffer(file);
+  } else {
+    // File Excel (.xlsx / .xls) biasa
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        window.importRawExcelBuffer = e.target.result;
+        const questions = parseExcelToQuestions(window.importRawExcelBuffer, window.importImagesMap || new Map());
+        window.parsedImportQuestions = questions;
+
+        // Cek apakah ada soal yang membutuhkan gambar
+        const hasImageRef = questions.some(q => q.imageFileName || (q.options || []).some(o => o.imageFileName));
+        const supportingGroup = document.getElementById('import-supporting-images-group');
+        if (supportingGroup) {
+          supportingGroup.style.display = hasImageRef ? 'block' : 'none';
+        }
+
+        renderImportPreviewTable();
+        showToast(`Berhasil membaca ${questions.length} butir soal dari file Excel.`, 'success');
+      } catch (err) {
+        showToast(err.message || 'Gagal memproses file Excel.', 'danger');
+        window.parsedImportQuestions = [];
+        renderImportPreviewTable();
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
 }
 
+/**
+ * Handler: Saat file gambar pendukung dipilih (multi-select)
+ */
+function handleSupportingImagesSelected(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  if (!window.importImagesMap) window.importImagesMap = new Map();
+
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    window.importImagesMap.set(f.name.toLowerCase().trim(), f);
+    const base = f.name.split('/').pop()?.split('\\').pop()?.toLowerCase().trim() || f.name.toLowerCase().trim();
+    window.importImagesMap.set(base, f);
+  }
+
+  const badge = document.getElementById('selected-images-count-badge');
+  if (badge) badge.innerText = `${window.importImagesMap.size} Gambar Terpilih`;
+
+  // Re-parse jika buffer excel tersedia
+  if (window.importRawExcelBuffer) {
+    try {
+      const questions = parseExcelToQuestions(window.importRawExcelBuffer, window.importImagesMap);
+      window.parsedImportQuestions = questions;
+      renderImportPreviewTable();
+      showToast(`Menghubungkan ${window.importImagesMap.size} berkas gambar dengan soal...`, 'info');
+    } catch (err) {
+      console.warn('Re-parse error with images:', err);
+    }
+  }
+}
+
+/**
+ * Handler: Eksekusi upload gambar dan simpan soal ke database
+ */
 async function handleProcessImportQuestions(examId) {
   const questions = window.parsedImportQuestions;
   if (!questions || questions.length === 0) {
@@ -2469,22 +3009,107 @@ async function handleProcessImportQuestions(examId) {
     return;
   }
 
+  // Cek apakah ada gambar yang belum terhubung
+  let missingImagesCount = 0;
+  questions.forEach(q => {
+    if (q.imageFileName && !q.imageMatch) missingImagesCount++;
+    (q.options || []).forEach(o => {
+      if (o.imageFileName && !o.imageMatch) missingImagesCount++;
+    });
+  });
+
+  if (missingImagesCount > 0) {
+    const proceed = confirm(
+      `Perhatian: Terdapat ${missingImagesCount} referensi gambar di Excel yang belum terhubung atau belum diunggah.\n\nApakah Anda ingin tetap melanjutkan proses import? (Soal akan tetap diimpor dengan teksnya).`
+    );
+    if (!proceed) return;
+  }
+
   const btn = document.getElementById('btn-submit-import');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengimpor Soal...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah Berkas & Menyimpan Soal...';
   }
 
   try {
+    // Cache URL upload agar jika file gambar yang sama dipakai ulang, tidak diupload ganda
+    const uploadedUrlCache = new Map();
+
+    const uploadFileIfNeeded = async (imageMatch) => {
+      if (!imageMatch) return null;
+      if (imageMatch.isRemote && imageMatch.url) return imageMatch.url;
+      if (!imageMatch.file) return null;
+
+      const cacheKey = imageMatch.file.name.toLowerCase().trim();
+      if (uploadedUrlCache.has(cacheKey)) {
+        return uploadedUrlCache.get(cacheKey);
+      }
+
+      const uploadedUrl = await uploadCbtImage(imageMatch.file);
+      uploadedUrlCache.set(cacheKey, uploadedUrl);
+      return uploadedUrl;
+    };
+
+    // Siapkan array butir soal dengan tag HTML <img>
+    const payloadQuestions = [];
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      let finalQuestionHtml = q.question || '';
+
+      if (q.imageMatch) {
+        try {
+          const imgUrl = await uploadFileIfNeeded(q.imageMatch);
+          if (imgUrl) {
+            finalQuestionHtml += `<p><img src="${imgUrl}" alt="${escapeHtml(q.imageMatch.name || 'Gambar Soal')}" style="max-width: 100%; height: auto; border-radius: 6px; margin: 8px 0; display: block; border: 1px solid var(--border-subtle);"></p>`;
+          }
+        } catch (uploadErr) {
+          console.warn('Gagal mengunggah gambar soal:', q.imageFileName, uploadErr);
+        }
+      }
+
+      let payloadOptions = undefined;
+      if (q.type === 'MULTIPLE_CHOICE' && Array.isArray(q.options)) {
+        payloadOptions = [];
+        for (let j = 0; j < q.options.length; j++) {
+          const opt = q.options[j];
+          let finalOptHtml = opt.content || '';
+
+          if (opt.imageMatch) {
+            try {
+              const optImgUrl = await uploadFileIfNeeded(opt.imageMatch);
+              if (optImgUrl) {
+                finalOptHtml += `<p><img src="${optImgUrl}" alt="${escapeHtml(opt.imageMatch.name || 'Gambar Opsi')}" style="max-width: 100%; height: auto; border-radius: 4px; margin: 4px 0; display: block; border: 1px solid var(--border-subtle);"></p>`;
+              }
+            } catch (uploadErr) {
+              console.warn('Gagal mengunggah gambar opsi:', opt.imageFileName, uploadErr);
+            }
+          }
+
+          payloadOptions.push({
+            content: finalOptHtml.trim(),
+            isCorrect: !!opt.isCorrect,
+            orderNumber: opt.orderNumber || (j + 1),
+          });
+        }
+      }
+
+      payloadQuestions.push({
+        type: q.type,
+        question: finalQuestionHtml.trim(),
+        score: q.score || 5,
+        options: payloadOptions,
+      });
+    }
+
     const res = await apiRequest(`/api/cbt/admin/exams/${examId}/questions/import`, {
       method: 'POST',
-      body: { questions },
+      body: { questions: payloadQuestions },
     });
 
     if (res.success) {
-      showToast(`Berhasil mengimpor ${questions.length} butir soal!`, 'success');
+      showToast(`Berhasil mengimpor ${payloadQuestions.length} butir soal beserta gambarnya!`, 'success');
       closeModal();
-      // Reload exam questions using current active schoolId
       if (window.cbtAdminState && window.cbtAdminState.selectedSchoolId) {
         loadCbtSchoolExamDetails(window.cbtAdminState.selectedSchoolId);
       } else {
@@ -3466,7 +4091,10 @@ window.openCbtResultDetailModal = openCbtResultDetailModal;
 window.handleSaveEssayGrading = handleSaveEssayGrading;
 window.downloadQuestionTemplate = downloadQuestionTemplate;
 window.exportQuestionsToCSV = exportQuestionsToCSV;
+window.exportQuestionsToExcel = exportQuestionsToExcel;
 window.openImportQuestionsModal = openImportQuestionsModal;
+window.handleImportFileSelected = handleImportFileSelected;
+window.handleSupportingImagesSelected = handleSupportingImagesSelected;
 window.handleCsvFileSelected = handleCsvFileSelected;
 window.handleProcessImportQuestions = handleProcessImportQuestions;
 window.detectSchoolDefaultOptionCount = detectSchoolDefaultOptionCount;
