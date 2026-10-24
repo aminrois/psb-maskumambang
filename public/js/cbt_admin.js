@@ -2308,13 +2308,31 @@ function downloadQuestionTemplate() {
 /**
  * Export semua soal ujian ke file Excel (.xlsx) atau file ZIP jika memiliki gambar
  */
-async function exportQuestionsToExcel(target, examTitle) {
-  const XLSX = window.XLSX;
-  if (!XLSX) {
-    showToast('Library Excel belum termuat. Coba refresh halaman.', 'danger');
-    return;
+/**
+ * Helper: Convert Base64 Data URI to Uint8Array safely
+ */
+function _base64ToUint8Array(dataUri) {
+  try {
+    const commaIdx = dataUri.indexOf(',');
+    const b64 = commaIdx >= 0 ? dataUri.slice(commaIdx + 1) : dataUri;
+    const cleanB64 = b64.replace(/\s/g, '');
+    const byteCharacters = atob(cleanB64);
+    const bytes = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      bytes[i] = byteCharacters.charCodeAt(i);
+    }
+    return bytes;
+  } catch (e) {
+    console.error('Error decoding base64 to Uint8Array:', e);
+    return null;
   }
+}
 
+/**
+ * Ekspor butir soal ujian ke file Excel (.xlsx) dengan gambar tertanam di sel (Option C)
+ * serta dikemas ke dalam .zip dengan folder gambar/ jika soal memiliki gambar.
+ */
+async function exportQuestionsToExcel(target, examTitle) {
   let examId = target;
   let btnEl = null;
   if (target && typeof target === 'object' && target.nodeType) {
@@ -2335,7 +2353,7 @@ async function exportQuestionsToExcel(target, examTitle) {
   try {
     let exam = null;
     const currentExam = window.cbtAdminState?.currentExam;
-    if (currentExam && currentExam.id === examId && Array.isArray(currentExam.questions)) {
+    if (currentExam && currentExam.id === examId && Array.isArray(currentExam.questions) && currentExam.questions.length > 0) {
       exam = currentExam;
     } else {
       const res = await apiRequest(`/api/cbt/admin/exams/${examId}`);
@@ -2344,154 +2362,334 @@ async function exportQuestionsToExcel(target, examTitle) {
     }
 
     const questions = exam.questions || [];
-
     if (questions.length === 0) {
       showToast('Ujian ini belum memiliki soal untuk diekspor.', 'warning');
       return;
     }
 
-    const headers = [
-      'type',
-      'question',
-      'gambar_soal',
-      'score',
-      'option_a',
-      'gambar_a',
-      'option_b',
-      'gambar_b',
-      'option_c',
-      'gambar_c',
-      'option_d',
-      'gambar_d',
-      'option_e',
-      'gambar_e',
-      'correct_key',
-    ];
-
-    const allImagesToExport = []; // Array of { url: string, filename: string }
+    const cleanTitle = (examTitle || 'Soal_Ujian').replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const dateStr = new Date().toISOString().slice(0, 10);
     const usedFilenames = new Set();
 
-    const getCleanFilename = (originalSrc, defaultPrefix) => {
-      let ext = 'png';
-      let originalName = '';
-      try {
-        const cleanPath = originalSrc.split('?')[0].split('#')[0];
-        const parts = cleanPath.split('/');
-        originalName = parts[parts.length - 1];
-        const match = originalName.match(/\.([a-zA-Z0-9]+)$/);
-        if (match) ext = match[1].toLowerCase();
-      } catch (e) {}
-
-      let baseName = originalName || `${defaultPrefix}.${ext}`;
-      let candidate = baseName;
+    const getUniqueFilename = (baseCandidate, ext) => {
+      let candidate = `${baseCandidate}.${ext}`;
       let counter = 1;
-      while (usedFilenames.has(candidate)) {
-        const dotIdx = baseName.lastIndexOf('.');
-        const namePart = dotIdx > 0 ? baseName.substring(0, dotIdx) : baseName;
-        candidate = `${namePart}_${counter}.${ext}`;
+      while (usedFilenames.has(candidate.toLowerCase())) {
+        candidate = `${baseCandidate}_${counter}.${ext}`;
         counter++;
       }
-      usedFilenames.add(candidate);
+      usedFilenames.add(candidate.toLowerCase());
       return candidate;
     };
 
-    const extractTextAndImages = (htmlStr, defaultPrefix) => {
-      if (!htmlStr) return { text: '', imageName: '' };
+    // Helper: Parse HTML string and extract text + image info
+    const parseHtmlCell = (htmlStr, defaultPrefix) => {
+      if (!htmlStr) return { text: '', image: null };
       const div = document.createElement('div');
       div.innerHTML = htmlStr;
 
-      let imageName = '';
+      let image = null;
       const img = div.querySelector('img');
       if (img) {
-        const src = img.getAttribute('src');
+        const src = img.getAttribute('src') || '';
         if (src) {
-          imageName = getCleanFilename(src, defaultPrefix);
-          allImagesToExport.push({ url: src, filename: imageName });
+          if (src.startsWith('data:image/')) {
+            const mimeMatch = src.match(/^data:image\/([a-zA-Z0-9+]+);base64,/i);
+            let rawExt = (mimeMatch ? mimeMatch[1] : 'png').toLowerCase();
+            let ext = 'png';
+            if (rawExt === 'jpeg' || rawExt === 'jpg') ext = 'jpeg';
+            else if (rawExt === 'png') ext = 'png';
+            else if (rawExt === 'gif') ext = 'gif';
+            else ext = 'png';
+
+            const filename = getUniqueFilename(defaultPrefix, ext === 'jpeg' ? 'jpg' : ext);
+            image = {
+              src,
+              isBase64: true,
+              ext,
+              filename,
+            };
+          } else {
+            // URL format (e.g. /uploads/cbt/... or http...)
+            let ext = 'png';
+            let originalName = '';
+            try {
+              const cleanPath = src.split('?')[0].split('#')[0];
+              const parts = cleanPath.split('/');
+              originalName = parts[parts.length - 1] || '';
+              const m = originalName.match(/\.([a-zA-Z0-9]+)$/);
+              if (m) {
+                const rawExt = m[1].toLowerCase();
+                ext = (rawExt === 'jpg' || rawExt === 'jpeg') ? 'jpeg' : rawExt;
+              }
+            } catch (e) {}
+
+            const baseCandidate = originalName ? originalName.replace(/\.[^.]+$/, '') : defaultPrefix;
+            const filename = getUniqueFilename(baseCandidate, ext === 'jpeg' ? 'jpg' : ext);
+            image = {
+              src,
+              isBase64: false,
+              ext,
+              filename,
+            };
+          }
         }
         img.remove();
       }
 
       const text = div.innerText.trim();
-      return { text, imageName };
+      return { text, image };
     };
 
-    const rows = questions.map((q, idx) => {
+    // 1. Kumpulkan semua butir soal dan gambar
+    const parsedQuestions = [];
+    const allImagesList = [];
+
+    questions.forEach((q, idx) => {
       const qNum = idx + 1;
-      const qParsed = extractTextAndImages(q.question, `soal_${qNum}`);
+      const qParsed = parseHtmlCell(q.question, `soal_${qNum}`);
+      if (qParsed.image) allImagesList.push(qParsed.image);
+
       const score = Number(q.score) || 5;
       const opts = (q.options || []).sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0));
 
-      let optA = '', imgA = '';
-      let optB = '', imgB = '';
-      let optC = '', imgC = '';
-      let optD = '', imgD = '';
-      let optE = '', imgE = '';
+      let optA = '', imgA = null;
+      let optB = '', imgB = null;
+      let optC = '', imgC = null;
+      let optD = '', imgD = null;
+      let optE = '', imgE = null;
       let correctKey = '';
 
       if (q.type === 'MULTIPLE_CHOICE') {
-        const pA = extractTextAndImages(opts[0]?.content, `soal_${qNum}_opt_a`);
-        optA = pA.text; imgA = pA.imageName;
-
-        const pB = extractTextAndImages(opts[1]?.content, `soal_${qNum}_opt_b`);
-        optB = pB.text; imgB = pB.imageName;
-
-        const pC = extractTextAndImages(opts[2]?.content, `soal_${qNum}_opt_c`);
-        optC = pC.text; imgC = pC.imageName;
-
-        const pD = extractTextAndImages(opts[3]?.content, `soal_${qNum}_opt_d`);
-        optD = pD.text; imgD = pD.imageName;
-
-        const pE = extractTextAndImages(opts[4]?.content, `soal_${qNum}_opt_e`);
-        optE = pE.text; imgE = pE.imageName;
+        if (opts[0]) { const p = parseHtmlCell(opts[0].content, `soal_${qNum}_a`); optA = p.text; imgA = p.image; if (imgA) allImagesList.push(imgA); }
+        if (opts[1]) { const p = parseHtmlCell(opts[1].content, `soal_${qNum}_b`); optB = p.text; imgB = p.image; if (imgB) allImagesList.push(imgB); }
+        if (opts[2]) { const p = parseHtmlCell(opts[2].content, `soal_${qNum}_c`); optC = p.text; imgC = p.image; if (imgC) allImagesList.push(imgC); }
+        if (opts[3]) { const p = parseHtmlCell(opts[3].content, `soal_${qNum}_d`); optD = p.text; imgD = p.image; if (imgD) allImagesList.push(imgD); }
+        if (opts[4]) { const p = parseHtmlCell(opts[4].content, `soal_${qNum}_e`); optE = p.text; imgE = p.image; if (imgE) allImagesList.push(imgE); }
 
         const correctIdx = opts.findIndex(o => o.isCorrect);
         if (correctIdx >= 0) correctKey = String.fromCharCode(65 + correctIdx);
       }
 
-      return [
-        q.type,
-        qParsed.text,
-        qParsed.imageName,
+      parsedQuestions.push({
+        type: q.type,
+        question: qParsed.text,
+        imgSoal: qParsed.image,
         score,
-        optA,
-        imgA,
-        optB,
-        imgB,
-        optC,
-        imgC,
-        optD,
-        imgD,
-        optE,
-        imgE,
+        optA, imgA,
+        optB, imgB,
+        optC, imgC,
+        optD, imgD,
+        optE, imgE,
         correctKey,
-      ];
+      });
     });
 
-    const wb = _buildExcelWorkbook(headers, rows, 'Soal CBT');
-    const cleanTitle = (examTitle || 'Soal_Ujian').replace(/[^a-zA-Z0-9_\-]/g, '_');
-    const dateStr = new Date().toISOString().slice(0, 10);
+    // 2. Unduh dan konversi gambar yang diperlukan
+    if (allImagesList.length > 0) {
+      showToast(`Memproses ${allImagesList.length} gambar soal...`, 'info');
+      for (const imgItem of allImagesList) {
+        if (imgItem.isBase64) {
+          imgItem.uint8 = _base64ToUint8Array(imgItem.src);
+        } else {
+          try {
+            const fetchUrl = imgItem.src.startsWith('http')
+              ? imgItem.src
+              : (window.location.origin + (imgItem.src.startsWith('/') ? '' : '/') + imgItem.src);
+            const resp = await fetch(fetchUrl);
+            if (resp.ok) {
+              imgItem.arrayBuffer = await resp.arrayBuffer();
+            }
+          } catch (e) {
+            console.warn('Gagal fetch image:', imgItem.src, e);
+          }
+        }
+      }
+    }
 
-    // If there are images and JSZip is available, bundle into ZIP with images folder!
-    if (allImagesToExport.length > 0 && typeof window.JSZip !== 'undefined') {
-      showToast(`Mengemas ${questions.length} butir soal dan ${allImagesToExport.length} berkas gambar ke ZIP...`, 'info');
+    // 3. Bangun Excel menggunakan ExcelJS (gambar tertanam di dalam sel)
+    const ExcelJS = window.ExcelJS;
+    let xlsxBuffer = null;
+
+    if (ExcelJS) {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = 'PSB Maskumambang';
+      wb.created = new Date();
+
+      const ws = wb.addWorksheet('Soal CBT', { views: [{ showGridLines: true }] });
+
+      ws.columns = [
+        { header: 'type', key: 'type', width: 18 },
+        { header: 'question', key: 'question', width: 45 },
+        { header: 'gambar_soal', key: 'gambar_soal', width: 22 },
+        { header: 'score', key: 'score', width: 8 },
+        { header: 'option_a', key: 'option_a', width: 25 },
+        { header: 'gambar_a', key: 'gambar_a', width: 20 },
+        { header: 'option_b', key: 'option_b', width: 25 },
+        { header: 'gambar_b', key: 'gambar_b', width: 20 },
+        { header: 'option_c', key: 'option_c', width: 25 },
+        { header: 'gambar_c', key: 'gambar_c', width: 20 },
+        { header: 'option_d', key: 'option_d', width: 25 },
+        { header: 'gambar_d', key: 'gambar_d', width: 20 },
+        { header: 'option_e', key: 'option_e', width: 25 },
+        { header: 'gambar_e', key: 'gambar_e', width: 20 },
+        { header: 'correct_key', key: 'correct_key', width: 14 },
+      ];
+
+      // Style Header (Baris 1)
+      const headerRow = ws.getRow(1);
+      headerRow.height = 28;
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Arial' };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E293B' },
+      };
+      headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Helper untuk embed gambar ke sel ExcelJS
+      const embedImageToCell = (imgObj, colIdx, rowNum) => {
+        if (!imgObj) return;
+        try {
+          let validExt = imgObj.ext;
+          if (validExt !== 'png' && validExt !== 'jpeg' && validExt !== 'gif') {
+            validExt = 'png';
+          }
+          let imgId = null;
+          if (imgObj.isBase64) {
+            imgId = wb.addImage({
+              base64: imgObj.src,
+              extension: validExt,
+            });
+          } else if (imgObj.arrayBuffer) {
+            imgId = wb.addImage({
+              buffer: imgObj.arrayBuffer,
+              extension: validExt,
+            });
+          }
+
+          if (imgId !== null) {
+            ws.addImage(imgId, {
+              tl: { col: colIdx + 0.08, row: rowNum - 1 + 0.08 },
+              ext: { width: 90, height: 58 },
+              editAs: 'oneCell',
+            });
+          }
+        } catch (embErr) {
+          console.warn('Gagal menempelkan gambar ke sel Excel:', imgObj.filename, embErr);
+        }
+      };
+
+      // Tambahkan data baris per soal
+      parsedQuestions.forEach(p => {
+        const hasRowImg = Boolean(p.imgSoal || p.imgA || p.imgB || p.imgC || p.imgD || p.imgE);
+        const row = ws.addRow({
+          type: p.type,
+          question: p.question,
+          gambar_soal: p.imgSoal ? p.imgSoal.filename : '',
+          score: p.score,
+          option_a: p.optA,
+          gambar_a: p.imgA ? p.imgA.filename : '',
+          option_b: p.optB,
+          gambar_b: p.imgB ? p.imgB.filename : '',
+          option_c: p.optC,
+          gambar_c: p.imgC ? p.imgC.filename : '',
+          option_d: p.optD,
+          gambar_d: p.imgD ? p.imgD.filename : '',
+          option_e: p.optE,
+          gambar_e: p.imgE ? p.imgE.filename : '',
+          correct_key: p.correctKey,
+        });
+
+        row.height = hasRowImg ? 70 : 26;
+        row.alignment = { vertical: 'middle', wrapText: true };
+        row.getCell('type').alignment = { vertical: 'middle', horizontal: 'center' };
+        row.getCell('score').alignment = { vertical: 'middle', horizontal: 'center' };
+        row.getCell('correct_key').alignment = { vertical: 'middle', horizontal: 'center' };
+
+        // Formatting kolom gambar (nama file di bawah gambar)
+        ['gambar_soal', 'gambar_a', 'gambar_b', 'gambar_c', 'gambar_d', 'gambar_e'].forEach(colKey => {
+          const cell = row.getCell(colKey);
+          cell.alignment = { vertical: 'bottom', horizontal: 'center' };
+          cell.font = { size: 8, color: { argb: 'FF64748B' } };
+        });
+
+        // Tempelkan gambar ke sel yang sesuai (0-indexed col: gambar_soal = 2, gambar_a = 5, dst)
+        embedImageToCell(p.imgSoal, 2, row.number);
+        embedImageToCell(p.imgA, 5, row.number);
+        embedImageToCell(p.imgB, 7, row.number);
+        embedImageToCell(p.imgC, 9, row.number);
+        embedImageToCell(p.imgD, 11, row.number);
+        embedImageToCell(p.imgE, 13, row.number);
+      });
+
+      // Tambahkan sheet Panduan
+      const wsGuide = wb.addWorksheet('Panduan');
+      wsGuide.columns = [
+        { header: 'Kolom', key: 'col', width: 18 },
+        { header: 'Keterangan', key: 'desc', width: 65 },
+        { header: 'Contoh Nilai', key: 'sample', width: 30 },
+      ];
+      const guideHead = wsGuide.getRow(1);
+      guideHead.height = 24;
+      guideHead.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
+      guideHead.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+
+      const guides = [
+        ['type', 'Jenis soal: MULTIPLE_CHOICE (Pilihan Ganda) atau ESSAY (Esai).', 'MULTIPLE_CHOICE'],
+        ['question', 'Teks pertanyaan butir soal.', 'Perhatikan gambar berikut!'],
+        ['gambar_soal', 'Nama file gambar soal (gambar juga tertanam langsung di sel).', 'soal_1.png'],
+        ['score', 'Nilai/bobot butir soal.', '5'],
+        ['option_a', 'Teks pilihan jawaban A.', 'Opsi A'],
+        ['gambar_a', 'Nama file gambar untuk opsi A (opsional).', 'soal_1_a.png'],
+        ['option_b', 'Teks pilihan jawaban B.', 'Opsi B'],
+        ['gambar_b', 'Nama file gambar untuk opsi B (opsional).', 'soal_1_b.png'],
+        ['option_c', 'Teks pilihan jawaban C.', 'Opsi C'],
+        ['gambar_c', 'Nama file gambar untuk opsi C (opsional).', ''],
+        ['option_d', 'Teks pilihan jawaban D.', 'Opsi D'],
+        ['gambar_d', 'Nama file gambar untuk opsi D (opsional).', ''],
+        ['option_e', 'Teks pilihan jawaban E.', 'Opsi E'],
+        ['gambar_e', 'Nama file gambar untuk opsi E (opsional).', ''],
+        ['correct_key', 'Kunci jawaban benar (A, B, C, D, atau E).', 'A'],
+      ];
+      guides.forEach(g => {
+        const r = wsGuide.addRow({ col: g[0], desc: g[1], sample: g[2] });
+        r.alignment = { vertical: 'middle', wrapText: true };
+      });
+
+      xlsxBuffer = await wb.xlsx.writeBuffer();
+    } else {
+      // Fallback jika ExcelJS tidak ada: gunakan SheetJS
+      const XLSX = window.XLSX;
+      const headers = ['type', 'question', 'gambar_soal', 'score', 'option_a', 'gambar_a', 'option_b', 'gambar_b', 'option_c', 'gambar_c', 'option_d', 'gambar_d', 'option_e', 'gambar_e', 'correct_key'];
+      const rows = parsedQuestions.map(p => [
+        p.type, p.question, p.imgSoal ? p.imgSoal.filename : '', p.score,
+        p.optA, p.imgA ? p.imgA.filename : '',
+        p.optB, p.imgB ? p.imgB.filename : '',
+        p.optC, p.imgC ? p.imgC.filename : '',
+        p.optD, p.imgD ? p.imgD.filename : '',
+        p.optE, p.imgE ? p.imgE.filename : '',
+        p.correctKey,
+      ]);
+      const wbFallback = _buildExcelWorkbook(headers, rows, 'Soal CBT');
+      xlsxBuffer = XLSX.write(wbFallback, { bookType: 'xlsx', type: 'array' });
+    }
+
+    // 4. Pengemasan ZIP (Option C: File Excel bergambar di sel + Folder gambar/ di ZIP)
+    if (allImagesList.length > 0 && typeof window.JSZip !== 'undefined') {
+      showToast(`Mengemas ${questions.length} soal dan ${allImagesList.length} gambar ke file ZIP...`, 'info');
       const zip = new window.JSZip();
 
-      const wbArray = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      zip.file(`soal_${cleanTitle}.xlsx`, wbArray);
+      // Masukkan file Excel (dengan gambar tertanam di dalamnya)
+      zip.file(`soal_${cleanTitle}.xlsx`, xlsxBuffer);
 
+      // Masukkan folder gambar/ berisi file fisik foto untuk backup/re-import
       const imgFolder = zip.folder('gambar');
-      for (const item of allImagesToExport) {
-        try {
-          const fetchUrl = item.url.startsWith('http')
-            ? item.url
-            : (window.location.origin + (item.url.startsWith('/') ? '' : '/') + item.url);
-          const response = await fetch(fetchUrl);
-          if (response.ok) {
-            const blob = await response.blob();
-            imgFolder.file(item.filename, blob);
-          }
-        } catch (fetchErr) {
-          console.warn('Gagal mengunduh gambar untuk diekspor:', item.url, fetchErr);
+      for (const item of allImagesList) {
+        if (item.uint8) {
+          imgFolder.file(item.filename, item.uint8);
+        } else if (item.arrayBuffer) {
+          imgFolder.file(item.filename, item.arrayBuffer);
         }
       }
 
@@ -2505,11 +2703,20 @@ async function exportQuestionsToExcel(target, examTitle) {
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
 
-      showToast(`Berhasil mengekspor ${questions.length} soal dan ${allImagesToExport.length} gambar ke file ZIP!`, 'success');
+      showToast(`Berhasil mengekspor ${questions.length} butir soal dan ${allImagesList.length} gambar ke file ZIP!`, 'success');
     } else {
-      // Plain Excel export
-      XLSX.writeFile(wb, `soal_${cleanTitle}_${dateStr}.xlsx`);
-      showToast(`Berhasil mengekspor ${questions.length} soal ke Excel!`, 'success');
+      // Tidak ada gambar atau tanpa ZIP: langsung unduh file .xlsx
+      const xlsxBlob = new Blob([xlsxBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const downloadUrl = URL.createObjectURL(xlsxBlob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `soal_${cleanTitle}_${dateStr}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+
+      showToast(`Berhasil mengekspor ${questions.length} butir soal ke Excel!`, 'success');
     }
   } catch (err) {
     showToast(err.message || 'Gagal mengekspor soal.', 'danger');
