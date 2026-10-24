@@ -1691,45 +1691,52 @@ async function renderCbtResultsView() {
           </div>
         </div>
 
-        <!-- Filter Bar -->
-        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 18px 22px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 1.5fr; gap: 12px; align-items: flex-end;">
+        <!-- Filter & Action Toolbar (Compact & Sleek) -->
+        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 16px; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
             
-            <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; display: block;">Sekolah</label>
-              <select id="res-filter-school" class="form-select" onchange="loadCbtResultsTable()" style="width: 100%; padding: 8px 10px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                <option value="">Semua Sekolah</option>
-                ${structure.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-              </select>
-            </div>
-
-            <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; display: block;">Status Ujian</label>
-              <select id="res-filter-attempt-status" class="form-select" onchange="loadCbtResultsTable()" style="width: 100%; padding: 8px 10px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                <option value="">Semua Status</option>
-                <option value="NOT_STARTED">Belum Mulai</option>
-                <option value="IN_PROGRESS">Sedang Ujian</option>
-                <option value="COMPLETED">Selesai</option>
-                <option value="EXPIRED">Waktu Habis</option>
-              </select>
-            </div>
-
-            <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; display: block;">Status Penilaian</label>
-              <select id="res-filter-grading-status" class="form-select" onchange="loadCbtResultsTable()" style="width: 100%; padding: 8px 10px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                <option value="">Semua</option>
-                <option value="NEEDS_ESSAY_GRADING">Perlu Penilaian Essay</option>
-                <option value="GRADED">Sudah Dinilai</option>
-                <option value="UNGRADED">Belum Dinilai</option>
-              </select>
-            </div>
-
-            <div class="form-group" style="margin: 0;">
-              <label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; display: block;">Cari Santri / No. Pendaftaran</label>
-              <div style="position: relative;">
-                <input type="text" id="res-filter-search" class="form-control" placeholder="Ketik nama atau no. daftar..." onkeyup="if(event.key==='Enter') loadCbtResultsTable()" style="width: 100%; padding: 8px 34px 8px 12px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-                <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); cursor: pointer;" onclick="loadCbtResultsTable()"></i>
+            <!-- Left: Dropdown Filters -->
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <label for="res-filter-school" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Sekolah:</label>
+                <select id="res-filter-school" class="form-select" onchange="loadCbtResultsTable()" style="width: 155px; padding: 6px 8px; font-size: 0.82rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">Semua Sekolah</option>
+                  ${structure.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}
+                </select>
               </div>
+
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <label for="res-filter-attempt-status" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Status Ujian:</label>
+                <select id="res-filter-attempt-status" class="form-select" onchange="loadCbtResultsTable()" style="width: 135px; padding: 6px 8px; font-size: 0.82rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">Semua Status</option>
+                  <option value="NOT_STARTED">Belum Mulai</option>
+                  <option value="IN_PROGRESS">Sedang Ujian</option>
+                  <option value="COMPLETED">Selesai</option>
+                  <option value="EXPIRED">Waktu Habis</option>
+                </select>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <label for="res-filter-grading-status" style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Penilaian:</label>
+                <select id="res-filter-grading-status" class="form-select" onchange="loadCbtResultsTable()" style="width: 145px; padding: 6px 8px; font-size: 0.82rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                  <option value="">Semua</option>
+                  <option value="NEEDS_ESSAY_GRADING">Perlu Nilai Essay</option>
+                  <option value="GRADED">Sudah Dinilai</option>
+                  <option value="UNGRADED">Belum Dinilai</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Right: Search Input & Rekap Excel Button -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-grow: 1; justify-content: flex-end; min-width: 250px;">
+              <div style="position: relative; max-width: 220px; width: 100%;">
+                <input type="text" id="res-filter-search" class="form-control" placeholder="Cari santri / no. daftar..." onkeyup="if(event.key==='Enter') loadCbtResultsTable()" style="width: 100%; padding: 6px 28px 6px 10px; font-size: 0.82rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); cursor: pointer; font-size: 0.75rem;" onclick="loadCbtResultsTable()"></i>
+              </div>
+
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="exportCbtResultsSummaryExcel()" title="Export Rekap Nilai Seluruh Siswa ke Excel" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 0.8rem; white-space: nowrap; font-weight: 700;">
+                <i class="fa-solid fa-file-excel"></i> Rekap Excel
+              </button>
             </div>
 
           </div>
@@ -1772,6 +1779,7 @@ async function loadCbtResultsTable() {
     if (!res.success || !res.data) throw new Error(res.message || 'Gagal memuat data hasil ujian.');
 
     const data = res.data;
+    window.cbtResultsData = data;
 
     slot.innerHTML = `
       <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-sm);">
@@ -1854,6 +1862,9 @@ async function loadCbtResultsTable() {
                       <td style="padding: 10px 8px; text-align: right; white-space: nowrap;">
                         ${att ? `
                           <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-xs btn-outline-success" onclick="exportSingleStudentCbtExcel('${att.id}', this)" title="Unduh Lembar Evaluasi Excel Siswa Ini">
+                              <i class="fa-solid fa-file-excel"></i> Excel
+                            </button>
                             <button type="button" class="btn btn-xs btn-outline-primary" onclick="openCbtResultDetailModal('${att.id}')" title="Buka Detail & Penilaian">
                               <i class="fa-solid fa-eye"></i> Detail
                             </button>
@@ -1928,10 +1939,15 @@ async function openCbtResultDetailModal(attemptId) {
       <!-- Form for Essay Grading -->
       <form onsubmit="handleSaveEssayGrading(event, '${attempt.id}')">
         
-        <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-heading); margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-list-ol" style="color: var(--primary-600);"></i>
-          Rincian Jawaban Soal (${questions.length})
-        </h4>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+          <h4 style="font-size: 1rem; font-weight: 800; color: var(--text-heading); margin: 0; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-list-ol" style="color: var(--primary-600);"></i>
+            Rincian Jawaban Soal (${questions.length})
+          </h4>
+          <button type="button" class="btn btn-sm btn-outline-success" onclick="exportSingleStudentCbtExcel('${attempt.id}', this)" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+            <i class="fa-solid fa-file-excel"></i> Unduh Lembar Evaluasi (Excel)
+          </button>
+        </div>
 
         <div style="display: flex; flex-direction: column; gap: 16px; max-height: 480px; overflow-y: auto; padding-right: 6px; margin-bottom: 20px;">
           ${questions.map((q, idx) => {
@@ -2071,6 +2087,391 @@ async function handleSaveEssayGrading(e, attemptId) {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan Penilaian Essay';
+  }
+}
+
+/**
+ * Helper: Bersihkan tag HTML dari string untuk teks Excel
+ */
+function _stripHtml(htmlStr) {
+  if (!htmlStr) return '';
+  const div = document.createElement('div');
+  div.innerHTML = htmlStr;
+  return (div.innerText || div.textContent || '').trim();
+}
+
+/**
+ * Ekspor Lembar Evaluasi & Hasil Ujian CBT per Santri ke file Excel (.xlsx)
+ */
+async function exportSingleStudentCbtExcel(attemptId, btnEl) {
+  const originalBtnHtml = btnEl ? btnEl.innerHTML : '';
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  }
+
+  try {
+    const res = await apiRequest(`/api/cbt/admin/results/${attemptId}`);
+    if (!res.success || !res.data) throw new Error(res.message || 'Gagal mengambil data detail hasil ujian.');
+
+    const d = res.data;
+    const { attempt, candidate, questions, examTitle } = d;
+
+    const ExcelJS = window.ExcelJS;
+    if (!ExcelJS) throw new Error('Library ExcelJS belum termuat. Coba refresh halaman.');
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'PSB Maskumambang';
+    wb.created = new Date();
+
+    const ws = wb.addWorksheet('Evaluasi Siswa', { views: [{ showGridLines: true }] });
+
+    // Set columns
+    ws.columns = [
+      { key: 'colA', width: 6 },
+      { key: 'colB', width: 16 },
+      { key: 'colC', width: 45 },
+      { key: 'colD', width: 28 },
+      { key: 'colE', width: 32 },
+      { key: 'colF', width: 14 },
+      { key: 'colG', width: 14 },
+      { key: 'colH', width: 12 },
+      { key: 'colI', width: 26 },
+    ];
+
+    // Row 1: Title
+    ws.mergeCells('A1:I1');
+    const r1 = ws.getCell('A1');
+    r1.value = 'LEMBAR EVALUASI & HASIL UJIAN CBT SANTRI';
+    r1.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FF1E293B' } };
+    r1.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 26;
+
+    // Row 2: Subtitle
+    ws.mergeCells('A2:I2');
+    const r2 = ws.getCell('A2');
+    r2.value = 'Penerimaan Santri Baru (PSB) Pondok Pesantren Maskumambang';
+    r2.font = { name: 'Arial', size: 10, italic: true, color: { argb: 'FF64748B' } };
+    r2.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 18;
+
+    // Row 3: Spacer
+    ws.getRow(3).height = 8;
+
+    // Row 4-7: Metadata Info Block
+    const startedStr = attempt.startedAt ? new Date(attempt.startedAt).toLocaleString('id-ID') : '-';
+    const completedStr = attempt.completedAt ? new Date(attempt.completedAt).toLocaleString('id-ID') : '-';
+
+    const metaRows = [
+      ['Nama Santri', candidate.name, 'Ujian CBT', examTitle || 'Ujian Masuk CBT'],
+      ['No. Pendaftaran', candidate.registrationNumber, 'Waktu Mulai', startedStr],
+      ['Lembaga / Sekolah', candidate.schoolName, 'Waktu Selesai', completedStr],
+      ['Program / Jurusan', `${candidate.classProgramName} (${candidate.majorName})`, 'Status Ujian', attempt.status],
+    ];
+
+    metaRows.forEach((m, idx) => {
+      const rowNum = 4 + idx;
+      ws.getCell(`A${rowNum}`).value = m[0];
+      ws.getCell(`A${rowNum}`).font = { bold: true, size: 9, color: { argb: 'FF334155' } };
+      ws.mergeCells(`B${rowNum}:D${rowNum}`);
+      ws.getCell(`B${rowNum}`).value = m[1];
+      ws.getCell(`B${rowNum}`).font = { size: 9, bold: m[0] === 'Nama Santri' };
+
+      ws.getCell(`E${rowNum}`).value = m[2];
+      ws.getCell(`E${rowNum}`).font = { bold: true, size: 9, color: { argb: 'FF334155' } };
+      ws.mergeCells(`F${rowNum}:I${rowNum}`);
+      ws.getCell(`F${rowNum}`).value = m[3];
+      ws.getCell(`F${rowNum}`).font = { size: 9, bold: m[2] === 'Status Ujian' };
+      ws.getRow(rowNum).height = 20;
+    });
+
+    // Row 8: Score Banner Summary
+    ws.getRow(8).height = 26;
+    ws.mergeCells('A8:I8');
+    const scoreCell = ws.getCell('A8');
+    scoreCell.value = `HASIL NILAI:  Pilihan Ganda = ${attempt.multipleChoiceScore}   |   Essay = ${attempt.essayScore}   |   TOTAL NILAI AKHIR = ${attempt.totalScore}`;
+    scoreCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+    scoreCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } }; // Teal 700
+    scoreCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // Row 9: Spacer
+    ws.getRow(9).height = 10;
+
+    // Row 10: Table Headers
+    const tableHeaderRow = ws.getRow(10);
+    tableHeaderRow.height = 24;
+    const tableHeaders = ['No', 'Tipe Soal', 'Pertanyaan Butir Soal', 'Kunci Jawaban Benar', 'Jawaban Santri', 'Status', 'Skor Diperoleh', 'Skor Maks', 'Catatan / Evaluasi'];
+    tableHeaders.forEach((h, hIdx) => {
+      const cell = tableHeaderRow.getCell(hIdx + 1);
+      cell.value = h;
+      cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } }; // Slate 800
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF94A3B8' } },
+        bottom: { style: 'thin', color: { argb: 'FF94A3B8' } },
+        left: { style: 'thin', color: { argb: 'FF94A3B8' } },
+        right: { style: 'thin', color: { argb: 'FF94A3B8' } },
+      };
+    });
+
+    // Populate Questions
+    let startDataRow = 11;
+    let totalMaxScore = 0;
+    let totalAwardedScore = 0;
+
+    questions.forEach((q, idx) => {
+      const rowNum = startDataRow + idx;
+      const row = ws.getRow(rowNum);
+      const isMC = q.type === 'MULTIPLE_CHOICE';
+      const ans = q.answer;
+
+      const qOrder = q.questionOrder || (idx + 1);
+      const qTypeText = isMC ? 'Pilihan Ganda' : 'Essay';
+      const qText = _stripHtml(q.questionText);
+      const maxScore = Number(q.maxScore) || 0;
+      totalMaxScore += maxScore;
+
+      let kunciJawaban = '-';
+      let jawabanSantri = '(Tidak Dijawab)';
+      let statusText = 'KOSONG';
+      let statusFg = 'FF64748B';
+      let statusBg = 'FFF1F5F9';
+      let skorDiperoleh = 0;
+      let catatan = '-';
+
+      if (isMC) {
+        const correctOpt = (q.options || []).find(o => o.isCorrect);
+        kunciJawaban = correctOpt ? _stripHtml(correctOpt.content) : '-';
+
+        if (ans && ans.selectedOptionContent) {
+          jawabanSantri = _stripHtml(ans.selectedOptionContent);
+          if (ans.isCorrect) {
+            statusText = 'BENAR';
+            statusFg = 'FF166534'; // Green 800
+            statusBg = 'FFDCFCE7'; // Green 100
+            skorDiperoleh = Number(ans.score) || maxScore;
+          } else {
+            statusText = 'SALAH';
+            statusFg = 'FF991B1B'; // Red 800
+            statusBg = 'FFFEE2E2'; // Red 100
+            skorDiperoleh = 0;
+          }
+        }
+      } else {
+        // Essay
+        kunciJawaban = '- (Evaluasi Penguji)';
+        if (ans && ans.essayAnswer) {
+          jawabanSantri = ans.essayAnswer;
+          skorDiperoleh = Number(ans.score) || 0;
+          if (skorDiperoleh > 0) {
+            statusText = 'DINILAI';
+            statusFg = 'FF1E40AF'; // Blue 800
+            statusBg = 'FFDBEAFE'; // Blue 100
+          } else {
+            statusText = 'BELUM DINILAI';
+            statusFg = 'FF854D0E'; // Yellow 800
+            statusBg = 'FFFEF9C3'; // Yellow 100
+          }
+          if (ans.essayFeedback) catatan = ans.essayFeedback;
+        }
+      }
+
+      totalAwardedScore += skorDiperoleh;
+
+      row.getCell(1).value = qOrder;
+      row.getCell(2).value = qTypeText;
+      row.getCell(3).value = qText;
+      row.getCell(4).value = kunciJawaban;
+      row.getCell(5).value = jawabanSantri;
+
+      const cellStatus = row.getCell(6);
+      cellStatus.value = statusText;
+      cellStatus.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: statusBg } };
+      cellStatus.font = { name: 'Arial', size: 9, bold: true, color: { argb: statusFg } };
+
+      row.getCell(7).value = skorDiperoleh;
+      row.getCell(8).value = maxScore;
+      row.getCell(9).value = catatan;
+
+      // Alignments & borders
+      row.alignment = { vertical: 'middle', wrapText: true };
+      row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(2).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(6).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(7).alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell(8).alignment = { vertical: 'middle', horizontal: 'center' };
+
+      for (let c = 1; c <= 9; c++) {
+        row.getCell(c).border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+      }
+    });
+
+    // Summary Total Row
+    const summaryRowNum = startDataRow + questions.length;
+    const summaryRow = ws.getRow(summaryRowNum);
+    summaryRow.height = 24;
+    ws.mergeCells(`A${summaryRowNum}:F${summaryRowNum}`);
+    const sumLabel = summaryRow.getCell(1);
+    sumLabel.value = 'TOTAL SKOR KESELURUHAN';
+    sumLabel.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF1E293B' } };
+    sumLabel.alignment = { vertical: 'middle', horizontal: 'right' };
+
+    summaryRow.getCell(7).value = attempt.totalScore ?? totalAwardedScore;
+    summaryRow.getCell(7).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF166534' } };
+    summaryRow.getCell(7).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    summaryRow.getCell(8).value = totalMaxScore;
+    summaryRow.getCell(8).font = { name: 'Arial', size: 10, bold: true };
+    summaryRow.getCell(8).alignment = { vertical: 'middle', horizontal: 'center' };
+
+    for (let c = 1; c <= 9; c++) {
+      summaryRow.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      summaryRow.getCell(c).border = {
+        top: { style: 'medium', color: { argb: 'FF94A3B8' } },
+        bottom: { style: 'medium', color: { argb: 'FF94A3B8' } },
+        left: { style: 'thin', color: { argb: 'FF94A3B8' } },
+        right: { style: 'thin', color: { argb: 'FF94A3B8' } },
+      };
+    }
+
+    const xlsxBuffer = await wb.xlsx.writeBuffer();
+    const cleanName = (candidate.name || 'Santri').replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const cleanReg = (candidate.registrationNumber || 'PSB').replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const filename = `Evaluasi_CBT_${cleanName}_${cleanReg}.xlsx`;
+
+    const blob = new Blob([xlsxBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+
+    showToast(`Berhasil mengekspor lembar evaluasi CBT untuk ${candidate.name}!`, 'success');
+
+  } catch (err) {
+    showToast('Gagal mengekspor lembar evaluasi: ' + (err.message || err), 'danger');
+  } finally {
+    if (btnEl) {
+      btnEl.disabled = false;
+      btnEl.innerHTML = originalBtnHtml;
+    }
+  }
+}
+
+/**
+ * Ekspor Rekap Hasil Ujian CBT seluruh siswa yang sedang tampil ke file Excel
+ */
+async function exportCbtResultsSummaryExcel() {
+  const data = window.cbtResultsData;
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    showToast('Tidak ada data hasil ujian yang dapat diekspor.', 'warning');
+    return;
+  }
+
+  try {
+    const ExcelJS = window.ExcelJS;
+    if (!ExcelJS) throw new Error('Library ExcelJS belum termuat. Coba refresh halaman.');
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'PSB Maskumambang';
+    wb.created = new Date();
+
+    const ws = wb.addWorksheet('Rekap Hasil CBT', { views: [{ showGridLines: true }] });
+
+    ws.columns = [
+      { header: 'No', key: 'no', width: 6 },
+      { header: 'No. Pendaftaran', key: 'regNo', width: 18 },
+      { header: 'Nama Lengkap Santri', key: 'name', width: 30 },
+      { header: 'Lembaga / Sekolah', key: 'school', width: 22 },
+      { header: 'Program Kelas', key: 'classProgram', width: 22 },
+      { header: 'Status Ujian', key: 'status', width: 16 },
+      { header: 'Nilai PG', key: 'mcScore', width: 12 },
+      { header: 'Nilai Essay', key: 'essayScore', width: 12 },
+      { header: 'Total Nilai', key: 'totalScore', width: 14 },
+      { header: 'Status Penilaian', key: 'gradingStatus', width: 18 },
+    ];
+
+    // Style Header
+    const head = ws.getRow(1);
+    head.height = 26;
+    head.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+    head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+    head.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    data.forEach((row, idx) => {
+      const att = row.attempt;
+      let statusStr = 'Belum Mulai';
+      if (att) {
+        if (att.status === 'IN_PROGRESS') statusStr = 'Sedang Ujian';
+        else if (att.status === 'COMPLETED') statusStr = 'Selesai';
+        else if (att.status === 'EXPIRED') statusStr = 'Waktu Habis';
+      }
+
+      let gradingStr = '-';
+      if (att && (att.status === 'COMPLETED' || att.status === 'EXPIRED')) {
+        if (att.gradingStatus === 'GRADED') gradingStr = 'Sudah Dinilai';
+        else if (att.gradingStatus === 'NEEDS_ESSAY_GRADING') gradingStr = 'Perlu Nilai Essay';
+        else gradingStr = 'Belum Dinilai';
+      }
+
+      const r = ws.addRow({
+        no: idx + 1,
+        regNo: row.registrationNumber,
+        name: row.candidateName,
+        school: row.schoolName,
+        classProgram: row.classProgramName,
+        status: statusStr,
+        mcScore: att && (att.status === 'COMPLETED' || att.status === 'EXPIRED') ? att.multipleChoiceScore : 0,
+        essayScore: att && (att.status === 'COMPLETED' || att.status === 'EXPIRED') ? att.essayScore : 0,
+        totalScore: att && (att.status === 'COMPLETED' || att.status === 'EXPIRED') ? att.totalScore : 0,
+        gradingStatus: gradingStr,
+      });
+
+      r.height = 20;
+      r.alignment = { vertical: 'middle' };
+      r.getCell('no').alignment = { vertical: 'middle', horizontal: 'center' };
+      r.getCell('regNo').alignment = { vertical: 'middle', horizontal: 'center' };
+      r.getCell('status').alignment = { vertical: 'middle', horizontal: 'center' };
+      r.getCell('mcScore').alignment = { vertical: 'middle', horizontal: 'center' };
+      r.getCell('essayScore').alignment = { vertical: 'middle', horizontal: 'center' };
+      r.getCell('totalScore').alignment = { vertical: 'middle', horizontal: 'center' };
+      r.getCell('totalScore').font = { bold: true, color: { argb: 'FF166534' } };
+      r.getCell('gradingStatus').alignment = { vertical: 'middle', horizontal: 'center' };
+
+      for (let c = 1; c <= 10; c++) {
+        r.getCell(c).border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+      }
+    });
+
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const xlsxBuffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([xlsxBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `Rekap_Hasil_CBT_${dateStr}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+
+    showToast(`Berhasil mengekspor rekap ${data.length} hasil ujian santri ke Excel!`, 'success');
+  } catch (err) {
+    showToast('Gagal mengekspor rekap hasil: ' + (err.message || err), 'danger');
   }
 }
 
@@ -4310,5 +4711,7 @@ window.triggerOptionImageUpload = triggerOptionImageUpload;
 window.clearOptionContent = clearOptionContent;
 window.updateCorrectOptionBadge = updateCorrectOptionBadge;
 window.triggerQuestionImageUpload = triggerQuestionImageUpload;
+window.exportSingleStudentCbtExcel = exportSingleStudentCbtExcel;
+window.exportCbtResultsSummaryExcel = exportCbtResultsSummaryExcel;
 
 
