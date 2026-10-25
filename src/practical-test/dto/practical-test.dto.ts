@@ -184,7 +184,7 @@ export class SubmitPracticalScoreDto {
 
   @IsInt({ message: 'Nilai Wudhu harus berupa bilangan bulat.' })
   @Min(1, { message: 'Nilai Wudhu minimal 1.' })
-  @Max(3, { message: 'Nilai Wudhu maksimal 3.' })
+  @Max(4, { message: 'Nilai Wudhu maksimal 4.' })
   @Type(() => Number)
   wudhuScore!: number;
 
@@ -194,7 +194,7 @@ export class SubmitPracticalScoreDto {
 
   @IsInt({ message: 'Nilai Salat harus berupa bilangan bulat.' })
   @Min(1, { message: 'Nilai Salat minimal 1.' })
-  @Max(3, { message: 'Nilai Salat maksimal 3.' })
+  @Max(4, { message: 'Nilai Salat maksimal 4.' })
   @Type(() => Number)
   salatScore!: number;
 

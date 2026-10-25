@@ -2123,3 +2123,675 @@ async function printInterviewResult(interviewId) {
   }
 }
 window.printInterviewResult = printInterviewResult;
+
+// ============================================================================
+// VERIFIKASI WAWANCARA (ADMIN VIEW & ACTIONS)
+// ============================================================================
+
+window.interviewVerificationState = {
+  participants: [],
+  selectedItem: null,
+};
+
+async function renderInterviewVerificationView() {
+  const container = document.getElementById('main-view-slot');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div style="text-align: center; padding: 50px 20px; color: var(--text-muted);">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.2rem; color: #a855f7;"></i>
+      <p style="margin-top: 14px; font-weight: 700; font-size: 1.05rem;">Memuat Verifikasi Wawancara...</p>
+    </div>
+  `;
+
+  try {
+    const structRes = await apiRequest('/api/cbt/admin/dashboard').catch(() => ({ success: false }));
+    const structure = (structRes && structRes.success && structRes.data) ? (structRes.data.structure || []) : [];
+
+    container.innerHTML = `
+      <div style="max-width: 1300px; margin: 0 auto; padding-bottom: 50px;">
+        
+        <!-- Header -->
+        <div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+          <div>
+            <h2 style="font-size: 1.65rem; color: var(--text-heading); margin: 0; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+              <i class="fa-solid fa-comments" style="color: #a855f7;"></i>
+              Verifikasi Wawancara Calon Santri
+            </h2>
+            <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.9rem;">
+              Verifikasi hasil wawancara 7 indikator pokok calon santri dan wali santri sebelum verifikasi final.
+            </p>
+          </div>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn btn-outline-primary" onclick="printBlankInterviewForm()" style="border: 1px solid #a855f7; color: #a855f7; background: transparent; padding: 8px 16px; border-radius: var(--radius-md, 8px); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;" title="Cetak Blangko Panduan Wawancara 7 Pertanyaan untuk Penguji">
+              <i class="fa-solid fa-print"></i> Cetak Form Wawancara Kosong
+            </button>
+            <a href="#interview-schedules" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px; font-weight: 600;">
+              <i class="fa-solid fa-calendar-week"></i> Jadwal Wawancara
+            </a>
+            <button type="button" class="btn btn-secondary" onclick="renderInterviewVerificationView()" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 700;">
+              <i class="fa-solid fa-rotate-right"></i> Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Card -->
+        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl, 14px); padding: 18px 22px; margin-bottom: 24px; box-shadow: var(--shadow-sm);">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) 1.5fr; gap: 14px; align-items: flex-end;">
+            
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; display: block;">Unit Sekolah</label>
+              <select id="iv-filter-school" class="form-select" onchange="loadInterviewVerificationTable()" style="width: 100%; padding: 8px 10px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <option value="">Semua Sekolah</option>
+                ${structure.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+              </select>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; display: block;">Status Wawancara</label>
+              <select id="iv-filter-status" class="form-select" onchange="loadInterviewVerificationTable()" style="width: 100%; padding: 8px 10px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <option value="ALL">Semua Status</option>
+                <option value="COMPLETED" selected>Selesai Wawancara</option>
+                <option value="SCHEDULED">Terjadwal (Menunggu)</option>
+                <option value="NOT_SCHEDULED">Belum Dijadwalkan</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; display: block;">Rekomendasi Pewawancara</label>
+              <select id="iv-filter-recommendation" class="form-select" onchange="loadInterviewVerificationTable()" style="width: 100%; padding: 8px 10px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <option value="ALL">Semua Rekomendasi</option>
+                <option value="HIGHLY_RECOMMENDED">★ Sangat Direkomendasikan</option>
+                <option value="RECOMMENDED">✔ Direkomendasikan</option>
+                <option value="CONSIDERED">? Dipertimbangkan</option>
+                <option value="NOT_RECOMMENDED">✖ Tidak Direkomendasikan</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; display: block;">Cari Peserta / No. Reg</label>
+              <div style="position: relative;">
+                <input type="text" id="iv-filter-search" class="form-control" placeholder="Ketik nama, no. registrasi, sekolah..." onkeyup="if(event.key==='Enter') loadInterviewVerificationTable()" style="width: 100%; padding: 8px 34px 8px 12px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); cursor: pointer;" onclick="loadInterviewVerificationTable()"></i>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Metric Stat Cards Slot -->
+        <div id="iv-stats-slot" style="margin-bottom: 24px;"></div>
+
+        <!-- Table Slot -->
+        <div id="iv-table-slot">
+          <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.8rem; color: #a855f7;"></i>
+            <p style="margin-top: 10px;">Mengambil data verifikasi wawancara...</p>
+          </div>
+        </div>
+
+      </div>
+    `;
+
+    loadInterviewVerificationTable();
+  } catch (err) {
+    console.error('Error rendering interview verification view:', err);
+    container.innerHTML = `<div class="alert alert-danger" style="margin: 20px;">Gagal memuat verifikasi wawancara: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function loadInterviewVerificationTable() {
+  const slot = document.getElementById('iv-table-slot');
+  const statsSlot = document.getElementById('iv-stats-slot');
+  if (!slot) return;
+
+  const schoolId = document.getElementById('iv-filter-school')?.value || '';
+  const status = document.getElementById('iv-filter-status')?.value || 'ALL';
+  const recommendation = document.getElementById('iv-filter-recommendation')?.value || 'ALL';
+  const search = document.getElementById('iv-filter-search')?.value || '';
+
+  slot.innerHTML = `
+    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.8rem; color: #a855f7;"></i>
+      <p style="margin-top: 10px;">Memuat data peserta wawancara...</p>
+    </div>
+  `;
+
+  try {
+    const params = new URLSearchParams({ perPage: '1000' });
+    if (schoolId) params.append('schoolId', schoolId);
+    if (status && status !== 'ALL') params.append('status', status);
+    if (search.trim()) params.append('search', search.trim());
+
+    const res = await apiRequest(`/api/interview/admin/participants?${params.toString()}`);
+    let items = res.success ? (res.data || []) : [];
+
+    if (recommendation && recommendation !== 'ALL') {
+      items = items.filter(i => i.recommendation === recommendation);
+    }
+
+    window.interviewVerificationState.participants = items;
+
+    // Metrics
+    const totalCount = items.length;
+    const completedCount = items.filter(i => i.interviewStatus === 'COMPLETED').length;
+    const recommendedCount = items.filter(i => i.recommendation === 'RECOMMENDED' || i.recommendation === 'HIGHLY_RECOMMENDED').length;
+    const consideredCount = items.filter(i => i.recommendation === 'CONSIDERED').length;
+
+    if (statsSlot) {
+      statsSlot.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+          <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg, 12px); padding: 16px; box-shadow: var(--shadow-sm);">
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Calon Santri</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">${totalCount}</div>
+            <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">Tahap Wawancara</div>
+          </div>
+          <div class="card" style="background: var(--bg-card); border: 1px solid #86efac; border-radius: var(--radius-lg, 12px); padding: 16px; box-shadow: var(--shadow-sm); background: rgba(34,197,94,0.04);">
+            <div style="font-size: 0.75rem; font-weight: 700; color: #15803d; text-transform: uppercase;">Selesai Wawancara</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #16a34a; margin-top: 4px;">${completedCount}</div>
+            <div style="font-size: 0.72rem; color: #15803d; margin-top: 2px;">Telah Dinilai Penguji</div>
+          </div>
+          <div class="card" style="background: var(--bg-card); border: 1px solid #93c5fd; border-radius: var(--radius-lg, 12px); padding: 16px; box-shadow: var(--shadow-sm); background: rgba(59,130,246,0.04);">
+            <div style="font-size: 0.75rem; font-weight: 700; color: #1d4ed8; text-transform: uppercase;">Direkomendasikan</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #2563eb; margin-top: 4px;">${recommendedCount}</div>
+            <div style="font-size: 0.72rem; color: #1d4ed8; margin-top: 2px;">Rekomendasi Positif</div>
+          </div>
+          <div class="card" style="background: var(--bg-card); border: 1px solid #fde68a; border-radius: var(--radius-lg, 12px); padding: 16px; box-shadow: var(--shadow-sm); background: rgba(245,158,11,0.04);">
+            <div style="font-size: 0.75rem; font-weight: 700; color: #b45309; text-transform: uppercase;">Perlu Pertimbangan</div>
+            <div style="font-size: 1.6rem; font-weight: 800; color: #d97706; margin-top: 4px;">${consideredCount}</div>
+            <div style="font-size: 0.72rem; color: #b45309; margin-top: 2px;">Butuh Evaluasi Panitia</div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (items.length === 0) {
+      slot.innerHTML = `
+        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg, 12px); padding: 50px 20px; text-align: center; color: var(--text-muted);">
+          <i class="fa-solid fa-comments" style="font-size: 2.5rem; color: #94a3b8; margin-bottom: 12px;"></i>
+          <h4 style="font-size: 1.1rem; color: var(--text-heading); margin-bottom: 6px;">Tidak ada data calon santri</h4>
+          <p style="font-size: 0.85rem; margin: 0;">Silakan ubah filter pencarian atau pastikan peserta telah terjadwal wawancara.</p>
+        </div>
+      `;
+      return;
+    }
+
+    slot.innerHTML = `
+      <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl, 14px); overflow: hidden; box-shadow: var(--shadow-sm);">
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+            <thead>
+              <tr style="background: var(--bg-body); border-bottom: 2px solid var(--border-subtle); color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                <th style="padding: 12px 14px; width: 40px; text-align: center;">No</th>
+                <th style="padding: 12px 14px; min-width: 220px;">Calon Santri</th>
+                <th style="padding: 12px 14px; min-width: 160px;">Jenjang / Pilihan</th>
+                <th style="padding: 12px 14px; text-align: center; width: 80px;">CBT</th>
+                <th style="padding: 12px 14px; min-width: 140px;">Pewawancara</th>
+                <th style="padding: 12px 14px; text-align: center; width: 90px;">Skor</th>
+                <th style="padding: 12px 14px; text-align: center; min-width: 150px;">Rekomendasi</th>
+                <th style="padding: 12px 14px; text-align: center; width: 120px;">Status</th>
+                <th style="padding: 12px 14px; text-align: center; min-width: 160px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map((item, idx) => {
+                const isCompleted = item.interviewStatus === 'COMPLETED';
+                const scoreDisplay = item.totalScore != null ? Number(item.totalScore).toFixed(2) : '-';
+
+                let recBadge = '<span class="badge" style="background:#f1f5f9; color:#64748b; padding:4px 8px; border-radius:8px;">Belum Dinilai</span>';
+                if (item.recommendation === 'HIGHLY_RECOMMENDED') {
+                  recBadge = '<span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:700; padding:4px 8px; border-radius:8px;"><i class="fa-solid fa-star"></i> Sangat Layak</span>';
+                } else if (item.recommendation === 'RECOMMENDED') {
+                  recBadge = '<span class="badge" style="background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd; font-weight:700; padding:4px 8px; border-radius:8px;"><i class="fa-solid fa-check"></i> Direkomendasikan</span>';
+                } else if (item.recommendation === 'CONSIDERED') {
+                  recBadge = '<span class="badge" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-weight:700; padding:4px 8px; border-radius:8px;"><i class="fa-solid fa-question"></i> Pertimbangan</span>';
+                } else if (item.recommendation === 'NOT_RECOMMENDED') {
+                  recBadge = '<span class="badge" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:700; padding:4px 8px; border-radius:8px;"><i class="fa-solid fa-xmark"></i> Tidak Disarankan</span>';
+                }
+
+                return `
+                  <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-body)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 12px 14px; text-align: center; color: var(--text-muted); font-weight: 600;">${idx + 1}</td>
+                    <td style="padding: 12px 14px;">
+                      <div style="font-weight: 700; color: var(--text-heading); font-size: 0.9rem;">${escapeHtml(item.participantName)}</div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 2px;">
+                        <code>${escapeHtml(item.registrationNumber)}</code>
+                        <span>•</span>
+                        <span>${item.gender === 'P' ? 'Perempuan' : 'Laki-laki'}</span>
+                      </div>
+                    </td>
+                    <td style="padding: 12px 14px;">
+                      <div style="font-weight: 600; color: var(--text-heading);">${escapeHtml(item.schoolName)}</div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.programName || '-')}</div>
+                    </td>
+                    <td style="padding: 12px 14px; text-align: center;">
+                      ${item.cbtScore != null 
+                        ? `<span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700; padding:3px 8px; border-radius:6px;">${item.cbtScore}</span>`
+                        : `<span style="color:var(--text-dim);">-</span>`
+                      }
+                    </td>
+                    <td style="padding: 12px 14px;">
+                      <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-heading);">${escapeHtml(item.interviewerName || '-')}</div>
+                      ${item.scheduleDate ? `<div style="font-size: 0.72rem; color: var(--text-dim);">${new Date(item.scheduleDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</div>` : ''}
+                    </td>
+                    <td style="padding: 12px 14px; text-align: center; font-weight: 800; font-size: 0.95rem; color: ${isCompleted ? '#a855f7' : 'var(--text-muted)'};">
+                      ${scoreDisplay}
+                    </td>
+                    <td style="padding: 12px 14px; text-align: center;">
+                      ${recBadge}
+                    </td>
+                    <td style="padding: 12px 14px; text-align: center;">
+                      ${isCompleted
+                        ? `<span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-weight:700; padding:4px 8px; border-radius:8px;"><i class="fa-solid fa-circle-check"></i> Selesai</span>`
+                        : item.interviewStatus === 'SCHEDULED'
+                        ? `<span class="badge" style="background:#dbeafe; color:#1d4ed8; border:1px solid #93c5fd; font-weight:700; padding:4px 8px; border-radius:8px;"><i class="fa-solid fa-clock"></i> Terjadwal</span>`
+                        : `<span class="badge" style="background:#f1f5f9; color:#64748b; font-weight:600; padding:4px 8px; border-radius:8px;">Belum Wawancara</span>`
+                      }
+                    </td>
+                    <td style="padding: 12px 14px; text-align: center;">
+                      <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="openInterviewVerifyModal('${item.id}', '${item.interviewId || ''}')" style="padding: 5px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Verifikasi / Rincian Wawancara">
+                          <i class="fa-solid fa-user-check"></i> Verifikasi
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="printInterviewResult('${item.interviewId || item.id}')" style="padding: 5px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Cetak Hasil Wawancara Santri">
+                          <i class="fa-solid fa-print"></i> Cetak
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+  } catch (err) {
+    console.error('Error loading interview verification table:', err);
+    slot.innerHTML = `<div class="alert alert-danger" style="margin: 20px;">Gagal memuat tabel: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function openInterviewVerifyModal(registrationId, interviewId) {
+  const targetId = interviewId || registrationId;
+  try {
+    const res = await apiRequest(`/api/interview/interviewer/process/${targetId}`);
+    if (!res.success || !res.data) throw new Error(res.message || 'Gagal memuat detail wawancara.');
+
+    const iw = res.data;
+    const participant = iw.participant || {};
+    const existingRec = iw.recommendation || 'RECOMMENDED';
+    const existingNotes = iw.generalNotes || '';
+    const questions = iw.questionsSnapshot || [];
+    const questionNotes = iw.questionNotes || [];
+
+    const noteMap = {};
+    questionNotes.forEach(n => {
+      if (n.questionText) noteMap[n.questionText] = n.notes || '';
+      if (n.questionId) noteMap[n.questionId] = n.notes || '';
+    });
+
+    const modalId = 'modal-interview-verify';
+    let modal = document.getElementById(modalId);
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = modalId;
+      modal.className = 'modal-backdrop';
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div class="modal-dialog" style="max-width: 750px; max-height: 90vh; overflow-y: auto; background: var(--bg-card); border-radius: var(--radius-xl, 14px); padding: 26px; box-shadow: var(--shadow-xl); border: 1px solid var(--border-subtle);">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 14px;">
+          <div>
+            <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text-heading); margin: 0; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-comments" style="color: #a855f7;"></i>
+              Verifikasi Hasil Wawancara Santri
+            </h3>
+            <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">
+              ${escapeHtml(participant.fullName || '-')} (${escapeHtml(participant.registrationNumber || '-')}) — ${escapeHtml(participant.schoolName || '-')}
+            </p>
+          </div>
+          <button type="button" class="btn-close" onclick="closeInterviewVerifyModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+        </div>
+
+        <!-- 7 Indikator Wawancara Ringkas -->
+        <div style="margin-bottom: 20px;">
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-heading); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-list-check" style="color: #0284c7;"></i> Jawaban 7 Indikator Pokok Wawancara
+          </h4>
+          <div style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 8px); padding: 12px; font-size: 0.82rem;">
+            ${questions.map((q, idx) => {
+              const ans = noteMap[q.questionText] || noteMap[q.questionId] || '(Belum ada catatan jawaban)';
+              return `
+                <div style="margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--border-subtle);">
+                  <div style="font-weight: 700; color: var(--text-heading);">${idx + 1}. ${escapeHtml(q.questionText)}</div>
+                  <div style="color: var(--text-main); margin-top: 3px; font-style: italic;">“${escapeHtml(ans)}”</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <form id="form-interview-verify" onsubmit="submitInterviewVerify(event, '${iw.interviewId || targetId}')">
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
+            
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 6px;">
+                Rekomendasi Kelulusan Wawancara
+              </label>
+              <select id="ivm-recommendation" class="form-select" style="width: 100%; padding: 9px 10px; font-weight: 700; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main);">
+                <option value="HIGHLY_RECOMMENDED" ${existingRec === 'HIGHLY_RECOMMENDED' ? 'selected' : ''}>★ Sangat Direkomendasikan</option>
+                <option value="RECOMMENDED" ${existingRec === 'RECOMMENDED' ? 'selected' : ''}>✔ Direkomendasikan</option>
+                <option value="CONSIDERED" ${existingRec === 'CONSIDERED' ? 'selected' : ''}>? Dipertimbangkan</option>
+                <option value="NOT_RECOMMENDED" ${existingRec === 'NOT_RECOMMENDED' ? 'selected' : ''}>✖ Tidak Direkomendasikan</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 6px;">
+                Status Wawancara
+              </label>
+              <select id="ivm-status" class="form-select" style="width: 100%; padding: 9px 10px; font-weight: 700; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main);">
+                <option value="COMPLETED" selected>✔ Lulus / Selesai Wawancara</option>
+                <option value="CANCELLED">✖ Dibatalkan / Perlu Wawancara Ulang</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="form-group" style="margin-bottom: 22px;">
+            <label class="form-label" style="font-weight: 700; font-size: 0.85rem; display: block; margin-bottom: 6px;">
+              Catatan Keseluruhan Pewawancara / Admin
+            </label>
+            <textarea id="ivm-notes" class="form-control" rows="3" placeholder="Tuliskan catatan umum mengenai santri dan komitmen wali santri..." style="width: 100%; padding: 10px; font-size: 0.85rem; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main);">${escapeHtml(existingNotes)}</textarea>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <button type="button" class="btn btn-secondary" onclick="closeInterviewVerifyModal()" style="font-weight: 600;">Batal</button>
+            <button type="submit" id="btn-save-interview-verify" class="btn btn-primary" style="font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan Verifikasi
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    `;
+
+    modal.style.display = 'flex';
+  } catch (err) {
+    alert(err.message || 'Gagal membuka rincian wawancara.');
+  }
+}
+
+function closeInterviewVerifyModal() {
+  const modal = document.getElementById('modal-interview-verify');
+  if (modal) modal.style.display = 'none';
+}
+
+async function submitInterviewVerify(e, targetId) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-save-interview-verify');
+  if (btn) btn.disabled = true;
+
+  const recommendation = document.getElementById('ivm-recommendation')?.value || 'RECOMMENDED';
+  const status = document.getElementById('ivm-status')?.value || 'COMPLETED';
+  const generalNotes = document.getElementById('ivm-notes')?.value || '';
+
+  try {
+    const res = await apiRequest(`/api/interview/admin/verify/${targetId}`, 'POST', {
+      recommendation,
+      status,
+      generalNotes,
+    });
+
+    if (!res.success) throw new Error(res.message || 'Gagal menyimpan status verifikasi wawancara.');
+
+    if (typeof showToast === 'function') showToast('Verifikasi wawancara berhasil disimpan.', 'success');
+    closeInterviewVerifyModal();
+    loadInterviewVerificationTable();
+  } catch (err) {
+    alert(err.message || 'Gagal menyimpan verifikasi wawancara.');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ============================================================================
+// FITUR CETAK LEMBAR WAWANCARA KOSONG (BLANGKO 7 PERTANYAAN)
+// ============================================================================
+
+async function printBlankInterviewForm() {
+  let appSettings = window.appSettings || {};
+  try {
+    const sRes = await apiRequest('/api/settings').catch(() => ({ success: false }));
+    if (sRes.success && sRes.data) appSettings = sRes.data;
+  } catch (e) {}
+
+  const rawLogo = appSettings.application_logo || 'logo_e7a8b6a95d.webp';
+  const logoUrl = (rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('/'))
+    ? rawLogo
+    : `/static/img/${rawLogo}`;
+  const appName = appSettings.application_name || 'Pondok Pesantren Maskumambang';
+
+  const defaultQuestions = [
+    { title: "Motivasi masuk pesantren dan komitmen belajar", guidance: "Gali tujuan mendaftar (kemauan sendiri/orang tua), kesungguhan belajar, kesiapan taat aturan pesantren." },
+    { title: "Ibadah keseharian santri (baca qur'an, sholat jamaah, sholat sunnah)", guidance: "Kelancaran Al-Qur'an, kedisiplinan sholat wajib 5 waktu berjamaah di masjid, pembiasaan sholat sunnah." },
+    { title: "Kemandirian dan kesiapan tinggal di asrama", guidance: "Kesiapan mental jauh dari orang tua, kebiasaan mencuci/merapikan barang sendiri, riwayat penyakit/alergi." },
+    { title: "Pembiasaan sehari-hari (merokok, pertemanan, hubungan lawan jenis)", guidance: "Riwayat merokok/vape, kebiasaan bermain game/gadget, lingkungan pertemanan, etika pergaulan lawan jenis." },
+    { title: "Kondisi ekonomi orang tua/wali", guidance: "Pekerjaan orang tua, kesiapan pembiayaan infaq masuk, SPP bulanan, dan uang saku santri secara berkelanjutan." },
+    { title: "Hubungan dalam keluarga (status anak, kedekatan anak dengan orang tua)", guidance: "Status anak kandung/yatim/piatu, urutan anak, keharmonisan komunikasi dan keterbukaan dengan orang tua." },
+    { title: "Informasi Pondok Pesantren Maskumambang dari mana?", guidance: "Sumber mengetahui info pendaftaran (alumni, keluarga, media sosial, website, brosur, atau lainnya)." },
+  ];
+
+  const printHtml = `
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8">
+      <title>Blangko Panduan Wawancara Santri Baru</title>
+      <style>
+        * { box-sizing: border-box; }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          color: #111827;
+          background: #ffffff;
+          margin: 0;
+          padding: 20px;
+          font-size: 10pt;
+          line-height: 1.35;
+        }
+        .header-kop {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          border-bottom: 3px double #1f2937;
+          padding-bottom: 12px;
+          margin-bottom: 14px;
+        }
+        .header-kop img {
+          width: 70px;
+          height: 70px;
+          object-fit: contain;
+        }
+        .kop-text h1 {
+          font-size: 15pt;
+          margin: 0;
+          font-weight: 800;
+        }
+        .kop-text h2 {
+          font-size: 12pt;
+          margin: 2px 0;
+          color: #1e3a8a;
+          font-weight: 700;
+        }
+        .kop-text p {
+          font-size: 8.5pt;
+          color: #4b5563;
+          margin: 2px 0 0 0;
+        }
+        .doc-title {
+          text-align: center;
+          margin: 12px 0;
+        }
+        .doc-title h3 {
+          font-size: 12.5pt;
+          font-weight: 800;
+          text-decoration: underline;
+          margin: 0;
+          text-transform: uppercase;
+        }
+        .meta-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 14px;
+        }
+        .meta-table td {
+          padding: 3px 5px;
+          font-size: 9.5pt;
+        }
+        .q-card {
+          border: 1px solid #1f2937;
+          border-radius: 4px;
+          padding: 8px 10px;
+          margin-bottom: 10px;
+          page-break-inside: avoid;
+        }
+        .q-title {
+          font-weight: 700;
+          font-size: 10pt;
+          color: #1e3a8a;
+        }
+        .q-guidance {
+          font-size: 8.5pt;
+          color: #4b5563;
+          margin: 2px 0 6px 0;
+        }
+        .q-answer-box {
+          height: 38px;
+          border-bottom: 1px dashed #9ca3af;
+        }
+        .signature-box {
+          margin-top: 20px;
+          display: flex;
+          justify-content: space-between;
+          page-break-inside: avoid;
+        }
+        .sign-col {
+          text-align: center;
+          width: 220px;
+        }
+        .sign-line {
+          margin-top: 55px;
+          border-bottom: 1px solid #111827;
+          font-weight: 700;
+        }
+        @media print {
+          .no-print { display: none !important; }
+          body { padding: 0; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="no-print" style="margin-bottom: 14px; text-align: right;">
+        <button onclick="window.print()" style="background:#a855f7; color:#fff; border:none; padding:8px 18px; border-radius:6px; font-weight:700; cursor:pointer;">
+          🖨 Cetak Blangko / Simpan PDF
+        </button>
+      </div>
+
+      <div class="header-kop">
+        <img src="${logoUrl}" alt="Logo">
+        <div class="kop-text">
+          <h1>PANITIA PENERIMAAN SANTRI BARU (PSB)</h1>
+          <h2>${escapeHtml(appName).toUpperCase()}</h2>
+          <p>Jl. Raya Maskumambang Dukun Gresik Jawa Timur 61153 • Website: maskumambang.ac.id</p>
+        </div>
+      </div>
+
+      <div class="doc-title">
+        <h3>LEMBAR PANDUAN WAWANCARA SANTRI & WALI SANTRI</h3>
+        <p>Instrumen Penggalian Data 7 Indikator Pokok Calon Santri Baru</p>
+      </div>
+
+      <table class="meta-table">
+        <tr>
+          <td style="width: 20%; font-weight: 700;">No. Registrasi</td>
+          <td style="width: 30%;">: .....................................................</td>
+          <td style="width: 20%; font-weight: 700;">Hari / Tanggal</td>
+          <td style="width: 30%;">: .....................................................</td>
+        </tr>
+        <tr>
+          <td style="font-weight: 700;">Nama Calon Santri</td>
+          <td>: .....................................................</td>
+          <td style="font-weight: 700;">Nama Pewawancara</td>
+          <td>: .....................................................</td>
+        </tr>
+        <tr>
+          <td style="font-weight: 700;">Pilihan Jenjang/Sekolah</td>
+          <td>: .....................................................</td>
+          <td style="font-weight: 700;">Ruang Wawancara</td>
+          <td>: .....................................................</td>
+        </tr>
+      </table>
+
+      ${defaultQuestions.map((q, idx) => `
+        <div class="q-card">
+          <div class="q-title">${idx + 1}. ${escapeHtml(q.title)}</div>
+          <div class="q-guidance"><em>Panduan:</em> ${escapeHtml(q.guidance)}</div>
+          <div class="q-answer-box"></div>
+        </div>
+      `).join('')}
+
+      <div style="border: 1px solid #1f2937; padding: 8px 10px; margin-top: 10px; border-radius: 4px; page-break-inside: avoid;">
+        <strong style="font-size: 9.5pt;">REKOMENDASI AKHIR PEWAWANCARA:</strong>
+        <div style="display: flex; gap: 20px; margin-top: 6px; font-size: 9.5pt; font-weight: 700;">
+          <label>[ &nbsp; ] Sangat Direkomendasikan</label>
+          <label>[ &nbsp; ] Direkomendasikan</label>
+          <label>[ &nbsp; ] Dipertimbangkan</label>
+          <label>[ &nbsp; ] Tidak Direkomendasikan</label>
+        </div>
+      </div>
+
+      <div class="signature-box">
+        <div class="sign-col">
+          <div>Mengetahui,</div>
+          <div style="font-weight: 700;">Koordinator Wawancara</div>
+          <div class="sign-line">( .................................................... )</div>
+        </div>
+        <div class="sign-col">
+          <div>Dukun Gresik, ......................... 2026</div>
+          <div style="font-weight: 700;">Ustadz Pewawancara,</div>
+          <div class="sign-line">( .................................................... )</div>
+        </div>
+      </div>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() { window.print(); }, 400);
+        };
+      </script>
+    </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank', 'width=900,height=850');
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+  } else {
+    alert('Pop-up browser diblokir. Harap izinkan pop-up untuk mencetak blangko wawancara.');
+  }
+}
+
+window.renderInterviewVerificationView = renderInterviewVerificationView;
+window.loadInterviewVerificationTable = loadInterviewVerificationTable;
+window.openInterviewVerifyModal = openInterviewVerifyModal;
+window.closeInterviewVerifyModal = closeInterviewVerifyModal;
+window.submitInterviewVerify = submitInterviewVerify;
+window.printBlankInterviewForm = printBlankInterviewForm;
+

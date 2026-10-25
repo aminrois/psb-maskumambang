@@ -1070,6 +1070,8 @@ function buildRoleSidebar(role) {
       <a href="#verifikasi-pembayaran" id="nav-verifikasi-pembayaran" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span><span class="nav-label">Verifikasi Pembayaran</span></a>
       <a href="#verifikasi-data" id="nav-verifikasi-data" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-user-check"></i></span><span class="nav-label">Verifikasi Berkas Santri</span></a>
       <a href="#cbt-verification" id="nav-cbt-verification" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-check"></i></span><span class="nav-label">Verifikasi CBT</span></a>
+      <a href="#verifikasi-praktik" id="nav-verifikasi-praktik" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-book-quran"></i></span><span class="nav-label">Verifikasi Tes Praktik</span></a>
+      <a href="#verifikasi-wawancara" id="nav-verifikasi-wawancara" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-comments"></i></span><span class="nav-label">Verifikasi Wawancara</span></a>
       <a href="#verifikasi-final" id="nav-verifikasi-final" class="sidebar-nav-item" style="border-left: 3px solid #10b981; background: rgba(16, 185, 129, 0.08);"><span class="nav-icon" style="color: #10b981;"><i class="fa-solid fa-award"></i></span><span class="nav-label" style="color: #ffffff; font-weight: 700;">Verifikasi Final</span><span class="badge" style="background: #10b981; color:#ffffff; font-size:0.62rem; font-weight: 800; padding:2px 6px; border-radius:4px; margin-left:auto;">FINAL</span></a>
       <a href="#daftar-peserta" id="nav-daftar-peserta" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span><span class="nav-label">Daftar Calon Siswa</span></a>
       <a href="#download-data" id="nav-download-data" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-zipper"></i></span><span class="nav-label">Download Data</span></a>
@@ -1176,6 +1178,8 @@ function buildRoleSidebar(role) {
       <a href="#overview" id="nav-overview" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Dashboard Monitoring</span></a>
       <a href="#verifikasi-data" id="nav-verifikasi-data" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-user-check"></i></span><span class="nav-label">Verifikasi Berkas Santri</span></a>
       <a href="#cbt-verification" id="nav-cbt-verification" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-check"></i></span><span class="nav-label">Verifikasi CBT</span></a>
+      <a href="#verifikasi-praktik" id="nav-verifikasi-praktik" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-book-quran"></i></span><span class="nav-label">Verifikasi Tes Praktik</span></a>
+      <a href="#verifikasi-wawancara" id="nav-verifikasi-wawancara" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-comments"></i></span><span class="nav-label">Verifikasi Wawancara</span></a>
       <a href="#verifikasi-final" id="nav-verifikasi-final" class="sidebar-nav-item" style="border-left: 3px solid #10b981; background: rgba(16, 185, 129, 0.08);"><span class="nav-icon" style="color: #10b981;"><i class="fa-solid fa-award"></i></span><span class="nav-label" style="color: #ffffff; font-weight: 700;">Verifikasi Final</span><span class="badge" style="background: #10b981; color:#ffffff; font-size:0.62rem; font-weight: 800; padding:2px 6px; border-radius:4px; margin-left:auto;">FINAL</span></a>
       <a href="#daftar-peserta" id="nav-daftar-peserta" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clipboard-list"></i></span><span class="nav-label">Daftar Calon Siswa</span></a>
       <a href="#download-data" id="nav-download-data" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-zipper"></i></span><span class="nav-label">Download Data</span></a>
@@ -1444,6 +1448,12 @@ function handleDashboardRoute() {
     else if (mainRoute === 'cbt-verification') {
       if (typeof renderCbtVerificationView === 'function') renderCbtVerificationView();
     }
+    else if (mainRoute === 'verifikasi-praktik') {
+      if (typeof renderPracticalVerificationView === 'function') renderPracticalVerificationView();
+    }
+    else if (mainRoute === 'verifikasi-wawancara') {
+      if (typeof renderInterviewVerificationView === 'function') renderInterviewVerificationView();
+    }
     else if (mainRoute === 'cbt-reset') {
       if (typeof renderCbtResetView === 'function') renderCbtResetView();
     }
@@ -1532,6 +1542,12 @@ function handleDashboardRoute() {
     }
     else if (mainRoute === 'cbt-verification') {
       if (typeof renderCbtVerificationView === 'function') renderCbtVerificationView();
+    }
+    else if (mainRoute === 'verifikasi-praktik') {
+      if (typeof renderPracticalVerificationView === 'function') renderPracticalVerificationView();
+    }
+    else if (mainRoute === 'verifikasi-wawancara') {
+      if (typeof renderInterviewVerificationView === 'function') renderInterviewVerificationView();
     }
     else if (mainRoute === 'cbt-reset') {
       if (typeof renderCbtResetView === 'function') renderCbtResetView();

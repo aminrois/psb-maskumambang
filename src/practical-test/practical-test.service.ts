@@ -1104,4 +1104,85 @@ export class PracticalTestService {
       data: formatted,
     };
   }
+
+  async adminVerifyPracticalTest(
+    registrationId: string,
+    body: {
+      status?: PracticalTestStatus;
+      generalNotes?: string;
+      btqScore?: number;
+      btqNotes?: string;
+      wudhuScore?: number;
+      wudhuNotes?: string;
+      salatScore?: number;
+      salatNotes?: string;
+    },
+    user: any,
+  ) {
+    const reg = await this.prisma.registration.findUnique({
+      where: { id: registrationId },
+      include: { practicalTest: true },
+    });
+    if (!reg) throw new NotFoundException('Calon santri tidak ditemukan.');
+
+    const currentTest = reg.practicalTest;
+    const btq = body.btqScore !== undefined ? body.btqScore : (currentTest?.btqScore ?? 3);
+    const wudhu = body.wudhuScore !== undefined ? body.wudhuScore : (currentTest?.wudhuScore ?? 3);
+    const salat = body.salatScore !== undefined ? body.salatScore : (currentTest?.salatScore ?? 3);
+    const totalScore = Number(((btq + wudhu + salat) / 3).toFixed(2));
+    const testStatus = body.status || PracticalTestStatus.COMPLETED;
+
+    const updated = await this.prisma.practicalTest.upsert({
+      where: { registrationId },
+      create: {
+        registrationId,
+        examinerId: user?.id || null,
+        examinerName: user?.name || 'Administrator',
+        btqScore: btq,
+        btqNotes: body.btqNotes || currentTest?.btqNotes || null,
+        wudhuScore: wudhu,
+        wudhuNotes: body.wudhuNotes || currentTest?.wudhuNotes || null,
+        salatScore: salat,
+        salatNotes: body.salatNotes || currentTest?.salatNotes || null,
+        totalScore,
+        generalNotes: body.generalNotes || 'Diverifikasi Lulus Tes Praktik oleh Admin',
+        status: testStatus,
+        completedAt: new Date(),
+        testedAt: new Date(),
+      },
+      update: {
+        status: testStatus,
+        ...(body.generalNotes && { generalNotes: body.generalNotes }),
+        ...(body.btqScore !== undefined && { btqScore: body.btqScore }),
+        ...(body.btqNotes !== undefined && { btqNotes: body.btqNotes }),
+        ...(body.wudhuScore !== undefined && { wudhuScore: body.wudhuScore }),
+        ...(body.wudhuNotes !== undefined && { wudhuNotes: body.wudhuNotes }),
+        ...(body.salatScore !== undefined && { salatScore: body.salatScore }),
+        ...(body.salatNotes !== undefined && { salatNotes: body.salatNotes }),
+        totalScore,
+        completedAt: new Date(),
+      },
+    });
+
+    if (this.auditService) {
+      await this.auditService.log({
+        userId: user?.id,
+        action: 'VERIFY_PRACTICAL_TEST',
+        targetTable: 'practical_tests',
+        targetId: updated.id,
+        details: JSON.stringify({
+          registrationId,
+          status: updated.status,
+          totalScore: updated.totalScore,
+          verifiedBy: user?.name || 'Admin',
+        }),
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Status verifikasi tes praktik berhasil diperbarui.',
+      data: updated,
+    };
+  }
 }

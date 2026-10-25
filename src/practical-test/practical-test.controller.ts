@@ -23,7 +23,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PracticalScheduleStatus, Role } from '@prisma/client';
+import { PracticalScheduleStatus, PracticalTestStatus, Role } from '@prisma/client';
 
 @Controller('practical-test')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -191,5 +191,29 @@ export class PracticalTestController {
   @Roles(Role.PETUGAS_TES_PRAKTIK, Role.SUPER_ADMIN, Role.ADMIN)
   async getRecapReport() {
     return this.practicalTestService.getRecapReport();
+  }
+
+  @Post('admin/verify/:registrationId')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  async adminVerifyPracticalTest(
+    @Param('registrationId') registrationId: string,
+    @CurrentUser() user: any,
+    @Body()
+    body: {
+      status?: PracticalTestStatus;
+      generalNotes?: string;
+      btqScore?: number;
+      btqNotes?: string;
+      wudhuScore?: number;
+      wudhuNotes?: string;
+      salatScore?: number;
+      salatNotes?: string;
+    },
+  ) {
+    return this.practicalTestService.adminVerifyPracticalTest(
+      registrationId,
+      body,
+      user,
+    );
   }
 }

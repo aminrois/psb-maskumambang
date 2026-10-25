@@ -717,4 +717,19 @@ export class InterviewController {
     );
     return { success: true, data };
   }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Post('admin/verify/:interviewId')
+  async adminVerifyInterview(
+    @Param('interviewId') interviewId: string,
+    @CurrentUser() user: any,
+    @Body()
+    body: {
+      recommendation?: InterviewRecommendation;
+      status?: InterviewStatus;
+      generalNotes?: string;
+    },
+  ) {
+    return this.interviewService.adminVerifyInterview(interviewId, body, user);
+  }
 }

@@ -1676,6 +1676,23 @@ export class InterviewService {
         });
       }
 
+      if (!activePackage) {
+        activePackage = await this.prisma.interviewPackage.findFirst({
+          where: {
+            OR: [
+              { code: 'PAKET-STANDAR-PSB' },
+              { status: 'ACTIVE' },
+            ],
+          },
+          include: {
+            packageQuestions: {
+              orderBy: { sortOrder: 'asc' },
+              include: { question: true },
+            },
+          },
+        });
+      }
+
       if (activePackage?.packageQuestions) {
         questionsSnapshot = activePackage.packageQuestions.map((pq: any, idx: number) => ({
           questionId: pq.questionId,
@@ -2300,6 +2317,74 @@ export class InterviewService {
             recommendation: reg.interview.recommendation || null,
           }
         : null,
+    };
+  }
+
+  async adminVerifyInterview(
+    interviewId: string,
+    body: {
+      recommendation?: InterviewRecommendation;
+      status?: InterviewStatus;
+      generalNotes?: string;
+    },
+    user: any,
+  ) {
+    let interview = await this.prisma.interview.findFirst({
+      where: {
+        OR: [{ id: interviewId }, { registrationId: interviewId }],
+      },
+    });
+
+    if (!interview) {
+      const reg = await this.prisma.registration.findFirst({
+        where: {
+          OR: [{ id: interviewId }, { registrationNumber: interviewId }],
+        },
+      });
+      if (!reg) throw new NotFoundException('Data registrasi santri tidak ditemukan.');
+
+      interview = await this.prisma.interview.create({
+        data: {
+          registrationId: reg.id,
+          status: body.status || InterviewStatus.COMPLETED,
+          recommendation: body.recommendation || InterviewRecommendation.RECOMMENDED,
+          generalNotes: body.generalNotes || 'Diverifikasi Lulus Wawancara oleh Admin',
+          completedAt: new Date(),
+        },
+      });
+    } else {
+      interview = await this.prisma.interview.update({
+        where: { id: interview.id },
+        data: {
+          status: body.status || InterviewStatus.COMPLETED,
+          recommendation:
+            body.recommendation ||
+            interview.recommendation ||
+            InterviewRecommendation.RECOMMENDED,
+          ...(body.generalNotes && { generalNotes: body.generalNotes }),
+          completedAt: new Date(),
+        },
+      });
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: user?.id || null,
+        action: 'VERIFY_INTERVIEW',
+        targetTable: 'interviews',
+        targetId: interview.id,
+        details: JSON.stringify({
+          status: interview.status,
+          recommendation: interview.recommendation,
+          verifiedBy: user?.name || 'Admin',
+        }),
+      },
+    });
+
+    return {
+      success: true,
+      message: 'Status verifikasi wawancara berhasil disimpan.',
+      data: interview,
     };
   }
 }

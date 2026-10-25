@@ -4882,8 +4882,9 @@ async function renderAdminFinalVerificationView(tabMode = null) {
     const readyItems = allItems.filter(reg => {
       const isDocOk = reg.formStatus === 'VERIFIED';
       const isCbtOk = reg.cbtAttempt && (reg.cbtAttempt.status === 'COMPLETED' || reg.cbtAttempt.status === 'EXPIRED' || reg.cbtAttempt.verificationStatus === 'VERIFIED');
-      const isInterviewOk = reg.interview && reg.interview.status === 'COMPLETED';
-      return isDocOk && isCbtOk && isInterviewOk;
+      const isPracticalOk = reg.practicalTest && (reg.practicalTest.status === 'COMPLETED' || reg.practicalTest.btqScore != null);
+      const isInterviewOk = reg.interview && (reg.interview.status === 'COMPLETED' || reg.interview.recommendation != null);
+      return isDocOk && isCbtOk && isPracticalOk && isInterviewOk;
     });
 
     const isShowingCompletedOnly = window.finalVerificationTabMode === 'completed';
@@ -4924,7 +4925,7 @@ async function renderAdminFinalVerificationView(tabMode = null) {
         <!-- Tab Mode Switcher -->
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
           <button type="button" onclick="renderAdminFinalVerificationView('completed')" class="btn ${isShowingCompletedOnly ? 'btn-primary' : 'btn-outline'}" style="font-weight: 700; border-radius: 10px; display: flex; align-items: center; gap: 8px; padding: 8px 16px;">
-            <i class="fa-solid fa-circle-check"></i> Siap Verifikasi Final (Lengkap 3 Tahap)
+            <i class="fa-solid fa-circle-check"></i> Siap Verifikasi Final (Lengkap Tahapan)
             <span class="badge" style="background: ${isShowingCompletedOnly ? 'rgba(255,255,255,0.25)' : 'var(--primary-600)'}; color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem;">${readyItems.length}</span>
           </button>
           <button type="button" onclick="renderAdminFinalVerificationView('all')" class="btn ${!isShowingCompletedOnly ? 'btn-primary' : 'btn-outline'}" style="font-weight: 700; border-radius: 10px; display: flex; align-items: center; gap: 8px; padding: 8px 16px;">
@@ -4996,7 +4997,8 @@ async function renderAdminFinalVerificationView(tabMode = null) {
                   <th style="padding: 14px 16px; min-width: 160px;">Sekolah & Program</th>
                   <th style="padding: 14px 16px; text-align: center; min-width: 120px;">1. Berkas & Bayar</th>
                   <th style="padding: 14px 16px; text-align: center; min-width: 110px;">2. Ujian CBT</th>
-                  <th style="padding: 14px 16px; text-align: center; min-width: 130px;">3. Wawancara</th>
+                  <th style="padding: 14px 16px; text-align: center; min-width: 110px;">3. Tes Praktik</th>
+                  <th style="padding: 14px 16px; text-align: center; min-width: 130px;">4. Wawancara</th>
                   <th style="padding: 14px 16px; text-align: center; min-width: 130px;">Keputusan Final</th>
                   <th class="final-verif-col-action" style="padding: 14px 16px; text-align: center; position: sticky; right: 0; background: var(--bg-body); z-index: 5; box-shadow: -4px 0 8px rgba(0,0,0,0.06); width: 140px;">Aksi</th>
                 </tr>
@@ -5020,7 +5022,7 @@ function renderFinalTableRows(items) {
   if (!items || items.length === 0) {
     return `
       <tr>
-        <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
           Tidak ada data calon santri yang sesuai kriteria filter.
         </td>
       </tr>
@@ -5065,7 +5067,20 @@ function renderFinalTableRows(items) {
       </div>
     `;
 
-    // 3. Wawancara
+    // 3. Tes Praktik
+    const pt = reg.practicalTest;
+    const ptScore = pt?.totalScore !== undefined && pt?.totalScore !== null ? Number(pt.totalScore).toFixed(2) : '-';
+    const isPtCompleted = pt?.status === 'COMPLETED' || (pt?.btqScore != null);
+    const ptHtml = `
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+        <strong style="color: #0284c7; font-size: 0.95rem;">${ptScore}</strong>
+        <span class="badge" style="background:${isPtCompleted ? '#dcfce7' : '#f1f5f9'}; color:${isPtCompleted ? '#15803d' : '#64748b'}; border:1px solid ${isPtCompleted ? '#86efac' : '#cbd5e1'}; font-size:0.7rem; padding:2px 6px; border-radius:4px;">
+          ${isPtCompleted ? 'LULUS PRAKTIK' : 'BELUM UJI'}
+        </span>
+      </div>
+    `;
+
+    // 4. Wawancara
     const iw = reg.interview;
     const iwCompleted = iw?.status === 'COMPLETED';
     const recBadge = typeof getRecommendationBadge === 'function' ? getRecommendationBadge(iw?.recommendation) : (iw?.recommendation || '-');
@@ -5102,6 +5117,9 @@ function renderFinalTableRows(items) {
         </td>
         <td style="padding: 14px 16px; text-align: center;">
           ${cbtHtml}
+        </td>
+        <td style="padding: 14px 16px; text-align: center;">
+          ${ptHtml}
         </td>
         <td style="padding: 14px 16px; text-align: center;">
           ${iwHtml}

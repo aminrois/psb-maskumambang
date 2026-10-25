@@ -1200,6 +1200,14 @@ export class RegistrationsService {
             take: 1,
           },
           cbtAttempt: true,
+          practicalTest: {
+            include: {
+              schedule: true,
+              examiner: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+          },
           interview: {
             include: {
               schedule: true,
