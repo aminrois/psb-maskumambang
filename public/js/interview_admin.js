@@ -583,13 +583,28 @@ async function openScheduleFormModal(scheduleId = null) {
     window.interviewScheduleFormState.scheduleId = scheduleId;
     window.interviewScheduleFormState.allAvailableRegistrations = allRegistrations;
 
-    // Prefill questions
-    let initialQuestions = ['Motivasi masuk pesantren dan komitmen belajar', 'Kemampuan dasar membaca Al-Qur\'an', 'Kemandirian dan kesiapan tinggal di asrama'];
+    // Prefill questions with 7 standardized interview questions
+    const DEFAULT_STANDARD_QUESTIONS = [
+      "Motivasi masuk pesantren dan komitmen belajar",
+      "Ibadah keseharian santri (baca qur'an, sholat jamaah, sholat sunnah)",
+      "Kemandirian dan kesiapan tinggal di asrama",
+      "Pembiasaan sehari-hari (merokok, pertemanan, hubungan lawan jenis)",
+      "Kondisi ekonomi orang tua/wali",
+      "Hubungan dalam keluarga (status anak, kedekatan anak dengan orang tua)",
+      "Informasi Pondok Pesantren Maskumambang dari mana?"
+    ];
+
+    let initialQuestions = [...DEFAULT_STANDARD_QUESTIONS];
     if (existing?.questionsJson) {
       try {
         const parsed = JSON.parse(existing.questionsJson);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          initialQuestions = parsed.map(q => typeof q === 'string' ? q : (q.questionText || q.question || ''));
+          const mapped = parsed.map(q => typeof q === 'string' ? q : (q.questionText || q.question || ''));
+          // If schedule still has the old 3 sample questions, auto-upgrade to 7 standard questions
+          const isOldSample = mapped.length === 3 && mapped.some(q => q.toLowerCase().includes("membaca al-qur'an"));
+          if (!isOldSample) {
+            initialQuestions = mapped;
+          }
         }
       } catch (e) { }
     }
@@ -779,9 +794,14 @@ async function openScheduleFormModal(scheduleId = null) {
                   Pertanyaan ini akan otomatis tampil di lembar wawancara setiap peserta pada jadwal ini.
                 </div>
               </div>
-              <button type="button" onclick="handleAddQuestionItem()" class="btn btn-sm btn-primary" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
-                <i class="fa-solid fa-plus"></i> Tambah Pertanyaan
-              </button>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" onclick="handleLoadDefaultQuestions()" class="btn btn-sm btn-outline-primary" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; border-radius: 8px;">
+                  <i class="fa-solid fa-rotate-left"></i> Muat 7 Pertanyaan Standar
+                </button>
+                <button type="button" onclick="handleAddQuestionItem()" class="btn btn-sm btn-primary" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; border-radius: 8px;">
+                  <i class="fa-solid fa-plus"></i> Tambah Pertanyaan
+                </button>
+              </div>
             </div>
 
             <div id="schedule-questions-list" style="display: flex; flex-direction: column; gap: 10px;">
@@ -988,6 +1008,23 @@ function handleUpdateQuestionText(index, text) {
 function handleRemoveQuestionItem(index) {
   window.interviewScheduleFormState.questions.splice(index, 1);
   renderScheduleQuestionsList();
+}
+
+function handleLoadDefaultQuestions() {
+  const defaultQuestions = [
+    "Motivasi masuk pesantren dan komitmen belajar",
+    "Ibadah keseharian santri (baca qur'an, sholat jamaah, sholat sunnah)",
+    "Kemandirian dan kesiapan tinggal di asrama",
+    "Pembiasaan sehari-hari (merokok, pertemanan, hubungan lawan jenis)",
+    "Kondisi ekonomi orang tua/wali",
+    "Hubungan dalam keluarga (status anak, kedekatan anak dengan orang tua)",
+    "Informasi Pondok Pesantren Maskumambang dari mana?"
+  ];
+  window.interviewScheduleFormState.questions = [...defaultQuestions];
+  renderScheduleQuestionsList();
+  if (typeof showToast === 'function') {
+    showToast('7 Pertanyaan standar wawancara berhasil dimuat ke dalam jadwal.', 'info');
+  }
 }
 
 async function handleSaveSchedule(e) {

@@ -986,9 +986,19 @@ export class InterviewService {
       ? dto.interviewerUserIds
       : (dto.interviewerUserId ? [dto.interviewerUserId] : []);
 
-    const questionsJson = dto.questions && Array.isArray(dto.questions)
+    const defaultQuestions = [
+      "Motivasi masuk pesantren dan komitmen belajar",
+      "Ibadah keseharian santri (baca qur'an, sholat jamaah, sholat sunnah)",
+      "Kemandirian dan kesiapan tinggal di asrama",
+      "Pembiasaan sehari-hari (merokok, pertemanan, hubungan lawan jenis)",
+      "Kondisi ekonomi orang tua/wali",
+      "Hubungan dalam keluarga (status anak, kedekatan anak dengan orang tua)",
+      "Informasi Pondok Pesantren Maskumambang dari mana?"
+    ];
+
+    const questionsJson = dto.questions && Array.isArray(dto.questions) && dto.questions.length > 0
       ? JSON.stringify(dto.questions)
-      : null;
+      : JSON.stringify(defaultQuestions);
 
     const schedule = await this.prisma.interviewSchedule.create({
       data: {
