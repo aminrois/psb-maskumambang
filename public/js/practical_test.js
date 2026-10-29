@@ -3229,12 +3229,15 @@ async function printPracticalCandidateSheet(candidateId, downloadPdf = false) {
   let c = null;
 
   try {
-    const [res, sRes] = await Promise.all([
-      apiRequest(`/api/practical-test/candidates/${candidateId}`),
-      apiRequest('/api/settings').catch(() => ({ success: false })),
-    ]);
+    let res;
+    try {
+      res = await apiRequest(`/api/practical-test/examiner/process/${candidateId}`);
+    } catch (e1) {
+      res = await apiRequest(`/api/practical-test/candidates/${candidateId}`);
+    }
+    const sRes = await apiRequest('/api/settings').catch(() => ({ success: false }));
 
-    if (!res.success || !res.data) throw new Error(res.message || 'Gagal memuat rincian santri.');
+    if (!res || !res.success || !res.data) throw new Error(res?.message || 'Gagal memuat rincian santri.');
     c = res.data;
     if (sRes && sRes.success && sRes.data) appSettings = sRes.data;
   } catch (err) {

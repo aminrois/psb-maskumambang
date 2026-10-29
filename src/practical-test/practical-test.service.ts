@@ -870,9 +870,14 @@ export class PracticalTestService {
   }
 
   async getCandidateDetail(registrationId: string) {
-    const reg = await this.prisma.registration.findUnique({
-      where: { id: registrationId },
+    const reg = await this.prisma.registration.findFirst({
+      where: {
+        OR: [{ id: registrationId }, { registrationNumber: registrationId }],
+      },
       include: {
+        user: {
+          select: { id: true, name: true, email: true, phoneNumber: true },
+        },
         individualParticipant: true,
         studentDetail: true,
         classProgram: {
@@ -898,6 +903,7 @@ export class PracticalTestService {
     const studentName =
       reg.studentDetail?.fullName ||
       reg.individualParticipant?.fullName ||
+      reg.user?.name ||
       'Calon Santri';
 
     const p = reg.practicalTest;

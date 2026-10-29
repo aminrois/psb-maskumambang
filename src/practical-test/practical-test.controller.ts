@@ -167,7 +167,11 @@ export class PracticalTestController {
     );
   }
 
-  @Get('examiner/process/:registrationId')
+  @Get([
+    'examiner/process/:registrationId',
+    'candidates/:registrationId',
+    'admin/candidates/:registrationId',
+  ])
   @Roles(Role.PETUGAS_TES_PRAKTIK, Role.SUPER_ADMIN, Role.ADMIN)
   async getCandidateDetail(@Param('registrationId') registrationId: string) {
     return this.practicalTestService.getCandidateDetail(registrationId);
