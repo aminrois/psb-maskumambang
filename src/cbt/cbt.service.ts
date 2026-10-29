@@ -784,6 +784,29 @@ export class CbtService {
       },
     });
 
+    const exams = await this.prisma.cBTExam.findMany({
+      include: {
+        questions: {
+          where: { type: CBTQuestionType.MULTIPLE_CHOICE },
+          orderBy: { orderNumber: 'asc' },
+          select: {
+            id: true,
+            orderNumber: true,
+            type: true,
+            options: {
+              orderBy: { orderNumber: 'asc' },
+              select: {
+                id: true,
+                orderNumber: true,
+                isCorrect: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const examBySchoolMap = new Map(exams.map((e) => [e.schoolId, e]));
+
     const results = registrations.map((r) => {
       const candidateName =
         r.studentDetail?.fullName ||
@@ -843,6 +866,47 @@ export class CbtService {
         }
       }
 
+      const schoolId = r.classProgram.major.school.id;
+      const schoolExam = examBySchoolMap.get(schoolId);
+      const mcQuestions = schoolExam?.questions || [];
+
+      const studentAnswersMap = attempt
+        ? new Map((attempt.answers || []).map((a) => [a.questionId, a]))
+        : new Map();
+
+      const mcAnswers = mcQuestions.map((q, idx) => {
+        const correctOpt = (q.options || []).find((o) => o.isCorrect);
+        const keyLetter =
+          correctOpt != null && correctOpt.orderNumber != null
+            ? String.fromCharCode(65 + correctOpt.orderNumber)
+            : '-';
+
+        const ans = studentAnswersMap.get(q.id);
+        if (!ans || !ans.selectedOptionId) {
+          return {
+            no: idx + 1,
+            key: keyLetter,
+            answer: '-',
+            isCorrect: null,
+          };
+        }
+
+        const chosenOpt = (q.options || []).find(
+          (o) => o.id === ans.selectedOptionId,
+        );
+        const chosenLetter =
+          chosenOpt != null && chosenOpt.orderNumber != null
+            ? String.fromCharCode(65 + chosenOpt.orderNumber)
+            : '-';
+
+        return {
+          no: idx + 1,
+          key: keyLetter,
+          answer: chosenLetter,
+          isCorrect: ans.isCorrect === true,
+        };
+      });
+
       return {
         registrationId: r.id,
         registrationNumber: r.registrationNumber,
@@ -850,6 +914,7 @@ export class CbtService {
         schoolName: r.classProgram.major.school.name,
         majorName: r.classProgram.major.name,
         classProgramName: r.classProgram.name,
+        mcAnswers,
         attempt: attempt
           ? {
               id: attempt.id,

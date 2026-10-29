@@ -1668,16 +1668,10 @@ tr.has-active-dropdown {
 }
 
 /* Freeze Columns */
+.cbt-freeze-left,
 .cbt-freeze-left-1 {
   position: sticky !important;
   left: 0;
-  z-index: 5;
-  background: var(--bg-card) !important;
-}
-
-.cbt-freeze-left-2 {
-  position: sticky !important;
-  left: 50px;
   z-index: 5;
   background: var(--bg-card) !important;
   box-shadow: 4px 0 8px -3px rgba(0, 0, 0, 0.12) !important;
@@ -1692,15 +1686,15 @@ tr.has-active-dropdown {
 }
 
 /* Ensure sticky headers stay above sticky body cells */
+thead th.cbt-freeze-left,
 thead th.cbt-freeze-left-1,
-thead th.cbt-freeze-left-2,
 thead th.cbt-freeze-right {
   z-index: 15 !important;
 }
 
 /* Ensure row hover updates sticky column cell background */
+table.table tbody tr:hover td.cbt-freeze-left,
 table.table tbody tr:hover td.cbt-freeze-left-1,
-table.table tbody tr:hover td.cbt-freeze-left-2,
 table.table tbody tr:hover td.cbt-freeze-right {
   background: var(--bg-hover, #f8fafc) !important;
 }

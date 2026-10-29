@@ -1887,14 +1887,6 @@ function enableCbtTableColumnResize(table) {
         const newWidth = Math.max(minW, startWidth + diff);
         currentTh.style.width = newWidth + 'px';
         currentTh.style.minWidth = newWidth + 'px';
-
-        // If resizing first freeze column (No), update second freeze column left offset
-        if (currentTh.classList.contains('cbt-freeze-left-1')) {
-          const sticky2Elements = table.querySelectorAll('.cbt-freeze-left-2');
-          sticky2Elements.forEach((el) => {
-            el.style.left = newWidth + 'px';
-          });
-        }
       };
 
       const onMouseUp = () => {
@@ -1933,7 +1925,7 @@ function renderCbtResultsTable() {
   if (pageRows.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="12" style="text-align: center; padding: 36px; color: var(--text-muted);">
+        <td colspan="11" style="text-align: center; padding: 36px; color: var(--text-muted);">
           Tidak ada data peserta yang cocok dengan filter.
         </td>
       </tr>
@@ -1943,7 +1935,6 @@ function renderCbtResultsTable() {
   }
 
   tbody.innerHTML = pageRows.map((row, idx) => {
-    const globalIdx = startIndex + idx + 1;
     const att = row.attempt;
 
     let statusBadge = '<span class="badge badge-secondary" style="font-size: 0.75rem;">Belum Mulai</span>';
@@ -1972,13 +1963,8 @@ function renderCbtResultsTable() {
 
     return `
       <tr style="border-bottom: 1px solid var(--border-subtle);">
-        <!-- 1. No (Freeze Left 1) -->
-        <td class="cbt-freeze-left-1" style="padding: 12px 10px; text-align: center; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--border-subtle);">
-          ${globalIdx}
-        </td>
-
-        <!-- 2. Nama & No. Pendaftaran (Freeze Left 2) -->
-        <td class="cbt-freeze-left-2" style="padding: 12px 10px; border-bottom: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle);">
+        <!-- 1. Nama & No. Pendaftaran (Freeze Left) -->
+        <td class="cbt-freeze-left" style="padding: 12px 10px; border-bottom: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle);">
           <strong style="color: var(--text-heading); font-size: 0.9rem;">${escapeHtml(row.candidateName)}</strong>
           <div style="font-size: 0.75rem; color: var(--primary-600); font-family: monospace; font-weight: 700;">${row.registrationNumber}</div>
         </td>
@@ -2242,13 +2228,8 @@ async function loadCbtResultsTable() {
             <table id="cbt-results-main-table" class="table" style="width: 100%; min-width: 1350px; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; margin-bottom: 0;">
               <thead>
                 <tr style="text-align: left; color: var(--text-heading); background: var(--bg-card); position: sticky; top: 0; z-index: 10;">
-                  <!-- 1. No (Freeze Left 1) -->
-                  <th class="cbt-freeze-left-1" style="padding: 12px 10px; width: 50px; min-width: 50px; max-width: 50px; text-align: center; border-bottom: 2px solid var(--border-subtle);">
-                    No
-                  </th>
-
-                  <!-- 2. Nama & No. Pendaftaran (Freeze Left 2, Resizable) -->
-                  <th class="cbt-freeze-left-2 cbt-resizable-th" data-min-width="180" style="padding: 12px 10px; min-width: 240px; border-bottom: 2px solid var(--border-subtle); border-right: 1px solid var(--border-subtle);">
+                  <!-- 1. Nama & No. Pendaftaran (Freeze Left, Resizable) -->
+                  <th class="cbt-freeze-left cbt-resizable-th" data-min-width="200" style="padding: 12px 10px; min-width: 240px; border-bottom: 2px solid var(--border-subtle); border-right: 1px solid var(--border-subtle);">
                     <span>Nama & No. Pendaftaran</span>
                     <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
                   </th>
@@ -3286,32 +3267,112 @@ async function exportCbtResultsSummaryExcel() {
 
     const ws = wb.addWorksheet('Rekap Hasil CBT', { views: [{ showGridLines: true }] });
 
-    ws.columns = [
-      { header: 'No', key: 'no', width: 6 },
-      { header: 'No. Pendaftaran', key: 'regNo', width: 18 },
-      { header: 'Nama Lengkap Santri', key: 'name', width: 28 },
-      { header: 'Lembaga / Sekolah', key: 'school', width: 20 },
-      { header: 'Program Kelas', key: 'classProgram', width: 20 },
-      { header: 'Status Ujian', key: 'status', width: 14 },
-      { header: 'Durasi Ujian', key: 'duration', width: 14 },
-      { header: 'Benar', key: 'mcCorrect', width: 10 },
-      { header: 'Salah', key: 'mcIncorrect', width: 10 },
-      { header: 'Kosong', key: 'mcUnanswered', width: 10 },
-      { header: 'Akurasi (%)', key: 'accuracy', width: 12 },
-      { header: 'Nilai PG', key: 'mcScore', width: 12 },
-      { header: 'Nilai Essay', key: 'essayScore', width: 12 },
-      { header: 'Total Nilai (0-100)', key: 'totalScore', width: 16 },
-      { header: 'Status Penilaian', key: 'gradingStatus', width: 16 },
+    // Determine the max number of MC questions across the data
+    const sampleWithAnswers = data.find(d => Array.isArray(d.mcAnswers) && d.mcAnswers.length > 0);
+    const mcQuestionsCount = sampleWithAnswers ? sampleWithAnswers.mcAnswers.length : 0;
+
+    // Define Base Columns (1 to 15)
+    const baseColumns = [
+      { key: 'no', width: 6 },
+      { key: 'regNo', width: 18 },
+      { key: 'name', width: 28 },
+      { key: 'school', width: 22 },
+      { key: 'classProgram', width: 20 },
+      { key: 'status', width: 14 },
+      { key: 'duration', width: 14 },
+      { key: 'mcCorrect', width: 10 },
+      { key: 'mcIncorrect', width: 10 },
+      { key: 'mcUnanswered', width: 10 },
+      { key: 'accuracy', width: 12 },
+      { key: 'mcScore', width: 12 },
+      { key: 'essayScore', width: 12 },
+      { key: 'totalScore', width: 14 },
+      { key: 'gradingStatus', width: 16 },
     ];
 
-    // Style Header
-    const head = ws.getRow(1);
-    head.height = 26;
-    head.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
-    head.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
-    head.alignment = { horizontal: 'center', vertical: 'middle' };
+    const baseHeaders = [
+      'No',
+      'No. Pendaftaran',
+      'Nama Lengkap Santri',
+      'Lembaga / Sekolah',
+      'Program Kelas',
+      'Status Ujian',
+      'Durasi Ujian',
+      'Benar',
+      'Salah',
+      'Kosong',
+      'Akurasi (%)',
+      'Nilai PG',
+      'Nilai Essay',
+      'Total',
+      'Status Penilaian',
+    ];
 
+    // Combine base columns with dynamic question columns (width: 5.5 each)
+    const allColumns = [...baseColumns];
+    for (let q = 1; q <= mcQuestionsCount; q++) {
+      allColumns.push({ key: `q_${q}`, width: 5.5 });
+    }
+    ws.columns = allColumns;
+
+    // Row 1 & Row 2: Headers
+    const r1 = ws.getRow(1);
+    r1.height = 24;
+    const r2 = ws.getRow(2);
+    r2.height = 24;
+
+    baseHeaders.forEach((title, idx) => {
+      const colNum = idx + 1;
+      ws.mergeCells(1, colNum, 2, colNum);
+      const cell = ws.getCell(1, colNum);
+      cell.value = title;
+      cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      };
+    });
+
+    // Populate Row 1 & Row 2 for MC Question Columns
+    for (let q = 0; q < mcQuestionsCount; q++) {
+      const colNum = 16 + q;
+      const qNum = q + 1;
+      const keyLetter = sampleWithAnswers?.mcAnswers?.[q]?.key || '-';
+
+      // Row 1: Question Number (1, 2, 3...)
+      const cell1 = ws.getCell(1, colNum);
+      cell1.value = qNum;
+      cell1.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+      cell1.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell1.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      };
+
+      // Row 2: Answer Key (C, B, A, A, B...)
+      const cell2 = ws.getCell(2, colNum);
+      cell2.value = keyLetter;
+      cell2.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF0F172A' } };
+      cell2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+      cell2.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell2.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'medium', color: { argb: 'FF64748B' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      };
+    }
+
+    // Populate Data Rows starting from Row 3
     data.forEach((row, idx) => {
+      const rowNum = 3 + idx;
       const att = row.attempt;
       let statusStr = 'Belum Mulai';
       if (att) {
@@ -3329,42 +3390,82 @@ async function exportCbtResultsSummaryExcel() {
 
       const isCompleted = att && (att.status === 'COMPLETED' || att.status === 'EXPIRED');
 
-      const r = ws.addRow({
-        no: idx + 1,
-        regNo: row.registrationNumber,
-        name: row.candidateName,
-        school: row.schoolName,
-        classProgram: row.classProgramName,
-        status: statusStr,
-        duration: isCompleted ? (att.durationFormatted || '-') : '-',
-        mcCorrect: isCompleted ? (att.mcCorrect || 0) : 0,
-        mcIncorrect: isCompleted ? (att.mcIncorrect || 0) : 0,
-        mcUnanswered: isCompleted ? (att.mcUnanswered || 0) : 0,
-        accuracy: isCompleted ? `${att.accuracyPercentage || 0}%` : '-',
-        mcScore: isCompleted && att.multipleChoiceScore != null ? Number(att.multipleChoiceScore).toFixed(2) : 0,
-        essayScore: isCompleted && att.essayScore != null ? Number(att.essayScore).toFixed(2) : 0,
-        totalScore: isCompleted && att.totalScore != null ? Number(att.totalScore).toFixed(2) : 0,
-        gradingStatus: gradingStr,
-      });
-
+      const r = ws.getRow(rowNum);
       r.height = 20;
-      r.alignment = { vertical: 'middle' };
-      r.getCell('no').alignment = { vertical: 'middle', horizontal: 'center' };
-      r.getCell('regNo').alignment = { vertical: 'middle', horizontal: 'center' };
-      r.getCell('status').alignment = { vertical: 'middle', horizontal: 'center' };
-      r.getCell('mcScore').alignment = { vertical: 'middle', horizontal: 'center' };
-      r.getCell('essayScore').alignment = { vertical: 'middle', horizontal: 'center' };
-      r.getCell('totalScore').alignment = { vertical: 'middle', horizontal: 'center' };
-      r.getCell('totalScore').font = { bold: true, color: { argb: 'FF166534' } };
-      r.getCell('gradingStatus').alignment = { vertical: 'middle', horizontal: 'center' };
 
-      for (let c = 1; c <= 10; c++) {
-        r.getCell(c).border = {
+      // Base Columns Values
+      r.getCell(1).value = idx + 1;
+      r.getCell(2).value = row.registrationNumber;
+      r.getCell(3).value = row.candidateName;
+      r.getCell(4).value = row.schoolName;
+      r.getCell(5).value = row.classProgramName;
+      r.getCell(6).value = statusStr;
+      r.getCell(7).value = isCompleted ? (att.durationFormatted || '-') : '-';
+      r.getCell(8).value = isCompleted ? (att.mcCorrect || 0) : 0;
+      r.getCell(9).value = isCompleted ? (att.mcIncorrect || 0) : 0;
+      r.getCell(10).value = isCompleted ? (att.mcUnanswered || 0) : 0;
+      r.getCell(11).value = isCompleted ? `${att.accuracyPercentage || 0}%` : '-';
+      r.getCell(12).value = isCompleted && att.multipleChoiceScore != null ? Number(att.multipleChoiceScore).toFixed(2) : 0;
+      r.getCell(13).value = isCompleted && att.essayScore != null ? Number(att.essayScore).toFixed(2) : 0;
+      r.getCell(14).value = isCompleted && att.totalScore != null ? Number(att.totalScore).toFixed(2) : 0;
+      r.getCell(15).value = gradingStr;
+
+      // Alignments & borders for base columns
+      for (let c = 1; c <= 15; c++) {
+        const cell = r.getCell(c);
+        cell.alignment = { vertical: 'middle', horizontal: [1, 2, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].includes(c) ? 'center' : 'left' };
+        cell.font = { name: 'Arial', size: 9 };
+        if (c === 14) {
+          cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF166534' } };
+        }
+        cell.border = {
           top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
           bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
           left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
           right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         };
+      }
+
+      // Populate Question Answer Columns (16 onwards)
+      for (let q = 0; q < mcQuestionsCount; q++) {
+        const colNum = 16 + q;
+        const cell = r.getCell(colNum);
+        const item = row.mcAnswers ? row.mcAnswers[q] : null;
+
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        if (!item || !item.answer || item.answer === '-') {
+          cell.value = '-';
+          cell.font = { name: 'Arial', size: 9, color: { argb: 'FF94A3B8' } };
+        } else {
+          cell.value = item.answer;
+
+          if (item.isCorrect === true) {
+            // BENAR -> Background Hijau
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF16A34A' },
+            };
+            cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+          } else if (item.isCorrect === false) {
+            // SALAH -> Background Merah
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFEF4444' },
+            };
+            cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+          } else {
+            cell.font = { name: 'Arial', size: 9 };
+          }
+        }
       }
     });
 
