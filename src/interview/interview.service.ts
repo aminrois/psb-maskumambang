@@ -2350,7 +2350,11 @@ export class InterviewService {
   ) {
     let interview = await this.prisma.interview.findFirst({
       where: {
-        OR: [{ id: interviewId }, { registrationId: interviewId }],
+        OR: [
+          { id: interviewId },
+          { registrationId: interviewId },
+          { registration: { registrationNumber: interviewId } },
+        ],
       },
     });
 
@@ -2359,18 +2363,36 @@ export class InterviewService {
         where: {
           OR: [{ id: interviewId }, { registrationNumber: interviewId }],
         },
+        include: { interview: true },
       });
       if (!reg) throw new NotFoundException('Data registrasi santri tidak ditemukan.');
 
-      interview = await this.prisma.interview.create({
-        data: {
-          registrationId: reg.id,
-          status: body.status || InterviewStatus.COMPLETED,
-          recommendation: body.recommendation || InterviewRecommendation.RECOMMENDED,
-          generalNotes: body.generalNotes || 'Diverifikasi Lulus Wawancara oleh Admin',
-          completedAt: new Date(),
-        },
-      });
+      if (reg.interview) {
+        interview = await this.prisma.interview.update({
+          where: { id: reg.interview.id },
+          data: {
+            status: body.status || InterviewStatus.COMPLETED,
+            recommendation:
+              body.recommendation ||
+              reg.interview.recommendation ||
+              InterviewRecommendation.RECOMMENDED,
+            ...(body.generalNotes && { generalNotes: body.generalNotes }),
+            completedAt: new Date(),
+          },
+        });
+      } else {
+        interview = await this.prisma.interview.create({
+          data: {
+            registrationId: reg.id,
+            status: body.status || InterviewStatus.COMPLETED,
+            recommendation:
+              body.recommendation || InterviewRecommendation.RECOMMENDED,
+            generalNotes:
+              body.generalNotes || 'Diverifikasi Lulus Wawancara oleh Admin',
+            completedAt: new Date(),
+          },
+        });
+      }
     } else {
       interview = await this.prisma.interview.update({
         where: { id: interview.id },

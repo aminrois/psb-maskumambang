@@ -526,7 +526,7 @@ export class InterviewController {
   }
 
   // --- Peserta Wawancara ---
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PEWAWANCARA)
   @Get('admin/participants')
   async listParticipants(
     @Query('search') search?: string,
@@ -719,7 +719,7 @@ export class InterviewController {
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PEWAWANCARA)
-  @Post('admin/verify/:interviewId')
+  @Post(['admin/verify/:interviewId', 'verify/:interviewId'])
   async adminVerifyInterview(
     @Param('interviewId') interviewId: string,
     @CurrentUser() user: any,

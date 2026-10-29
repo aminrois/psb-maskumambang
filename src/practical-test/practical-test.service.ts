@@ -593,9 +593,10 @@ export class PracticalTestService {
     const limit = Math.max(1, Math.min(100, parseInt(query.limit || '20', 10)));
     const skip = (page - 1) * limit;
 
-    const where: any = {
-      formStatus: 'VERIFIED',
-    };
+    const where: any = {};
+    if (!query.search?.trim()) {
+      where.formStatus = 'VERIFIED';
+    }
 
     if (query.schoolId) {
       where.classProgram = {
@@ -626,6 +627,7 @@ export class PracticalTestService {
             { individualParticipant: { fullName: { contains: s, mode: 'insensitive' } } },
             { studentDetail: { fullName: { contains: s, mode: 'insensitive' } } },
             { studentDetail: { nisn: { contains: s, mode: 'insensitive' } } },
+            { user: { name: { contains: s, mode: 'insensitive' } } },
           ],
         },
       ];
@@ -639,6 +641,9 @@ export class PracticalTestService {
         take: limit,
         orderBy: [{ createdAt: 'desc' }],
         include: {
+          user: {
+            select: { id: true, name: true, email: true, phoneNumber: true },
+          },
           individualParticipant: true,
           studentDetail: true,
           classProgram: {
@@ -673,6 +678,7 @@ export class PracticalTestService {
         studentName:
           reg.studentDetail?.fullName ||
           reg.individualParticipant?.fullName ||
+          reg.user?.name ||
           'Calon Santri',
         gender:
           reg.studentDetail?.gender ||
@@ -1119,8 +1125,10 @@ export class PracticalTestService {
     },
     user: any,
   ) {
-    const reg = await this.prisma.registration.findUnique({
-      where: { id: registrationId },
+    const reg = await this.prisma.registration.findFirst({
+      where: {
+        OR: [{ id: registrationId }, { registrationNumber: registrationId }],
+      },
       include: { practicalTest: true },
     });
     if (!reg) throw new NotFoundException('Calon santri tidak ditemukan.');
@@ -1133,9 +1141,9 @@ export class PracticalTestService {
     const testStatus = body.status || PracticalTestStatus.COMPLETED;
 
     const updated = await this.prisma.practicalTest.upsert({
-      where: { registrationId },
+      where: { registrationId: reg.id },
       create: {
-        registrationId,
+        registrationId: reg.id,
         examinerId: user?.id || null,
         examinerName: user?.name || 'Administrator',
         btqScore: btq,
@@ -1171,7 +1179,8 @@ export class PracticalTestService {
         targetTable: 'practical_tests',
         targetId: updated.id,
         details: JSON.stringify({
-          registrationId,
+          registrationId: reg.id,
+          registrationNumber: reg.registrationNumber,
           status: updated.status,
           totalScore: updated.totalScore,
           verifiedBy: user?.name || 'Admin',

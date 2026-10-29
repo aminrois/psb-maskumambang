@@ -2950,7 +2950,7 @@ function handleExemptInterviewCandidateSearch(searchTerm) {
   exemptInterviewSearchTimer = setTimeout(async () => {
     try {
       const res = await apiRequest(`/api/interview/admin/participants?search=${encodeURIComponent(term)}&perPage=15`);
-      const candidates = (res && res.success && res.data) ? (res.data.items || res.data) : [];
+      const candidates = (res && res.success) ? (Array.isArray(res.data) ? res.data : (res.data?.items || res.items || [])) : [];
       if (!Array.isArray(candidates) || candidates.length === 0) {
         resultsDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">Tidak ditemukan calon santri dengan kata kunci tersebut.</div>';
         return;

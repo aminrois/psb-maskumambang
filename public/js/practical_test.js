@@ -3752,17 +3752,22 @@ function handleExemptPracticalCandidateSearch(searchTerm) {
 
   exemptPracticalSearchTimer = setTimeout(async () => {
     try {
-      const res = await apiRequest(`/api/practical-test/ready-candidates?search=${encodeURIComponent(term)}&limit=15`);
-      const candidates = (res && res.success && res.data) ? (res.data.items || res.data) : [];
+      let res;
+      try {
+        res = await apiRequest(`/api/practical-test/admin/candidates/ready?search=${encodeURIComponent(term)}&limit=15`);
+      } catch (e1) {
+        res = await apiRequest(`/api/practical-test/ready-candidates?search=${encodeURIComponent(term)}&limit=15`);
+      }
+      const candidates = (res && res.success) ? (Array.isArray(res.data) ? res.data : (res.data?.items || res.items || [])) : [];
       if (!Array.isArray(candidates) || candidates.length === 0) {
         resultsDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">Tidak ditemukan calon santri dengan kata kunci tersebut.</div>';
         return;
       }
 
       resultsDiv.innerHTML = candidates.map(c => {
-        const regId = c.id;
+        const regId = c.id || c.registrationId;
         const regNum = c.registrationNumber || '';
-        const name = c.studentName || c.participantName || c.candidateName || c.name || c.fullName || (c.studentDetail?.fullName) || (c.individualParticipant?.fullName) || 'Calon Santri';
+        const name = c.studentName || c.participantName || c.candidateName || c.name || c.fullName || (c.studentDetail?.fullName) || (c.individualParticipant?.fullName) || (c.user?.name) || 'Calon Santri';
         const schoolProg = `${c.schoolName || ''} ${(c.className || c.programName) ? '• ' + (c.className || c.programName) : ''}`;
         const isDone = c.practicalStatus === 'COMPLETED';
 

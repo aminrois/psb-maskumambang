@@ -127,7 +127,7 @@ export class PracticalTestController {
     );
   }
 
-  @Get('admin/candidates/ready')
+  @Get(['admin/candidates/ready', 'ready-candidates'])
   @Roles(Role.PETUGAS_TES_PRAKTIK, Role.SUPER_ADMIN, Role.ADMIN)
   async listReadyCandidates(@Query() query: PracticalCandidateFilterDto) {
     return this.practicalTestService.listReadyCandidates(query);
@@ -193,7 +193,7 @@ export class PracticalTestController {
     return this.practicalTestService.getRecapReport();
   }
 
-  @Post('admin/verify/:registrationId')
+  @Post(['admin/verify/:registrationId', 'verify/:registrationId'])
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PETUGAS_TES_PRAKTIK)
   async adminVerifyPracticalTest(
     @Param('registrationId') registrationId: string,
