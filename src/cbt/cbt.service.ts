@@ -777,6 +777,7 @@ export class CbtService {
                 isCorrect: true,
                 selectedOptionId: true,
                 essayAnswer: true,
+                score: true,
               },
             },
           },
@@ -787,12 +788,12 @@ export class CbtService {
     const exams = await this.prisma.cBTExam.findMany({
       include: {
         questions: {
-          where: { type: CBTQuestionType.MULTIPLE_CHOICE },
           orderBy: { orderNumber: 'asc' },
           select: {
             id: true,
             orderNumber: true,
             type: true,
+            score: true,
             options: {
               orderBy: { orderNumber: 'asc' },
               select: {
@@ -868,45 +869,80 @@ export class CbtService {
 
       const schoolId = r.classProgram.major.school.id;
       const schoolExam = examBySchoolMap.get(schoolId);
-      const mcQuestions = schoolExam?.questions || [];
+      const allQuestions = schoolExam?.questions || [];
 
       const studentAnswersMap = attempt
         ? new Map((attempt.answers || []).map((a) => [a.questionId, a]))
         : new Map();
 
-      const mcAnswers = mcQuestions.map((q, idx) => {
-        const correctOpt = (q.options || []).find((o) => o.isCorrect);
-        const keyLetter =
-          correctOpt != null && correctOpt.orderNumber != null
-            ? String.fromCharCode(65 + correctOpt.orderNumber)
-            : '-';
-
-        const ans = studentAnswersMap.get(q.id);
+      const mcAnswers = allQuestions.map((q, idx) => {
         const qNumber = q.orderNumber != null ? q.orderNumber : idx + 1;
+        const ans = studentAnswersMap.get(q.id);
+        const isMC = q.type === CBTQuestionType.MULTIPLE_CHOICE;
 
-        if (!ans || !ans.selectedOptionId) {
+        if (isMC) {
+          const correctOpt = (q.options || []).find((o) => o.isCorrect);
+          const keyLetter =
+            correctOpt != null && correctOpt.orderNumber != null
+              ? String.fromCharCode(65 + correctOpt.orderNumber)
+              : '-';
+
+          if (!ans || !ans.selectedOptionId) {
+            return {
+              no: qNumber,
+              type: 'MC',
+              key: keyLetter,
+              answer: '-',
+              isCorrect: null,
+            };
+          }
+
+          const chosenOpt = (q.options || []).find(
+            (o) => o.id === ans.selectedOptionId,
+          );
+          const chosenLetter =
+            chosenOpt != null && chosenOpt.orderNumber != null
+              ? String.fromCharCode(65 + chosenOpt.orderNumber)
+              : '-';
+
           return {
             no: qNumber,
+            type: 'MC',
             key: keyLetter,
-            answer: '-',
+            answer: chosenLetter,
+            isCorrect: ans.isCorrect === true,
+          };
+        } else {
+          // ESSAY QUESTION
+          const keyText = 'Essay';
+          const writtenAnswer =
+            ans && ans.essayAnswer ? ans.essayAnswer.trim() : '';
+
+          const isGraded =
+            attempt?.gradingStatus === CBTGradingStatus.GRADED ||
+            (ans && ans.score != null);
+
+          if (isGraded) {
+            const awardedScore =
+              ans && ans.score != null ? Number(ans.score) : 0;
+            return {
+              no: qNumber,
+              type: 'ESSAY',
+              key: keyText,
+              answer: writtenAnswer || '(Kosong)',
+              isCorrect: awardedScore > 0,
+            };
+          }
+
+          // Not graded yet / in progress
+          return {
+            no: qNumber,
+            type: 'ESSAY',
+            key: keyText,
+            answer: writtenAnswer || '-',
             isCorrect: null,
           };
         }
-
-        const chosenOpt = (q.options || []).find(
-          (o) => o.id === ans.selectedOptionId,
-        );
-        const chosenLetter =
-          chosenOpt != null && chosenOpt.orderNumber != null
-            ? String.fromCharCode(65 + chosenOpt.orderNumber)
-            : '-';
-
-        return {
-          no: qNumber,
-          key: keyLetter,
-          answer: chosenLetter,
-          isCorrect: ans.isCorrect === true,
-        };
       });
 
       return {

@@ -3308,11 +3308,13 @@ async function exportCbtResultsSummaryExcel() {
       'Status Penilaian',
     ];
 
-    // Combine base columns with dynamic question columns (width: 5.5 each)
+    // Combine base columns with dynamic question columns (width: 5.5 for PG, 16 for Essay)
     const allColumns = [...baseColumns];
     for (let q = 0; q < mcQuestionsCount; q++) {
-      const qNum = sampleWithAnswers?.mcAnswers?.[q]?.no || (q + 1);
-      allColumns.push({ key: `q_${qNum}`, width: 5.5 });
+      const item = sampleWithAnswers?.mcAnswers?.[q];
+      const qNum = item?.no || (q + 1);
+      const colWidth = item?.type === 'ESSAY' ? 16 : 5.5;
+      allColumns.push({ key: `q_${qNum}`, width: colWidth });
     }
     ws.columns = allColumns;
 
@@ -3338,17 +3340,19 @@ async function exportCbtResultsSummaryExcel() {
       };
     });
 
-    // Populate Row 1 & Row 2 for MC Question Columns
+    // Populate Row 1 & Row 2 for Question Columns (PG 1-55 & 71-85, Essay 56-70)
     for (let q = 0; q < mcQuestionsCount; q++) {
       const colNum = 16 + q;
-      const qNum = sampleWithAnswers?.mcAnswers?.[q]?.no || (q + 1);
-      const keyLetter = sampleWithAnswers?.mcAnswers?.[q]?.key || '-';
+      const item = sampleWithAnswers?.mcAnswers?.[q];
+      const qNum = item?.no || (q + 1);
+      const isEssay = item?.type === 'ESSAY';
+      const keyLetter = isEssay ? 'Essay' : (item?.key || '-');
 
-      // Row 1: Question Number (e.g. 1-55, 71-85)
+      // Row 1: Question Number (e.g. 1-85)
       const cell1 = ws.getCell(1, colNum);
       cell1.value = qNum;
       cell1.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
-      cell1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF334155' } };
+      cell1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEssay ? 'FF475569' : 'FF334155' } };
       cell1.alignment = { horizontal: 'center', vertical: 'middle' };
       cell1.border = {
         top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
@@ -3357,10 +3361,10 @@ async function exportCbtResultsSummaryExcel() {
         right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
       };
 
-      // Row 2: Answer Key (C, B, A, A, B...)
+      // Row 2: Answer Key (PG letter or Essay label)
       const cell2 = ws.getCell(2, colNum);
       cell2.value = keyLetter;
-      cell2.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF0F172A' } };
+      cell2.font = { name: 'Arial', size: isEssay ? 8 : 9, bold: true, color: { argb: 'FF0F172A' } };
       cell2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
       cell2.alignment = { horizontal: 'center', vertical: 'middle' };
       cell2.border = {
@@ -3439,13 +3443,14 @@ async function exportCbtResultsSummaryExcel() {
           left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
           right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
         };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
 
         if (!item || !item.answer || item.answer === '-') {
           cell.value = '-';
           cell.font = { name: 'Arial', size: 9, color: { argb: 'FF94A3B8' } };
         } else {
           cell.value = item.answer;
+          const fontSize = item.type === 'ESSAY' ? 8.5 : 9;
 
           if (item.isCorrect === true) {
             // BENAR -> Background Hijau
@@ -3454,7 +3459,7 @@ async function exportCbtResultsSummaryExcel() {
               pattern: 'solid',
               fgColor: { argb: 'FF16A34A' },
             };
-            cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.font = { name: 'Arial', size: fontSize, bold: true, color: { argb: 'FFFFFFFF' } };
           } else if (item.isCorrect === false) {
             // SALAH -> Background Merah
             cell.fill = {
@@ -3462,9 +3467,9 @@ async function exportCbtResultsSummaryExcel() {
               pattern: 'solid',
               fgColor: { argb: 'FFEF4444' },
             };
-            cell.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };
+            cell.font = { name: 'Arial', size: fontSize, bold: true, color: { argb: 'FFFFFFFF' } };
           } else {
-            cell.font = { name: 'Arial', size: 9 };
+            cell.font = { name: 'Arial', size: fontSize, color: { argb: 'FF1E293B' } };
           }
         }
       }
