@@ -1796,19 +1796,18 @@ async function loadCbtResultsTable() {
     const data = res.data;
     window.cbtResultsData = data;
 
+    // Compute summary statistics
+    const completedList = data.filter(r => r.attempt && (r.attempt.status === 'COMPLETED' || r.attempt.status === 'EXPIRED'));
+    const scores = completedList.map(r => r.attempt.totalScore != null ? Number(r.attempt.totalScore) : 0);
+    const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '-';
+    const maxScore = scores.length > 0 ? Math.max(...scores).toFixed(1) : '-';
+    const minScore = scores.length > 0 ? Math.min(...scores).toFixed(1) : '-';
+
+    const durations = completedList.filter(r => r.attempt.durationSeconds > 0).map(r => r.attempt.durationSeconds);
+    const avgDurSec = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
+    const avgDurationStr = avgDurSec > 0 ? `${Math.floor(avgDurSec / 60)}m ${avgDurSec % 60}s` : '-';
+
     slot.innerHTML = `
-      // Compute summary statistics
-      const completedList = data.filter(r => r.attempt && (r.attempt.status === 'COMPLETED' || r.attempt.status === 'EXPIRED'));
-      const scores = completedList.map(r => r.attempt.totalScore != null ? Number(r.attempt.totalScore) : 0);
-      const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '-';
-      const maxScore = scores.length > 0 ? Math.max(...scores).toFixed(1) : '-';
-      const minScore = scores.length > 0 ? Math.min(...scores).toFixed(1) : '-';
-
-      const durations = completedList.filter(r => r.attempt.durationSeconds > 0).map(r => r.attempt.durationSeconds);
-      const avgDurSec = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
-      const avgDurationStr = avgDurSec > 0 ? `${Math.floor(avgDurSec / 60)}m ${avgDurSec % 60}s` : '-';
-
-      slot.innerHTML = `
         <!-- Executive Statistics Cards -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
           <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px; border-left: 4px solid var(--primary-600);">
