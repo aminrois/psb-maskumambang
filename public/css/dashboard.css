@@ -1645,4 +1645,118 @@ tr.has-active-dropdown {
   text-align: left;
 }
 
+/* Column Resizing Handle */
+.cbt-resizable-th {
+  position: relative;
+}
+
+.cbt-col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  cursor: col-resize;
+  user-select: none;
+  height: 100%;
+  z-index: 20;
+  transition: background 0.15s ease;
+}
+
+.cbt-col-resizer:hover,
+.cbt-col-resizer.is-resizing {
+  background: var(--primary-600, #166534);
+}
+
+/* Freeze Columns */
+.cbt-freeze-left-1 {
+  position: sticky !important;
+  left: 0;
+  z-index: 5;
+  background: var(--bg-card) !important;
+}
+
+.cbt-freeze-left-2 {
+  position: sticky !important;
+  left: 50px;
+  z-index: 5;
+  background: var(--bg-card) !important;
+  box-shadow: 4px 0 8px -3px rgba(0, 0, 0, 0.12) !important;
+}
+
+.cbt-freeze-right {
+  position: sticky !important;
+  right: 0;
+  z-index: 5;
+  background: var(--bg-card) !important;
+  box-shadow: -4px 0 8px -3px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Ensure sticky headers stay above sticky body cells */
+thead th.cbt-freeze-left-1,
+thead th.cbt-freeze-left-2,
+thead th.cbt-freeze-right {
+  z-index: 15 !important;
+}
+
+/* Ensure row hover updates sticky column cell background */
+table.table tbody tr:hover td.cbt-freeze-left-1,
+table.table tbody tr:hover td.cbt-freeze-left-2,
+table.table tbody tr:hover td.cbt-freeze-right {
+  background: var(--bg-hover, #f8fafc) !important;
+}
+
+/* Pagination Styling */
+.cbt-pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.cbt-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cbt-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cbt-page-btn:hover:not(:disabled) {
+  border-color: var(--primary-600);
+  color: var(--primary-600);
+  background: var(--bg-hover, #f8fafc);
+}
+
+.cbt-page-btn.active {
+  background: var(--primary-600, #166534);
+  color: #ffffff;
+  border-color: var(--primary-600, #166534);
+}
+
+.cbt-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 

@@ -1843,6 +1843,286 @@ function enableCbtTableDragToScroll(container) {
   });
 }
 
+// State for CBT Results Pagination
+window.cbtResultsPageState = {
+  currentPage: 1,
+  pageSize: 25,
+};
+
+function setCbtResultsPageSize(size) {
+  window.cbtResultsPageState.pageSize = Number(size) || 25;
+  window.cbtResultsPageState.currentPage = 1;
+  renderCbtResultsTable();
+}
+
+function changeCbtResultsPage(page) {
+  window.cbtResultsPageState.currentPage = Number(page) || 1;
+  renderCbtResultsTable();
+}
+
+function enableCbtTableColumnResize(table) {
+  if (!table) return;
+  const resizers = table.querySelectorAll('.cbt-col-resizer');
+  let currentTh = null;
+  let startX = 0;
+  let startWidth = 0;
+  let isResizing = false;
+
+  resizers.forEach((resizer) => {
+    resizer.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      currentTh = resizer.parentElement;
+      startX = e.pageX;
+      startWidth = currentTh.offsetWidth;
+      isResizing = true;
+      resizer.classList.add('is-resizing');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      const onMouseMove = (moveEvent) => {
+        if (!isResizing || !currentTh) return;
+        const diff = moveEvent.pageX - startX;
+        const minW = parseInt(currentTh.getAttribute('data-min-width') || '60', 10);
+        const newWidth = Math.max(minW, startWidth + diff);
+        currentTh.style.width = newWidth + 'px';
+        currentTh.style.minWidth = newWidth + 'px';
+
+        // If resizing first freeze column (No), update second freeze column left offset
+        if (currentTh.classList.contains('cbt-freeze-left-1')) {
+          const sticky2Elements = table.querySelectorAll('.cbt-freeze-left-2');
+          sticky2Elements.forEach((el) => {
+            el.style.left = newWidth + 'px';
+          });
+        }
+      };
+
+      const onMouseUp = () => {
+        isResizing = false;
+        if (resizer) resizer.classList.remove('is-resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+    });
+  });
+}
+
+function renderCbtResultsTable() {
+  const data = window.cbtResultsData || [];
+  const tbody = document.getElementById('cbt-results-tbody');
+  const paginationContainer = document.getElementById('cbt-results-pagination-container');
+  if (!tbody) return;
+
+  const totalItems = data.length;
+  const pageSize = window.cbtResultsPageState.pageSize || 25;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  let currentPage = window.cbtResultsPageState.currentPage || 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  window.cbtResultsPageState.currentPage = currentPage;
+
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const pageRows = data.slice(startIndex, endIndex);
+
+  if (pageRows.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="12" style="text-align: center; padding: 36px; color: var(--text-muted);">
+          Tidak ada data peserta yang cocok dengan filter.
+        </td>
+      </tr>
+    `;
+    if (paginationContainer) paginationContainer.innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = pageRows.map((row, idx) => {
+    const globalIdx = startIndex + idx + 1;
+    const att = row.attempt;
+
+    let statusBadge = '<span class="badge badge-secondary" style="font-size: 0.75rem;">Belum Mulai</span>';
+    if (att) {
+      if (att.status === 'IN_PROGRESS') {
+        statusBadge = '<span class="badge badge-warning" style="font-size: 0.75rem;"><i class="fa-solid fa-clock fa-spin"></i> Sedang Ujian</span>';
+      } else if (att.status === 'COMPLETED') {
+        statusBadge = '<span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> Selesai</span>';
+      } else if (att.status === 'EXPIRED') {
+        statusBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-size: 0.75rem; font-weight: 700;">Waktu Habis</span>';
+      }
+    }
+
+    let gradingBadge = '-';
+    if (att && (att.status === 'COMPLETED' || att.status === 'EXPIRED')) {
+      if (att.gradingStatus === 'GRADED') {
+        gradingBadge = '<span class="badge badge-success" style="font-size: 0.7rem;"><i class="fa-solid fa-check"></i> Sudah Dinilai</span>';
+      } else if (att.gradingStatus === 'NEEDS_ESSAY_GRADING') {
+        gradingBadge = '<span class="badge badge-warning" style="font-size: 0.7rem;"><i class="fa-solid fa-triangle-exclamation"></i> Perlu Nilai Essay</span>';
+      } else {
+        gradingBadge = '<span class="badge badge-secondary" style="font-size: 0.7rem;">Belum Dinilai</span>';
+      }
+    }
+
+    const isCompleted = att && (att.status === 'COMPLETED' || att.status === 'EXPIRED');
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border-subtle);">
+        <!-- 1. No (Freeze Left 1) -->
+        <td class="cbt-freeze-left-1" style="padding: 12px 10px; text-align: center; color: var(--text-muted); font-weight: 700; border-bottom: 1px solid var(--border-subtle);">
+          ${globalIdx}
+        </td>
+
+        <!-- 2. Nama & No. Pendaftaran (Freeze Left 2) -->
+        <td class="cbt-freeze-left-2" style="padding: 12px 10px; border-bottom: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle);">
+          <strong style="color: var(--text-heading); font-size: 0.9rem;">${escapeHtml(row.candidateName)}</strong>
+          <div style="font-size: 0.75rem; color: var(--primary-600); font-family: monospace; font-weight: 700;">${row.registrationNumber}</div>
+        </td>
+
+        <!-- 3. Program Kelas -->
+        <td style="padding: 12px 10px; border-bottom: 1px solid var(--border-subtle);">
+          <div style="font-weight: 600; color: var(--text-heading);">${escapeHtml(row.classProgramName)}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(row.schoolName)}</div>
+        </td>
+
+        <!-- 4. Durasi -->
+        <td style="padding: 12px 10px; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--text-dim); border-bottom: 1px solid var(--border-subtle);">
+          ${isCompleted ? (att.durationFormatted || '-') : '-'}
+        </td>
+
+        <!-- 5. Benar -->
+        <td style="padding: 12px 10px; text-align: center; border-bottom: 1px solid var(--border-subtle);">
+          ${isCompleted ? `
+            <span class="badge" style="background: rgba(22, 163, 74, 0.12); color: #16a34a; font-weight: 800; font-size: 0.82rem; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="${att.mcCorrect || 0} Soal PG Benar">
+              <i class="fa-solid fa-check"></i> ${att.mcCorrect || 0}
+            </span>
+          ` : '-'}
+        </td>
+
+        <!-- 6. Salah -->
+        <td style="padding: 12px 10px; text-align: center; border-bottom: 1px solid var(--border-subtle);">
+          ${isCompleted ? `
+            <span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-weight: 800; font-size: 0.82rem; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="${att.mcIncorrect || 0} Soal PG Salah">
+              <i class="fa-solid fa-xmark"></i> ${att.mcIncorrect || 0}
+            </span>
+            ${att.mcUnanswered > 0 ? `<div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;" title="${att.mcUnanswered} soal kosong">(${att.mcUnanswered} Kosong)</div>` : ''}
+          ` : '-'}
+        </td>
+
+        <!-- 7. Nilai PG -->
+        <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: var(--text-heading); border-bottom: 1px solid var(--border-subtle);">
+          ${isCompleted && att.multipleChoiceScore != null ? att.multipleChoiceScore.toFixed(2) : '-'}
+        </td>
+
+        <!-- 8. Nilai Essay -->
+        <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: #6366f1; border-bottom: 1px solid var(--border-subtle);">
+          ${isCompleted && att.essayScore != null ? att.essayScore.toFixed(2) : '-'}
+        </td>
+
+        <!-- 9. Total (Renamed from Total (0-100)) -->
+        <td style="padding: 12px 10px; text-align: center; font-weight: 800; color: #16a34a; font-size: 1rem; border-bottom: 1px solid var(--border-subtle);">
+          ${isCompleted && att.totalScore != null ? att.totalScore.toFixed(2) : '-'}
+        </td>
+
+        <!-- 10. Status Ujian (Dipindah ke SETELAH Total) -->
+        <td style="padding: 12px 10px; text-align: center; border-bottom: 1px solid var(--border-subtle);">
+          ${statusBadge}
+        </td>
+
+        <!-- 11. Penilaian -->
+        <td style="padding: 12px 10px; border-bottom: 1px solid var(--border-subtle);">
+          ${gradingBadge}
+        </td>
+
+        <!-- 12. Aksi (Freeze Right) -->
+        <td class="cbt-freeze-right" style="padding: 12px 10px; text-align: center; white-space: nowrap; border-bottom: 1px solid var(--border-subtle); border-left: 1px solid var(--border-subtle);">
+          ${att ? `
+            <div class="dropdown" style="position: relative; display: inline-block;">
+              <button type="button" class="btn btn-sm btn-secondary" onclick="toggleCbtActionDropdown(event, '${att.id}')" style="padding: 5px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; border-radius: var(--radius-md);">
+                <span>Aksi</span>
+                <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
+              </button>
+              <div id="cbt-dd-${att.id}" class="cbt-action-dropdown-menu">
+                <a href="javascript:void(0)" onclick="openCbtResultDetailModal('${att.id}'); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                  <i class="fa-solid fa-eye" style="width: 16px; color: var(--primary-600);"></i>
+                  <span>Detail & Penilaian</span>
+                </a>
+                <a href="javascript:void(0)" onclick="printSingleStudentCbtResult('${att.id}'); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                  <i class="fa-solid fa-print" style="width: 16px; color: #64748b;"></i>
+                  <span>Cetak Hasil CBT</span>
+                </a>
+                <a href="javascript:void(0)" onclick="exportSingleStudentCbtExcel('${att.id}', this); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                  <i class="fa-solid fa-file-excel" style="width: 16px; color: #16a34a;"></i>
+                  <span>Unduh Excel Siswa</span>
+                </a>
+                <div style="border-top: 1px solid var(--border-subtle); margin: 4px 0;"></div>
+                <a href="javascript:void(0)" onclick="openResetCbtModal('${att.id}', '${_escapeQuotes(row.candidateName)}'); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--danger-600); text-decoration: none; font-weight: 600;" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='transparent'">
+                  <i class="fa-solid fa-rotate-left" style="width: 16px; color: var(--danger-600);"></i>
+                  <span>Reset Ujian</span>
+                </a>
+              </div>
+            </div>
+          ` : `
+            <span style="font-size: 0.75rem; color: var(--text-dim);">-</span>
+          `}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Generate pagination buttons
+  if (paginationContainer) {
+    let pageButtons = '';
+    const maxVisible = 5;
+    let pStart = Math.max(1, currentPage - 2);
+    let pEnd = Math.min(totalPages, pStart + maxVisible - 1);
+    if (pEnd - pStart < maxVisible - 1) {
+      pStart = Math.max(1, pEnd - maxVisible + 1);
+    }
+
+    if (pStart > 1) {
+      pageButtons += `<button type="button" class="cbt-page-btn" onclick="changeCbtResultsPage(1)">1</button>`;
+      if (pStart > 2) pageButtons += `<span style="padding: 0 4px; color: var(--text-dim);">...</span>`;
+    }
+
+    for (let p = pStart; p <= pEnd; p++) {
+      pageButtons += `<button type="button" class="cbt-page-btn ${p === currentPage ? 'active' : ''}" onclick="changeCbtResultsPage(${p})">${p}</button>`;
+    }
+
+    if (pEnd < totalPages) {
+      if (pEnd < totalPages - 1) pageButtons += `<span style="padding: 0 4px; color: var(--text-dim);">...</span>`;
+      pageButtons += `<button type="button" class="cbt-page-btn" onclick="changeCbtResultsPage(${totalPages})">${totalPages}</button>`;
+    }
+
+    paginationContainer.innerHTML = `
+      <div class="cbt-pagination-wrapper">
+        <div>
+          Menampilkan <strong>${totalItems > 0 ? startIndex + 1 : 0}</strong> s/d <strong>${endIndex}</strong> dari <strong>${totalItems}</strong> peserta
+        </div>
+        <div class="cbt-pagination-pages">
+          <button type="button" class="cbt-page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changeCbtResultsPage(${currentPage - 1})" title="Halaman Sebelumnya">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          ${pageButtons}
+          <button type="button" class="cbt-page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changeCbtResultsPage(${currentPage + 1})" title="Halaman Berikutnya">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Enable column resizer
+  const tableEl = document.getElementById('cbt-results-main-table');
+  if (tableEl) {
+    enableCbtTableColumnResize(tableEl);
+  }
+}
+
 async function loadCbtResultsTable() {
   const slot = document.getElementById('cbt-results-table-slot');
   if (!slot) return;
@@ -1865,7 +2145,33 @@ async function loadCbtResultsTable() {
     if (!res.success || !res.data) throw new Error(res.message || 'Gagal memuat data hasil ujian.');
 
     const data = res.data;
+
+    // 1. Default sort: Urutkan dari yang sudah mengerjakan CBT
+    data.sort((a, b) => {
+      const getPriority = (item) => {
+        if (!item.attempt) return 4;
+        if (item.attempt.status === 'COMPLETED') return 1;
+        if (item.attempt.status === 'IN_PROGRESS') return 2;
+        if (item.attempt.status === 'EXPIRED') return 3;
+        return 4;
+      };
+
+      const pA = getPriority(a);
+      const pB = getPriority(b);
+      if (pA !== pB) return pA - pB;
+
+      if (pA === 1) {
+        const timeA = a.attempt?.completedAt ? new Date(a.attempt.completedAt).getTime() : 0;
+        const timeB = b.attempt?.completedAt ? new Date(b.attempt.completedAt).getTime() : 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return (b.attempt?.totalScore || 0) - (a.attempt?.totalScore || 0);
+      }
+
+      return (a.candidateName || '').localeCompare(b.candidateName || '');
+    });
+
     window.cbtResultsData = data;
+    window.cbtResultsPageState.currentPage = 1;
 
     // Compute summary statistics
     const completedList = data.filter(r => r.attempt && (r.attempt.status === 'COMPLETED' || r.attempt.status === 'EXPIRED'));
@@ -1908,165 +2214,130 @@ async function loadCbtResultsTable() {
         </div>
 
         <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-sm);">
-          <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div>Total <strong>${data.length}</strong> peserta pendaftaran eligible.</div>
-            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-              <div style="font-size: 0.75rem; color: var(--primary-600); font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
-                <i class="fa-solid fa-arrows-left-right"></i> Tabel dapat digeser kanan / kiri
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <div>Total <strong>${data.length}</strong> peserta eligible.</div>
+              <!-- 6. Pilihan Tampil 10 s/d 100 data -->
+              <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--bg-body); padding: 3px 8px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                <label for="cbt-res-pagesize" style="font-size: 0.78rem; color: var(--text-heading); font-weight: 700;">Tampil:</label>
+                <select id="cbt-res-pagesize" style="border: none; background: transparent; font-size: 0.8rem; font-weight: 700; color: var(--primary-600); cursor: pointer; outline: none;" onchange="setCbtResultsPageSize(this.value)">
+                  <option value="10" ${window.cbtResultsPageState.pageSize === 10 ? 'selected' : ''}>10</option>
+                  <option value="25" ${window.cbtResultsPageState.pageSize === 25 ? 'selected' : ''}>25</option>
+                  <option value="50" ${window.cbtResultsPageState.pageSize === 50 ? 'selected' : ''}>50</option>
+                  <option value="100" ${window.cbtResultsPageState.pageSize === 100 ? 'selected' : ''}>100</option>
+                </select>
+                <span style="font-size: 0.78rem; color: var(--text-dim);">data/hal</span>
               </div>
-              <div style="font-size: 0.75rem; color: var(--text-dim);"><i class="fa-solid fa-calculator"></i> Nilai rumus terstandar skala 0 - 100</div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+              <div style="font-size: 0.75rem; color: var(--primary-600); font-weight: 600; display: inline-flex; align-items: center; gap: 5px;" title="Tarik garis tepi kolom untuk melebarkan/menyempitkan kolom">
+                <i class="fa-solid fa-arrows-left-right"></i> Kolom dapat diatur lebarnya & freeze nama/aksi
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);"><i class="fa-solid fa-calculator"></i> Skala nilai 0 s.d. 100</div>
             </div>
           </div>
 
-          ${data.length === 0 ? `
-            <div style="text-align: center; padding: 36px; color: var(--text-muted);">
-              Tidak ada data peserta yang cocok dengan filter.
-            </div>
-          ` : `
-            <div class="cbt-table-responsive-wrapper" id="cbt-results-scroll-container">
-              <table class="table" style="width: 100%; min-width: 1320px; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 0;">
-                <thead>
-                  <tr style="border-bottom: 2px solid var(--border-subtle); text-align: left; color: var(--text-heading); background: var(--bg-card); position: sticky; top: 0; z-index: 2;">
-                    <th style="padding: 12px 10px; width: 45px; text-align: center;">No</th>
-                    <th style="padding: 12px 10px; min-width: 220px;">Nama & No. Pendaftaran</th>
-                    <th style="padding: 12px 10px; min-width: 160px;">Program Kelas</th>
-                    <th style="padding: 12px 10px; min-width: 120px;">Status Ujian</th>
-                    <th style="padding: 12px 10px; min-width: 110px; text-align: center;">Durasi</th>
-                    <th style="padding: 12px 10px; min-width: 80px; text-align: center; color: #16a34a;">Benar</th>
-                    <th style="padding: 12px 10px; min-width: 80px; text-align: center; color: #ef4444;">Salah</th>
-                    <th style="padding: 12px 10px; min-width: 90px; text-align: center;">Nilai PG</th>
-                    <th style="padding: 12px 10px; min-width: 90px; text-align: center; color: #6366f1;">Nilai Essay</th>
-                    <th style="padding: 12px 10px; min-width: 105px; text-align: center; color: #16a34a;">Total (0-100)</th>
-                    <th style="padding: 12px 10px; min-width: 125px;">Penilaian</th>
-                    <th style="padding: 12px 10px; min-width: 100px; text-align: center;">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${data.map((row, idx) => {
-                    const att = row.attempt;
+          <div class="cbt-table-responsive-wrapper" id="cbt-results-scroll-container">
+            <table id="cbt-results-main-table" class="table" style="width: 100%; min-width: 1350px; border-collapse: separate; border-spacing: 0; font-size: 0.85rem; margin-bottom: 0;">
+              <thead>
+                <tr style="text-align: left; color: var(--text-heading); background: var(--bg-card); position: sticky; top: 0; z-index: 10;">
+                  <!-- 1. No (Freeze Left 1) -->
+                  <th class="cbt-freeze-left-1" style="padding: 12px 10px; width: 50px; min-width: 50px; max-width: 50px; text-align: center; border-bottom: 2px solid var(--border-subtle);">
+                    No
+                  </th>
 
-                    let statusBadge = '<span class="badge badge-secondary" style="font-size: 0.75rem;">Belum Mulai</span>';
-                    if (att) {
-                      if (att.status === 'IN_PROGRESS') {
-                        statusBadge = '<span class="badge badge-warning" style="font-size: 0.75rem;"><i class="fa-solid fa-clock fa-spin"></i> Sedang Ujian</span>';
-                      } else if (att.status === 'COMPLETED') {
-                        statusBadge = '<span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> Selesai</span>';
-                      } else if (att.status === 'EXPIRED') {
-                        statusBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-size: 0.75rem; font-weight: 700;">Waktu Habis</span>';
-                      }
-                    }
+                  <!-- 2. Nama & No. Pendaftaran (Freeze Left 2, Resizable) -->
+                  <th class="cbt-freeze-left-2 cbt-resizable-th" data-min-width="180" style="padding: 12px 10px; min-width: 240px; border-bottom: 2px solid var(--border-subtle); border-right: 1px solid var(--border-subtle);">
+                    <span>Nama & No. Pendaftaran</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
 
-                    let gradingBadge = '-';
-                    if (att && (att.status === 'COMPLETED' || att.status === 'EXPIRED')) {
-                      if (att.gradingStatus === 'GRADED') {
-                        gradingBadge = '<span class="badge badge-success" style="font-size: 0.7rem;"><i class="fa-solid fa-check"></i> Sudah Dinilai</span>';
-                      } else if (att.gradingStatus === 'NEEDS_ESSAY_GRADING') {
-                        gradingBadge = '<span class="badge badge-warning" style="font-size: 0.7rem;"><i class="fa-solid fa-triangle-exclamation"></i> Perlu Nilai Essay</span>';
-                      } else {
-                        gradingBadge = '<span class="badge badge-secondary" style="font-size: 0.7rem;">Belum Dinilai</span>';
-                      }
-                    }
+                  <!-- 3. Program Kelas (Resizable) -->
+                  <th class="cbt-resizable-th" data-min-width="130" style="padding: 12px 10px; min-width: 160px; border-bottom: 2px solid var(--border-subtle);">
+                    <span>Program Kelas</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
 
-                    const isCompleted = att && (att.status === 'COMPLETED' || att.status === 'EXPIRED');
+                  <!-- 4. Durasi (Resizable) -->
+                  <th class="cbt-resizable-th" data-min-width="90" style="padding: 12px 10px; min-width: 110px; text-align: center; border-bottom: 2px solid var(--border-subtle);">
+                    <span>Durasi</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
 
-                    return `
-                      <tr style="border-bottom: 1px solid var(--border-subtle);">
-                        <td style="padding: 12px 10px; text-align: center; color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
-                        <td style="padding: 12px 10px;">
-                          <strong style="color: var(--text-heading); font-size: 0.9rem;">${escapeHtml(row.candidateName)}</strong>
-                          <div style="font-size: 0.75rem; color: var(--primary-600); font-family: monospace; font-weight: 700;">${row.registrationNumber}</div>
-                        </td>
-                        <td style="padding: 12px 10px;">
-                          <div style="font-weight: 600; color: var(--text-heading);">${escapeHtml(row.classProgramName)}</div>
-                          <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(row.schoolName)}</div>
-                        </td>
-                        <td style="padding: 12px 10px;">
-                          ${statusBadge}
-                        </td>
-                        <td style="padding: 12px 10px; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">
-                          ${isCompleted ? (att.durationFormatted || '-') : '-'}
-                        </td>
-                        <!-- Kolom Benar (Terpisah) -->
-                        <td style="padding: 12px 10px; text-align: center;">
-                          ${isCompleted ? `
-                            <span class="badge" style="background: rgba(22, 163, 74, 0.12); color: #16a34a; font-weight: 800; font-size: 0.82rem; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="${att.mcCorrect || 0} Soal PG Benar">
-                              <i class="fa-solid fa-check"></i> ${att.mcCorrect || 0}
-                            </span>
-                          ` : '-'}
-                        </td>
-                        <!-- Kolom Salah (Terpisah) -->
-                        <td style="padding: 12px 10px; text-align: center;">
-                          ${isCompleted ? `
-                            <span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-weight: 800; font-size: 0.82rem; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="${att.mcIncorrect || 0} Soal PG Salah">
-                              <i class="fa-solid fa-xmark"></i> ${att.mcIncorrect || 0}
-                            </span>
-                            ${att.mcUnanswered > 0 ? `<div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;" title="${att.mcUnanswered} soal kosong">(${att.mcUnanswered} Kosong)</div>` : ''}
-                          ` : '-'}
-                        </td>
-                        <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: var(--text-heading);">
-                          ${isCompleted && att.multipleChoiceScore != null ? att.multipleChoiceScore.toFixed(2) : '-'}
-                        </td>
-                        <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: #6366f1;">
-                          ${isCompleted && att.essayScore != null ? att.essayScore.toFixed(2) : '-'}
-                        </td>
-                        <td style="padding: 12px 10px; text-align: center; font-weight: 800; color: #16a34a; font-size: 1rem;">
-                          ${isCompleted && att.totalScore != null ? att.totalScore.toFixed(2) : '-'}
-                        </td>
-                        <td style="padding: 12px 10px;">
-                          ${gradingBadge}
-                        </td>
-                        <!-- Kolom Aksi Dropdown -->
-                        <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
-                          ${att ? `
-                            <div class="dropdown" style="position: relative; display: inline-block;">
-                              <button type="button" class="btn btn-sm btn-secondary" onclick="toggleCbtActionDropdown(event, '${att.id}')" style="padding: 5px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; border-radius: var(--radius-md);">
-                                <span>Aksi</span>
-                                <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
-                              </button>
-                              <div id="cbt-dd-${att.id}" class="cbt-action-dropdown-menu">
-                                <a href="javascript:void(0)" onclick="openCbtResultDetailModal('${att.id}'); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
-                                  <i class="fa-solid fa-eye" style="width: 16px; color: var(--primary-600);"></i>
-                                  <span>Detail & Penilaian</span>
-                                </a>
-                                <a href="javascript:void(0)" onclick="printSingleStudentCbtResult('${att.id}'); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
-                                  <i class="fa-solid fa-print" style="width: 16px; color: #64748b;"></i>
-                                  <span>Cetak Hasil CBT</span>
-                                </a>
-                                <a href="javascript:void(0)" onclick="exportSingleStudentCbtExcel('${att.id}', this); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
-                                  <i class="fa-solid fa-file-excel" style="width: 16px; color: #16a34a;"></i>
-                                  <span>Unduh Excel Siswa</span>
-                                </a>
-                                <div style="border-top: 1px solid var(--border-subtle); margin: 4px 0;"></div>
-                                <a href="javascript:void(0)" onclick="openResetCbtModal('${att.id}', '${_escapeQuotes(row.candidateName)}'); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--danger-600); text-decoration: none; font-weight: 600;" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='transparent'">
-                                  <i class="fa-solid fa-rotate-left" style="width: 16px; color: var(--danger-600);"></i>
-                                  <span>Reset Ujian</span>
-                                </a>
-                              </div>
-                            </div>
-                          ` : `
-                            <span style="font-size: 0.75rem; color: var(--text-dim);">-</span>
-                          `}
-                        </td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
-            </div>
-          `}
+                  <!-- 5. Benar (Resizable) -->
+                  <th class="cbt-resizable-th" data-min-width="70" style="padding: 12px 10px; min-width: 80px; text-align: center; color: #16a34a; border-bottom: 2px solid var(--border-subtle);">
+                    <span>Benar</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
+
+                  <!-- 6. Salah (Resizable) -->
+                  <th class="cbt-resizable-th" data-min-width="70" style="padding: 12px 10px; min-width: 80px; text-align: center; color: #ef4444; border-bottom: 2px solid var(--border-subtle);">
+                    <span>Salah</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
+
+                  <!-- 7. Nilai PG (Resizable) -->
+                  <th class="cbt-resizable-th" data-min-width="80" style="padding: 12px 10px; min-width: 90px; text-align: center; border-bottom: 2px solid var(--border-subtle);">
+                    <span>Nilai PG</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
+
+                  <!-- 8. Nilai Essay (Resizable) -->
+                  <th class="cbt-resizable-th" data-min-width="80" style="padding: 12px 10px; min-width: 90px; text-align: center; color: #6366f1; border-bottom: 2px solid var(--border-subtle);">
+                    <span>Nilai Essay</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
+
+                  <!-- 9. Total (Renamed from Total (0-100), Resizable) -->
+                  <th class="cbt-resizable-th" data-min-width="80" style="padding: 12px 10px; min-width: 95px; text-align: center; color: #16a34a; border-bottom: 2px solid var(--border-subtle);">
+                    <span>Total</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
+
+                  <!-- 10. Status Ujian (Dipindah ke SETELAH Total, Resizable) -->
+                  <th class="cbt-resizable-th" data-min-width="110" style="padding: 12px 10px; min-width: 120px; text-align: center; border-bottom: 2px solid var(--border-subtle);">
+                    <span>Status Ujian</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
+
+                  <!-- 11. Penilaian (Resizable) -->
+                  <th class="cbt-resizable-th" data-min-width="110" style="padding: 12px 10px; min-width: 125px; border-bottom: 2px solid var(--border-subtle);">
+                    <span>Penilaian</span>
+                    <div class="cbt-col-resizer" title="Geser untuk mengatur lebar kolom"></div>
+                  </th>
+
+                  <!-- 12. Aksi (Freeze Right) -->
+                  <th class="cbt-freeze-right" style="padding: 12px 10px; width: 95px; min-width: 95px; text-align: center; border-bottom: 2px solid var(--border-subtle); border-left: 1px solid var(--border-subtle);">
+                    Aksi
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="cbt-results-tbody">
+                <!-- Sliced and rendered dynamically by renderCbtResultsTable -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Container -->
+          <div id="cbt-results-pagination-container"></div>
         </div>
       `;
 
-      // Enable drag to scroll for smooth horizontal navigation
-      const scrollContainer = document.getElementById('cbt-results-scroll-container');
-      if (scrollContainer) {
-        enableCbtTableDragToScroll(scrollContainer);
-      }
+    // Render paginated rows and enable handlers
+    renderCbtResultsTable();
+
+    // Enable drag to scroll for horizontal container navigation
+    const scrollContainer = document.getElementById('cbt-results-scroll-container');
+    if (scrollContainer) {
+      enableCbtTableDragToScroll(scrollContainer);
+    }
 
   } catch (err) {
     slot.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
   }
 }
+
 
 // ----------------------------------------------------------------------------
 // RESULT DETAIL & ESSAY GRADING MODAL
@@ -5427,5 +5698,10 @@ window.handleSaveUniformWeight = handleSaveUniformWeight;
 window.printSingleStudentCbtResult = printSingleStudentCbtResult;
 window.toggleCbtActionDropdown = toggleCbtActionDropdown;
 window.closeAllCbtActionDropdowns = closeAllCbtActionDropdowns;
+window.setCbtResultsPageSize = setCbtResultsPageSize;
+window.changeCbtResultsPage = changeCbtResultsPage;
+window.renderCbtResultsTable = renderCbtResultsTable;
+window.enableCbtTableColumnResize = enableCbtTableColumnResize;
+
 
 

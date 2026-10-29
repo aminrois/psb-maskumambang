@@ -784,7 +784,7 @@ export class CbtService {
       },
     });
 
-    return registrations.map((r) => {
+    const results = registrations.map((r) => {
       const candidateName =
         r.studentDetail?.fullName ||
         r.individualParticipant?.fullName ||
@@ -874,6 +874,32 @@ export class CbtService {
           : null,
       };
     });
+
+    // Default sort: Candidates who completed CBT appear at the top
+    results.sort((a, b) => {
+      const getPriority = (item: (typeof results)[0]) => {
+        if (!item.attempt) return 4;
+        if (item.attempt.status === 'COMPLETED') return 1;
+        if (item.attempt.status === 'IN_PROGRESS') return 2;
+        if (item.attempt.status === 'EXPIRED') return 3;
+        return 4;
+      };
+
+      const pA = getPriority(a);
+      const pB = getPriority(b);
+      if (pA !== pB) return pA - pB;
+
+      if (pA === 1) {
+        const timeA = a.attempt?.completedAt ? new Date(a.attempt.completedAt).getTime() : 0;
+        const timeB = b.attempt?.completedAt ? new Date(b.attempt.completedAt).getTime() : 0;
+        if (timeB !== timeA) return timeB - timeA;
+        return (b.attempt?.totalScore || 0) - (a.attempt?.totalScore || 0);
+      }
+
+      return (a.candidateName || '').localeCompare(b.candidateName || '');
+    });
+
+    return results;
   }
 
   /**
