@@ -600,7 +600,10 @@ async function renderInterviewerProcess(identifier) {
                   <div style="font-size: 0.85rem; color: var(--text-muted);">
                     <i class="fa-solid fa-shield-halved" style="color: #16a34a;"></i> Data otomatis tersimpan saat Anda menekan tombol.
                   </div>
-                  <div class="btn-action-group" style="display: flex; gap: 12px;">
+                  <div class="btn-action-group" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button type="button" onclick="if(typeof openExemptInterviewModal==='function'){openExemptInterviewModal('${iw.registrationId || iw.id}', '${escapeHtml(participant.registrationNumber || '')}', '${escapeHtml(participant.name || '')}', '${escapeHtml(participant.schoolName || '')}');}else{showInterviewToast('Fitur sedang dimuat...','warning');}" class="btn btn-outline-success" style="font-weight: 700; padding: 12px 18px; border-radius: 10px; border: 1.5px solid #16a34a; color: #16a34a;" title="Tandai Santri Bebas Wawancara">
+                      <i class="fa-solid fa-user-check"></i> Bebas Wawancara
+                    </button>
                     <button type="button" onclick="handleSaveDraft('${interviewId}')" class="btn btn-secondary" style="font-weight: 700; padding: 12px 20px; border-radius: 10px;">
                       <i class="fa-regular fa-floppy-disk"></i> Simpan Draft
                     </button>
@@ -624,25 +627,25 @@ async function renderInterviewerProcess(identifier) {
       </div>
     `;
 
-    // Initialize Rich Text Editors for initial questions
+    // Initialize Rich Text Editors for initial questions (spacious min-height 180px)
     initialQuestions.forEach((q, idx) => {
       const initialHtml = noteMap[q.questionText] || noteMap[q.questionId] || '';
       if (window.InterviewEditor) {
-        window.InterviewEditor.init(`editor_wrapper_initial_${idx}`, initialHtml, 'Tulis catatan respon santri...', '90px');
+        window.InterviewEditor.init(`editor_wrapper_initial_${idx}`, initialHtml, 'Tulis catatan respon santri...', '180px');
       }
     });
 
-    // Initialize Rich Text Editors for custom questions
+    // Initialize Rich Text Editors for custom questions (spacious min-height 180px)
     customQuestions.forEach((cq, idx) => {
       const customHtml = noteMap[cq.questionText] || noteMap[cq.questionId] || '';
       if (window.InterviewEditor) {
-        window.InterviewEditor.init(`editor_wrapper_custom_${idx}`, customHtml, 'Tulis catatan respon santri...', '90px');
+        window.InterviewEditor.init(`editor_wrapper_custom_${idx}`, customHtml, 'Tulis catatan respon santri...', '180px');
       }
     });
 
-    // Initialize General Notes Rich Text Editor
+    // Initialize General Notes Rich Text Editor (spacious min-height 180px)
     if (window.InterviewEditor) {
-      window.InterviewEditor.init('editor_wrapper_general_notes', iw.generalNotes || '', 'Tuliskan kesimpulan umum penilaian wawancara santri...', '120px');
+      window.InterviewEditor.init('editor_wrapper_general_notes', iw.generalNotes || '', 'Tuliskan kesimpulan umum penilaian wawancara santri...', '180px');
     }
 
     // Attach radio change visual styling

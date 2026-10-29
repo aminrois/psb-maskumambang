@@ -194,7 +194,7 @@ export class PracticalTestController {
   }
 
   @Post('admin/verify/:registrationId')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PETUGAS_TES_PRAKTIK)
   async adminVerifyPracticalTest(
     @Param('registrationId') registrationId: string,
     @CurrentUser() user: any,

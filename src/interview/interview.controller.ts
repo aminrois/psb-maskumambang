@@ -718,7 +718,7 @@ export class InterviewController {
     return { success: true, data };
   }
 
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PEWAWANCARA)
   @Post('admin/verify/:interviewId')
   async adminVerifyInterview(
     @Param('interviewId') interviewId: string,

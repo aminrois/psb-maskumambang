@@ -46,7 +46,7 @@
     return temp.innerHTML;
   }
 
-  function initRichEditor(targetElementId, initialContent = '', placeholder = 'Tulis catatan di sini...', minHeight = '100px') {
+  function initRichEditor(targetElementId, initialContent = '', placeholder = 'Tulis catatan di sini...', minHeight = '180px') {
     const wrapper = document.getElementById(targetElementId);
     if (!wrapper) return null;
 
@@ -91,7 +91,7 @@
           class="rich-editor-content" 
           contenteditable="true" 
           data-placeholder="${escapeHtml(placeholder)}"
-          style="min-height: ${minHeight}; max-height: 450px; overflow-y: auto; padding: 10px 14px; font-size: 0.9rem; line-height: 1.5; color: var(--text-main, #1e293b); outline: none;"
+          style="min-height: ${minHeight}; max-height: 600px; resize: vertical; overflow-y: auto; padding: 12px 16px; font-size: 0.925rem; line-height: 1.6; color: var(--text-main, #1e293b); outline: none;"
         >${cleanContent}</div>
       </div>
     `;

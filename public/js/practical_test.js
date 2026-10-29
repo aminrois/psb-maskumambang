@@ -1716,10 +1716,21 @@ async function loadPracticalCandidatesData() {
                     </span>
                   </td>
                   <td style="padding: 12px; text-align: right;">
-                    <button class="btn btn-sm ${isDone ? 'btn-secondary' : 'btn-primary'}" onclick="openPracticalEvaluationModal('${c.id}')" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; padding: 5px 10px;">
-                      <i class="fa-solid ${isDone ? 'fa-pen-to-square' : 'fa-clipboard-check'}"></i>
-                      ${isDone ? 'Ubah' : 'Nilai'}
-                    </button>
+                    <div style="display: flex; gap: 4px; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+                      <button class="btn btn-sm ${isDone ? 'btn-secondary' : 'btn-primary'}" onclick="openPracticalEvaluationModal('${c.id}')" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; padding: 5px 8px;" title="Input / Ubah Nilai Praktik">
+                        <i class="fa-solid ${isDone ? 'fa-pen-to-square' : 'fa-clipboard-check'}"></i>
+                        ${isDone ? 'Ubah' : 'Nilai'}
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="printPracticalCandidateSheet('${c.id}')" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; padding: 5px 8px;" title="Cetak Lembar Uji Santri (Kertas Penguji)">
+                        <i class="fa-solid fa-print"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-outline-primary" onclick="printPracticalCandidateSheet('${c.id}', true)" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; padding: 5px 8px;" title="Download PDF Lembar Uji Santri">
+                        <i class="fa-solid fa-file-pdf"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-success" onclick="openExemptPracticalModal('${c.id}', '${escapeHtml(c.registrationNumber)}', '${escapeHtml(c.studentName)}', '${escapeHtml(c.schoolName || '')}')" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; padding: 5px 8px; background: #16a34a; border-color: #16a34a; color: #fff;" title="Tandai Santri Bebas Tes Praktik">
+                        <i class="fa-solid fa-user-check"></i>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               `;
@@ -1844,9 +1855,20 @@ async function openPracticalEvaluationModal(registrationId) {
               </div>
             </div>
           </div>
-          <button onclick="closePracticalEvaluationModal()" style="background: none; border: none; font-size: 1.4rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px;">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="printPracticalCandidateSheet('${c.id}')" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 12px; font-size: 0.8rem;" title="Cetak Lembar Penilaian Santri untuk Penguji">
+              <i class="fa-solid fa-print"></i> Cetak
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="printPracticalCandidateSheet('${c.id}', true)" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 12px; font-size: 0.8rem;" title="Download Lembar Penilaian Santri sebagai PDF">
+              <i class="fa-solid fa-file-pdf" style="color: #ef4444;"></i> Download PDF
+            </button>
+            <button type="button" class="btn btn-success btn-sm" onclick="openExemptPracticalModal('${c.id}', '${escapeHtml(c.registrationNumber)}', '${escapeHtml(c.studentName)}', '${escapeHtml(c.schoolName || '')}')" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; padding: 6px 12px; font-size: 0.8rem; background: #16a34a; border-color: #16a34a; color: #fff;" title="Tandai Santri Bebas Tes Praktik (Lulus Otomatis)">
+              <i class="fa-solid fa-user-check"></i> Bebas Praktik
+            </button>
+            <button onclick="closePracticalEvaluationModal()" style="background: none; border: none; font-size: 1.4rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
         </div>
 
         <form id="practical-evaluation-form" onsubmit="handlePracticalScoreSubmit(event, '${c.id}')">
@@ -2252,6 +2274,9 @@ async function renderPracticalVerificationView() {
             </p>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn btn-success" onclick="openExemptPracticalModal()" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 700; background: #16a34a; border-color: #16a34a; color: #fff; padding: 8px 16px; border-radius: var(--radius-md, 8px);" title="Tandai Santri Bebas Tes Praktik (Dispensasi / Lulus Otomatis)">
+              <i class="fa-solid fa-user-check"></i> + Bebas Tes Praktik
+            </button>
             <button type="button" class="btn btn-outline-primary" onclick="printBlankPracticalForm()" style="border: 1px solid #0284c7; color: #0284c7; background: transparent; padding: 8px 16px; border-radius: var(--radius-md, 8px); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;" title="Cetak Blangko Penilaian Praktik Kosong untuk Penguji">
               <i class="fa-solid fa-print"></i> Cetak Form Kosong
             </button>
@@ -2475,8 +2500,11 @@ async function loadPracticalVerificationTable() {
                         <button type="button" class="btn btn-sm btn-primary" onclick="openPracticalVerifyModal('${item.id}')" style="padding: 5px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Verifikasi atau Koreksi Nilai">
                           <i class="fa-solid fa-pen-to-square"></i> Verifikasi
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="printPracticalResult('${item.id}')" style="padding: 5px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Cetak Lembar Nilai Santri">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="printPracticalCandidateSheet('${item.id}')" style="padding: 5px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Cetak Lembar Uji / Nilai Santri">
                           <i class="fa-solid fa-print"></i> Cetak
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success" onclick="openExemptPracticalModal('${item.id}', '${escapeHtml(item.registrationNumber)}', '${escapeHtml(item.studentName)}', '${escapeHtml(item.schoolName || '')}')" style="padding: 5px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: #16a34a; border-color: #16a34a; color: #fff;" title="Tandai Santri Bebas Tes Praktik">
+                          <i class="fa-solid fa-user-check"></i> Bebas Praktik
                         </button>
                       </div>
                     </td>
@@ -3192,4 +3220,678 @@ window.closePracticalVerifyModal = closePracticalVerifyModal;
 window.submitPracticalVerify = submitPracticalVerify;
 window.printBlankPracticalForm = printBlankPracticalForm;
 window.printPracticalResult = printPracticalResult;
+
+// ============================================================================
+// LEMBAR EVALUASI & PENILAIAN TES PRAKTIK (PRINT & DOWNLOAD PDF UNTUK PENGUJI)
+// ============================================================================
+async function printPracticalCandidateSheet(candidateId, downloadPdf = false) {
+  let appSettings = window.appSettings || {};
+  let c = null;
+
+  try {
+    const [res, sRes] = await Promise.all([
+      apiRequest(`/api/practical-test/candidates/${candidateId}`),
+      apiRequest('/api/settings').catch(() => ({ success: false })),
+    ]);
+
+    if (!res.success || !res.data) throw new Error(res.message || 'Gagal memuat rincian santri.');
+    c = res.data;
+    if (sRes && sRes.success && sRes.data) appSettings = sRes.data;
+  } catch (err) {
+    if (typeof showToast === 'function') showToast(err.message || 'Gagal memuat data lembar penilaian.', 'danger');
+    else alert(err.message || 'Gagal memuat data lembar penilaian.');
+    return;
+  }
+
+  const rawLogo = appSettings.application_logo || 'logo_e7a8b6a95d.webp';
+  const logoUrl = (rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('/'))
+    ? rawLogo
+    : `/static/img/${rawLogo}`;
+  const appName = appSettings.application_name || 'Pondok Pesantren Maskumambang';
+
+  const p = c.practicalTest || {};
+  const btqVal = p.btqScore || null;
+  const wudhuVal = p.wudhuScore || null;
+  const salatVal = p.salatScore || null;
+  const avg = p.totalScore ? Number(p.totalScore).toFixed(2) : (btqVal && wudhuVal && salatVal ? ((btqVal + wudhuVal + salatVal) / 3).toFixed(2) : '-');
+  const examinerName = p.examinerName || (p.examiner?.name) || '...........................................';
+  const testDate = p.testedAt 
+    ? new Date(p.testedAt).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : '...........................................';
+
+  const printHtml = `
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8">
+      <title>Lembar Penilaian Tes Praktik - ${escapeHtml(c.studentName)}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body {
+          font-family: Arial, Helvetica, sans-serif;
+          color: #111827;
+          background: #ffffff;
+          margin: 0;
+          padding: 18px 24px;
+          font-size: 10pt;
+          line-height: 1.35;
+        }
+        .no-print {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .btn-print {
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-weight: 700;
+          cursor: pointer;
+          border: none;
+          font-size: 13px;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .header-kop {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          border-bottom: 3px double #1f2937;
+          padding-bottom: 10px;
+          margin-bottom: 12px;
+        }
+        .header-kop img {
+          width: 65px;
+          height: 65px;
+          object-fit: contain;
+        }
+        .kop-text h1 {
+          font-size: 14pt;
+          margin: 0;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+        }
+        .kop-text h2 {
+          font-size: 11.5pt;
+          margin: 2px 0;
+          color: #1e3a8a;
+          font-weight: 700;
+        }
+        .kop-text p {
+          font-size: 8.5pt;
+          color: #4b5563;
+          margin: 1px 0 0 0;
+        }
+        .doc-title {
+          text-align: center;
+          margin: 8px 0 12px 0;
+        }
+        .doc-title h3 {
+          font-size: 12pt;
+          font-weight: 800;
+          text-decoration: underline;
+          margin: 0;
+          text-transform: uppercase;
+        }
+        .doc-title p {
+          font-size: 8.5pt;
+          color: #4b5563;
+          margin: 2px 0 0 0;
+        }
+        .meta-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 12px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+        }
+        .meta-table td {
+          padding: 5px 8px;
+          font-size: 9pt;
+        }
+        .section-header {
+          background: #1e3a8a;
+          color: #ffffff;
+          padding: 4px 10px;
+          font-weight: 700;
+          font-size: 9.5pt;
+          margin: 10px 0 6px 0;
+          border-radius: 4px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .grid-cards {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 6px;
+          margin-bottom: 6px;
+        }
+        .card-opt {
+          border: 1.5px solid #cbd5e1;
+          border-radius: 6px;
+          padding: 6px 8px;
+          font-size: 8.5pt;
+          background: #ffffff;
+        }
+        .card-opt.selected {
+          border-color: #0284c7;
+          background: #f0f9ff;
+          font-weight: bold;
+        }
+        .card-opt-title {
+          font-weight: 800;
+          font-size: 8.5pt;
+          margin-bottom: 2px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+        }
+        .circle-check {
+          display: inline-block;
+          width: 15px;
+          height: 15px;
+          border-radius: 50%;
+          border: 1.5px solid #1e293b;
+          text-align: center;
+          line-height: 14px;
+          font-size: 8pt;
+          font-weight: bold;
+        }
+        .circle-check.checked {
+          background: #0284c7;
+          color: #ffffff;
+          border-color: #0284c7;
+        }
+        .notes-area {
+          border: 1px dashed #9ca3af;
+          border-radius: 4px;
+          padding: 6px 8px;
+          min-height: 38px;
+          font-size: 8.5pt;
+          margin-top: 4px;
+          background-image: repeating-linear-gradient(transparent, transparent 18px, #e5e7eb 19px);
+          line-height: 19px;
+        }
+        .summary-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 8px;
+        }
+        .summary-table th, .summary-table td {
+          border: 1px solid #1f2937;
+          padding: 5px 8px;
+          text-align: center;
+          font-size: 9pt;
+        }
+        .summary-table th {
+          background: #f3f4f6;
+          font-weight: 700;
+        }
+        .signature-box {
+          margin-top: 14px;
+          display: flex;
+          justify-content: space-between;
+          page-break-inside: avoid;
+        }
+        .sign-col {
+          text-align: center;
+          width: 210px;
+          font-size: 9pt;
+        }
+        .sign-line {
+          margin-top: 45px;
+          border-bottom: 1px solid #111827;
+          font-weight: 700;
+        }
+        @media print {
+          .no-print { display: none !important; }
+          body { padding: 0; }
+        }
+      </style>
+    </head>
+    <body>
+
+      <div class="no-print">
+        <div style="font-size: 0.85rem; color: #475569;">
+          <strong>Mode Lembar Evaluasi Santri:</strong> Dibawa penguji ke ruang tes atau diarsipkan setelah penilaian.
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-print" onclick="window.print()" style="background:#0284c7; color:#fff;">
+            🖨 Cetak Sekarang
+          </button>
+          <button class="btn-print" onclick="window.print()" style="background:#16a34a; color:#fff;">
+            📥 Simpan / Download PDF
+          </button>
+        </div>
+      </div>
+
+      <div class="header-kop">
+        <img src="${logoUrl}" alt="Logo">
+        <div class="kop-text">
+          <h1>PANITIA PENERIMAAN SANTRI BARU (PSB)</h1>
+          <h2>${escapeHtml(appName).toUpperCase()}</h2>
+          <p>Jl. Raya Maskumambang Dukun Gresik Jawa Timur 61153 • Website: maskumambang.ac.id</p>
+        </div>
+      </div>
+
+      <div class="doc-title">
+        <h3>LEMBAR EVALUASI & PENILAIAN TES PRAKTIK</h3>
+        <p>Instrumen Pengujian: Baca Tulis Al-Qur'an (BTQ), Praktik Wudhu & Salat Calon Santri</p>
+      </div>
+
+      <table class="meta-table">
+        <tr>
+          <td style="width: 18%; font-weight: 700;">No. Registrasi</td>
+          <td style="width: 32%;">: <strong>${escapeHtml(c.registrationNumber)}</strong></td>
+          <td style="width: 18%; font-weight: 700;">Hari / Tanggal</td>
+          <td style="width: 32%;">: ${testDate}</td>
+        </tr>
+        <tr>
+          <td style="font-weight: 700;">Nama Calon Santri</td>
+          <td>: <strong>${escapeHtml(c.studentName)}</strong></td>
+          <td style="font-weight: 700;">Pilihan Sekolah</td>
+          <td>: ${escapeHtml(c.schoolName)} (${escapeHtml(c.className || '-')})</td>
+        </tr>
+        <tr>
+          <td style="font-weight: 700;">Jenis Kelamin</td>
+          <td>: ${c.gender === 'L' ? 'Laki-laki (L)' : 'Perempuan (P)'}</td>
+          <td style="font-weight: 700;">Penguji Praktik</td>
+          <td>: ${escapeHtml(examinerName)}</td>
+        </tr>
+      </table>
+
+      <!-- 1. BTQ -->
+      <div class="section-header">
+        <span>1. BACA TULIS AL-QUR'AN (BTQ)</span>
+        <span style="font-size: 8pt; font-weight: normal; opacity: 0.9;">Skala Parameter Level 1 - 6</span>
+      </div>
+      <div class="grid-cards">
+        ${BTQ_SCORE_OPTIONS.map(opt => `
+          <div class="card-opt ${btqVal === opt.value ? 'selected' : ''}">
+            <div class="card-opt-title">
+              <span class="circle-check ${btqVal === opt.value ? 'checked' : ''}">${btqVal === opt.value ? '✓' : opt.value}</span>
+              ${escapeHtml(opt.label)}
+            </div>
+            <div style="font-size: 7.5pt; color: #4b5563; line-height: 1.25;">
+              ${opt.items.slice(0, 2).map(it => `• ${escapeHtml(it)}`).join('<br>')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="font-size: 8pt; font-weight: 700; color: #1e293b; margin-top: 4px;">Catatan Khusus BTQ (Ayat / Makhraj / Tajwid):</div>
+      <div class="notes-area">${escapeHtml(p.btqNotes || '')}</div>
+
+      <!-- 2. WUDHU -->
+      <div class="section-header" style="background: #047857;">
+        <span>2. PRAKTIK GERAKAN & BACAAN WUDHU</span>
+        <span style="font-size: 8pt; font-weight: normal; opacity: 0.9;">Skala Parameter Level 1 - 3</span>
+      </div>
+      <div class="grid-cards" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card-opt ${wudhuVal === 1 ? 'selected' : ''}">
+          <div class="card-opt-title"><span class="circle-check ${wudhuVal === 1 ? 'checked' : ''}">${wudhuVal === 1 ? '✓' : '1'}</span> Level 1: Belum Bisa</div>
+          <div style="font-size: 7.5pt; color: #4b5563;">Belum menguasai tata cara, rukun, gerakan, atau bacaan wudhu.</div>
+        </div>
+        <div class="card-opt ${wudhuVal === 2 ? 'selected' : ''}">
+          <div class="card-opt-title"><span class="circle-check ${wudhuVal === 2 ? 'checked' : ''}">${wudhuVal === 2 ? '✓' : '2'}</span> Level 2: Bisa, Perlu Bimbingan</div>
+          <div style="font-size: 7.5pt; color: #4b5563;">Bisa berwudhu namun ada gerakan atau doa yang terlewat/perlu kontrol.</div>
+        </div>
+        <div class="card-opt ${wudhuVal === 3 ? 'selected' : ''}">
+          <div class="card-opt-title"><span class="circle-check ${wudhuVal === 3 ? 'checked' : ''}">${wudhuVal === 3 ? '✓' : '3'}</span> Level 3: Mandiri & Tertib</div>
+          <div style="font-size: 7.5pt; color: #4b5563;">Menguasai rukun, tertib, membasuh sempurna dan hafal doa setelah wudhu.</div>
+        </div>
+      </div>
+      <div style="font-size: 8pt; font-weight: 700; color: #1e293b; margin-top: 4px;">Catatan Khusus Wudhu:</div>
+      <div class="notes-area">${escapeHtml(p.wudhuNotes || '')}</div>
+
+      <!-- 3. SALAT -->
+      <div class="section-header" style="background: #059669;">
+        <span>3. PRAKTIK GERAKAN & BACAAN SALAT</span>
+        <span style="font-size: 8pt; font-weight: normal; opacity: 0.9;">Skala Parameter Level 1 - 3</span>
+      </div>
+      <div class="grid-cards" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card-opt ${salatVal === 1 ? 'selected' : ''}">
+          <div class="card-opt-title"><span class="circle-check ${salatVal === 1 ? 'checked' : ''}">${salatVal === 1 ? '✓' : '1'}</span> Level 1: Belum Bisa</div>
+          <div style="font-size: 7.5pt; color: #4b5563;">Belum hafal bacaan rukun salat atau gerakan belum teratur.</div>
+        </div>
+        <div class="card-opt ${salatVal === 2 ? 'selected' : ''}">
+          <div class="card-opt-title"><span class="circle-check ${salatVal === 2 ? 'checked' : ''}">${salatVal === 2 ? '✓' : '2'}</span> Level 2: Bisa, Perlu Kontrol</div>
+          <div style="font-size: 7.5pt; color: #4b5563;">Bisa melakukan salat, tasyahud/iftitah masih perlu perbaikan.</div>
+        </div>
+        <div class="card-opt ${salatVal === 3 ? 'selected' : ''}">
+          <div class="card-opt-title"><span class="circle-check ${salatVal === 3 ? 'checked' : ''}">${salatVal === 3 ? '✓' : '3'}</span> Level 3: Tertib, Khusyuk & Mandiri</div>
+          <div style="font-size: 7.5pt; color: #4b5563;">Gerakan tuma'ninah, bacaan fasih, tertib, dan menguasai rukun salat.</div>
+        </div>
+      </div>
+      <div style="font-size: 8pt; font-weight: 700; color: #1e293b; margin-top: 4px;">Catatan Khusus Salat:</div>
+      <div class="notes-area">${escapeHtml(p.salatNotes || '')}</div>
+
+      <!-- REKAPITULASI NILAI -->
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>SKOR BTQ (1-6)</th>
+            <th>SKOR WUDHU (1-3)</th>
+            <th>SKOR SALAT (1-3)</th>
+            <th>RERATA NILAI AKHIR</th>
+            <th>STATUS KELULUSAN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight: 800; font-size: 11pt; color: #0284c7;">${btqVal || '-'}</td>
+            <td style="font-weight: 800; font-size: 11pt; color: #047857;">${wudhuVal || '-'}</td>
+            <td style="font-weight: 800; font-size: 11pt; color: #059669;">${salatVal || '-'}</td>
+            <td style="font-weight: 800; font-size: 11pt; color: #1e3a8a;">${avg}</td>
+            <td style="font-weight: 700;">${p.status === 'COMPLETED' ? 'LULUS / SELESAI' : 'MENUNGGU PENGUJIAN'}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      ${p.generalNotes ? `
+        <div style="margin-top: 6px; font-size: 8.5pt; border: 1px solid #e2e8f0; padding: 6px 8px; border-radius: 4px; background: #f8fafc;">
+          <strong>Catatan Umum Penguji:</strong> ${escapeHtml(p.generalNotes)}
+        </div>
+      ` : ''}
+
+      <div class="signature-box">
+        <div class="sign-col">
+          <div>Mengetahui,</div>
+          <div style="font-weight: 700;">Ketua Panitia PSB</div>
+          <div class="sign-line">( .................................................... )</div>
+        </div>
+        <div class="sign-col">
+          <div>Dukun Gresik, ${testDate}</div>
+          <div style="font-weight: 700;">Ustadz Penguji Praktik,</div>
+          <div class="sign-line">( ${escapeHtml(examinerName)} )</div>
+        </div>
+      </div>
+
+      ${downloadPdf ? `
+        <script>
+          window.onload = function() {
+            setTimeout(function() { window.print(); }, 400);
+          };
+        </script>
+      ` : ''}
+    </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank', 'width=920,height=850');
+  if (printWindow) {
+    printWindow.document.open();
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+  } else {
+    alert('Pop-up browser diblokir. Harap izinkan pop-up untuk mencetak lembar penilaian.');
+  }
+}
+
+// ============================================================================
+// BEBAS TES PRAKTIK (EXEMPTION & DIRECT APPROVAL)
+// ============================================================================
+let exemptPracticalSearchTimer = null;
+
+function openExemptPracticalModal(prefillRegId = '', prefillRegNum = '', prefillName = '', prefillSchool = '') {
+  const isPrefilled = !!prefillRegId;
+  const safeName = escapeHtml(prefillName || '');
+  const safeRegNum = escapeHtml(prefillRegNum || '');
+  const safeSchool = escapeHtml(prefillSchool || '');
+
+  const bodyHtml = `
+    <form onsubmit="handleConfirmExemptPractical(event)">
+      <div style="margin-bottom: 16px;">
+        <p style="margin: 0; font-size: 0.875rem; color: var(--text-main); line-height: 1.5;">
+          Fitur ini digunakan jika calon santri dibebaskan dari <strong>Tes Praktik (BTQ, Wudhu, Salat)</strong>, misalnya santri berprestasi tahfidz, jalur mandiri, atau telah lulus tes offline tersendiri.
+        </p>
+      </div>
+
+      <!-- Candidate Selection -->
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" style="font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; display: block;">
+          Calon Santri:
+        </label>
+        
+        ${isPrefilled ? `
+          <input type="hidden" id="exempt-practical-reg-id" value="${escapeHtml(prefillRegId)}">
+          <div style="padding: 12px 14px; background: rgba(2, 132, 199, 0.08); border: 1.5px solid #0284c7; border-radius: var(--radius-md, 8px); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div>
+              <div style="font-weight: 800; color: var(--text-heading); font-size: 0.95rem;">${safeName}</div>
+              <div style="font-size: 0.8rem; color: #0284c7; font-weight: 600; margin-top: 2px;">
+                No. Registrasi: <code>${safeRegNum}</code> ${safeSchool ? `&bull; ${safeSchool}` : ''}
+              </div>
+            </div>
+            <span class="badge" style="background: #0284c7; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;">Terpilih</span>
+          </div>
+        ` : `
+          <div style="position: relative;">
+            <input type="hidden" id="exempt-practical-reg-id" value="">
+            <input type="text" id="exempt-practical-search-input" class="form-control" placeholder="Cari nama santri atau no. registrasi..." oninput="handleExemptPracticalCandidateSearch(this.value)" autocomplete="off" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md, 8px); font-size: 0.85rem;">
+            <div id="exempt-practical-candidate-results" style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 1050; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 8px); max-height: 220px; overflow-y: auto; box-shadow: var(--shadow-lg); margin-top: 4px;"></div>
+          </div>
+          <div id="exempt-practical-selected-box" style="display: none; margin-top: 10px; padding: 12px 14px; background: rgba(2, 132, 199, 0.08); border: 1.5px solid #0284c7; border-radius: var(--radius-md, 8px);">
+          </div>
+        `}
+      </div>
+
+      <!-- Nilai Praktik Default / Pilihan -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 600; font-size: 0.82rem; margin-bottom: 4px; display: block;">Nilai BTQ:</label>
+          <select id="exempt-practical-btq" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md, 8px);">
+            <option value="6" selected>Level 6 (Mahir Al-Qur'an)</option>
+            <option value="5">Level 5 (Tajwid Lanjutan)</option>
+            <option value="4">Level 4 (Tajwid Dasar)</option>
+            <option value="3">Level 3 (Iqro' 3-4)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 600; font-size: 0.82rem; margin-bottom: 4px; display: block;">Nilai Wudhu:</label>
+          <select id="exempt-practical-wudhu" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md, 8px);">
+            <option value="3" selected>Level 3 (Tertib & Rukun)</option>
+            <option value="2">Level 2 (Bisa)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label class="form-label" style="font-weight: 600; font-size: 0.82rem; margin-bottom: 4px; display: block;">Nilai Salat:</label>
+          <select id="exempt-practical-salat" class="form-select" style="width: 100%; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md, 8px);">
+            <option value="3" selected>Level 3 (Khusyuk & Tertib)</option>
+            <option value="2">Level 2 (Bisa)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Keterangan / Alasan Bebas Praktik -->
+      <div class="form-group" style="margin-bottom: 18px;">
+        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: flex; justify-content: space-between;">
+          <span>Keterangan / Alasan Dispensasi:</span>
+          <span style="font-weight: normal; color: var(--text-muted); font-size: 0.75rem;">(Disimpan di riwayat)</span>
+        </label>
+        <textarea id="exempt-practical-notes" class="form-control" rows="2" placeholder="Contoh: Bebas Tes Praktik / Santri Prestasi Tahfidz Al-Qur'an / Ujian Mandiri" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md, 8px); font-size: 0.85rem;">Bebas Tes Praktik (Jalur Mandiri / Prestasi)</textarea>
+      </div>
+
+      <div style="background: rgba(34, 197, 94, 0.08); border-left: 3px solid #22c55e; padding: 10px 14px; border-radius: 4px; margin-bottom: 20px; font-size: 0.8rem; color: #15803d;">
+        <i class="fa-solid fa-circle-check"></i> Status Tes Praktik santri akan langsung <strong>LULUS (COMPLETED)</strong> dan tercatat telah selesai dinilai.
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+        <button type="submit" id="btn-confirm-exempt-practical" class="btn btn-success" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; background: #16a34a; border-color: #16a34a; color: #fff;">
+          <i class="fa-solid fa-check-double"></i> Simpan & Luluskan Praktik
+        </button>
+      </div>
+    </form>
+  `;
+
+  if (typeof openModal === 'function') {
+    openModal('Tandai Bebas Tes Praktik', bodyHtml);
+  }
+}
+
+function handleExemptPracticalCandidateSearch(searchTerm) {
+  clearTimeout(exemptPracticalSearchTimer);
+  const resultsDiv = document.getElementById('exempt-practical-candidate-results');
+  if (!resultsDiv) return;
+
+  const term = searchTerm?.trim();
+  if (!term || term.length < 2) {
+    resultsDiv.style.display = 'none';
+    resultsDiv.innerHTML = '';
+    return;
+  }
+
+  resultsDiv.style.display = 'block';
+  resultsDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;"><i class="fa-solid fa-spinner fa-spin"></i> Mencari santri...</div>';
+
+  exemptPracticalSearchTimer = setTimeout(async () => {
+    try {
+      const res = await apiRequest(`/api/practical-test/ready-candidates?search=${encodeURIComponent(term)}&limit=15`);
+      const candidates = (res && res.success && res.data) ? (res.data.items || res.data) : [];
+      if (!Array.isArray(candidates) || candidates.length === 0) {
+        resultsDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">Tidak ditemukan calon santri dengan kata kunci tersebut.</div>';
+        return;
+      }
+
+      resultsDiv.innerHTML = candidates.map(c => {
+        const regId = c.id;
+        const regNum = c.registrationNumber || '';
+        const name = c.studentName || c.name || 'Calon Santri';
+        const schoolProg = `${c.schoolName || ''} ${c.className ? '• ' + c.className : ''}`;
+        const isDone = c.practicalStatus === 'COMPLETED';
+
+        return `
+          <div style="padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: background 0.2s;" 
+               onmouseover="this.style.background='var(--bg-body)'" 
+               onmouseout="this.style.background='transparent'" 
+               onclick="selectExemptPracticalCandidate('${regId}', '${escapeHtml(regNum)}', '${escapeHtml(name)}', '${escapeHtml(schoolProg)}')">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-weight: 700; color: var(--text-heading); font-size: 0.875rem;">${escapeHtml(name)}</div>
+              ${isDone ? '<span class="badge" style="background:#dcfce7; color:#15803d; font-size: 0.68rem; font-weight:700;">Lulus Praktik</span>' : '<span class="badge" style="background:#f1f5f9; color:#64748b; font-size: 0.68rem;">Belum Ujian</span>'}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+              <code>${escapeHtml(regNum)}</code> &bull; ${escapeHtml(schoolProg)}
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      resultsDiv.innerHTML = `<div style="padding: 12px; color: #dc2626; font-size: 0.8rem;">${escapeHtml(err.message)}</div>`;
+    }
+  }, 300);
+}
+
+function selectExemptPracticalCandidate(regId, regNum, name, schoolProgram) {
+  const hiddenInput = document.getElementById('exempt-practical-reg-id');
+  const resultsDiv = document.getElementById('exempt-practical-candidate-results');
+  const searchInput = document.getElementById('exempt-practical-search-input');
+  const selectedBox = document.getElementById('exempt-practical-selected-box');
+
+  if (hiddenInput) hiddenInput.value = regId;
+  if (resultsDiv) resultsDiv.style.display = 'none';
+  if (searchInput) searchInput.style.display = 'none';
+
+  if (selectedBox) {
+    selectedBox.style.display = 'flex';
+    selectedBox.style.justifyContent = 'space-between';
+    selectedBox.style.alignItems = 'center';
+    selectedBox.innerHTML = `
+      <div>
+        <div style="font-weight: 800; color: var(--text-heading); font-size: 0.95rem;">${escapeHtml(name)}</div>
+        <div style="font-size: 0.8rem; color: #0284c7; font-weight: 600; margin-top: 2px;">
+          No. Registrasi: <code>${escapeHtml(regNum)}</code> ${schoolProgram ? `&bull; ${escapeHtml(schoolProgram)}` : ''}
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="resetExemptPracticalCandidateSelection()" style="padding: 4px 8px; font-size: 0.75rem;">
+        Ganti
+      </button>
+    `;
+  }
+}
+
+function resetExemptPracticalCandidateSelection() {
+  const hiddenInput = document.getElementById('exempt-practical-reg-id');
+  const searchInput = document.getElementById('exempt-practical-search-input');
+  const selectedBox = document.getElementById('exempt-practical-selected-box');
+
+  if (hiddenInput) hiddenInput.value = '';
+  if (selectedBox) selectedBox.style.display = 'none';
+  if (searchInput) {
+    searchInput.style.display = 'block';
+    searchInput.value = '';
+    searchInput.focus();
+  }
+}
+
+async function handleConfirmExemptPractical(e) {
+  e.preventDefault();
+  const regId = document.getElementById('exempt-practical-reg-id')?.value;
+  if (!regId) {
+    if (typeof showToast === 'function') showToast('Pilih calon santri terlebih dahulu.', 'warning');
+    else alert('Pilih calon santri terlebih dahulu.');
+    return;
+  }
+  const btq = parseInt(document.getElementById('exempt-practical-btq')?.value || '6', 10);
+  const wudhu = parseInt(document.getElementById('exempt-practical-wudhu')?.value || '3', 10);
+  const salat = parseInt(document.getElementById('exempt-practical-salat')?.value || '3', 10);
+  const notes = document.getElementById('exempt-practical-notes')?.value?.trim() || 'Bebas Tes Praktik (Jalur Mandiri / Prestasi)';
+
+  const btn = document.getElementById('btn-confirm-exempt-practical');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+  }
+
+  try {
+    const res = await apiRequest(`/api/practical-test/admin/verify/${regId}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        status: 'COMPLETED',
+        generalNotes: notes,
+        btqScore: btq,
+        btqNotes: notes,
+        wudhuScore: wudhu,
+        wudhuNotes: notes,
+        salatScore: salat,
+        salatNotes: notes
+      })
+    });
+
+    if (!res.success) throw new Error(res.message || 'Gagal menyimpan status bebas tes praktik.');
+
+    if (typeof showToast === 'function') {
+      showToast(res.message || 'Santri berhasil diverifikasi sebagai Bebas Tes Praktik!', 'success');
+    }
+    if (typeof closeModal === 'function') closeModal();
+    if (typeof closePracticalEvaluationModal === 'function') closePracticalEvaluationModal();
+    if (typeof loadPracticalVerificationTable === 'function') loadPracticalVerificationTable();
+    if (typeof loadPracticalCandidates === 'function') loadPracticalCandidates();
+  } catch (err) {
+    console.error('Error exempting practical test:', err);
+    if (typeof showToast === 'function') {
+      showToast(err.message || 'Gagal menyimpan status bebas praktik.', 'danger');
+    } else {
+      alert(err.message || 'Gagal menyimpan status bebas praktik.');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Simpan & Luluskan Praktik';
+    }
+  }
+}
+
+window.printPracticalCandidateSheet = printPracticalCandidateSheet;
+window.openExemptPracticalModal = openExemptPracticalModal;
+window.handleExemptPracticalCandidateSearch = handleExemptPracticalCandidateSearch;
+window.selectExemptPracticalCandidate = selectExemptPracticalCandidate;
+window.resetExemptPracticalCandidateSelection = resetExemptPracticalCandidateSelection;
+window.handleConfirmExemptPractical = handleConfirmExemptPractical;
+
 

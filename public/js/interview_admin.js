@@ -1990,11 +1990,14 @@ async function printInterviewResult(interviewId) {
         }
         .question-title { font-weight: 700; font-size: 12px; color: #1e293b; margin-bottom: 6px; }
         .answer-box {
-          background: #f1f5f9;
-          border-radius: 4px;
-          padding: 8px 10px;
-          font-size: 12px;
-          color: #334155;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          padding: 12px 14px;
+          font-size: 12.5px;
+          line-height: 1.6;
+          color: #1e293b;
+          min-height: 80px;
           white-space: pre-wrap;
         }
         .rec-box {
@@ -2200,6 +2203,9 @@ async function renderInterviewVerificationView() {
             </p>
           </div>
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button type="button" class="btn btn-success" onclick="openExemptInterviewModal()" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 700; background: #16a34a; border-color: #16a34a; color: #fff; padding: 8px 16px; border-radius: var(--radius-md, 8px);" title="Tandai Santri Bebas Wawancara (Dispensasi / Lulus Otomatis)">
+              <i class="fa-solid fa-user-check"></i> + Bebas Wawancara
+            </button>
             <button type="button" class="btn btn-outline-primary" onclick="printBlankInterviewForm()" style="border: 1px solid #a855f7; color: #a855f7; background: transparent; padding: 8px 16px; border-radius: var(--radius-md, 8px); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;" title="Cetak Blangko Panduan Wawancara 7 Pertanyaan untuk Penguji">
               <i class="fa-solid fa-print"></i> Cetak Form Wawancara Kosong
             </button>
@@ -2428,10 +2434,13 @@ async function loadInterviewVerificationTable() {
                     <td style="padding: 12px 14px; text-align: center;">
                       <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
                         <button type="button" class="btn btn-sm btn-primary" onclick="openInterviewVerifyModal('${item.id}', '${item.interviewId || ''}')" style="padding: 5px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Verifikasi / Rincian Wawancara">
-                          <i class="fa-solid fa-user-check"></i> Verifikasi
+                          <i class="fa-solid fa-pen-to-square"></i> Verifikasi
                         </button>
                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="printInterviewResult('${item.interviewId || item.id}')" style="padding: 5px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Cetak Hasil Wawancara Santri">
                           <i class="fa-solid fa-print"></i> Cetak
+                        </button>
+                        <button type="button" class="btn btn-sm btn-success" onclick="openExemptInterviewModal('${item.id}', '${escapeHtml(item.registrationNumber)}', '${escapeHtml(item.studentName)}', '${escapeHtml(item.schoolName || '')}')" style="padding: 5px 10px; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: #16a34a; border-color: #16a34a; color: #fff;" title="Tandai Santri Bebas Wawancara">
+                          <i class="fa-solid fa-user-check"></i> Bebas Wawancara
                         </button>
                       </div>
                     </td>
@@ -2709,8 +2718,13 @@ async function printBlankInterviewForm() {
           margin: 2px 0 6px 0;
         }
         .q-answer-box {
-          height: 38px;
-          border-bottom: 1px dashed #9ca3af;
+          min-height: 140px;
+          border: 1px dashed #cbd5e1;
+          border-radius: 4px;
+          padding: 8px 10px;
+          background-image: repeating-linear-gradient(transparent, transparent 27px, #e2e8f0 28px);
+          line-height: 28px;
+          margin-top: 6px;
         }
         .signature-box {
           margin-top: 20px;
@@ -2831,4 +2845,243 @@ window.openInterviewVerifyModal = openInterviewVerifyModal;
 window.closeInterviewVerifyModal = closeInterviewVerifyModal;
 window.submitInterviewVerify = submitInterviewVerify;
 window.printBlankInterviewForm = printBlankInterviewForm;
+
+// ============================================================================
+// BEBAS WAWANCARA (EXEMPTION & DIRECT APPROVAL)
+// ============================================================================
+let exemptInterviewSearchTimer = null;
+
+function openExemptInterviewModal(prefillRegId = '', prefillRegNum = '', prefillName = '', prefillSchool = '') {
+  const isPrefilled = !!prefillRegId;
+  const safeName = escapeHtml(prefillName || '');
+  const safeRegNum = escapeHtml(prefillRegNum || '');
+  const safeSchool = escapeHtml(prefillSchool || '');
+
+  const bodyHtml = `
+    <form onsubmit="handleConfirmExemptInterview(event)">
+      <div style="margin-bottom: 16px;">
+        <p style="margin: 0; font-size: 0.875rem; color: var(--text-main); line-height: 1.5;">
+          Fitur ini digunakan jika calon santri dibebaskan dari <strong>Tahap Wawancara</strong> (misalnya santri berprestasi khusus, rekomendasi pengasuh, atau telah mengikuti wawancara mandiri).
+        </p>
+      </div>
+
+      <!-- Candidate Selection -->
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" style="font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; display: block;">
+          Calon Santri:
+        </label>
+        
+        ${isPrefilled ? `
+          <input type="hidden" id="exempt-interview-reg-id" value="${escapeHtml(prefillRegId)}">
+          <div style="padding: 12px 14px; background: rgba(168, 85, 247, 0.08); border: 1.5px solid #a855f7; border-radius: var(--radius-md, 8px); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+            <div>
+              <div style="font-weight: 800; color: var(--text-heading); font-size: 0.95rem;">${safeName}</div>
+              <div style="font-size: 0.8rem; color: #a855f7; font-weight: 600; margin-top: 2px;">
+                No. Registrasi: <code>${safeRegNum}</code> ${safeSchool ? `&bull; ${safeSchool}` : ''}
+              </div>
+            </div>
+            <span class="badge" style="background: #a855f7; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px;">Terpilih</span>
+          </div>
+        ` : `
+          <div style="position: relative;">
+            <input type="hidden" id="exempt-interview-reg-id" value="">
+            <input type="text" id="exempt-interview-search-input" class="form-control" placeholder="Cari nama santri atau no. registrasi..." oninput="handleExemptInterviewCandidateSearch(this.value)" autocomplete="off" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md, 8px); font-size: 0.85rem;">
+            <div id="exempt-interview-candidate-results" style="display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 1050; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md, 8px); max-height: 220px; overflow-y: auto; box-shadow: var(--shadow-lg); margin-top: 4px;"></div>
+          </div>
+          <div id="exempt-interview-selected-box" style="display: none; margin-top: 10px; padding: 12px 14px; background: rgba(168, 85, 247, 0.08); border: 1.5px solid #a855f7; border-radius: var(--radius-md, 8px);">
+          </div>
+        `}
+      </div>
+
+      <!-- Rekomendasi Wawancara -->
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: block;">
+          Rekomendasi Hasil:
+        </label>
+        <select id="exempt-interview-recommendation" class="form-select" style="width: 100%; padding: 8px 12px; font-size: 0.85rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md, 8px);">
+          <option value="HIGHLY_RECOMMENDED" selected>Sangat Direkomendasikan (Sangat Layak Diterima)</option>
+          <option value="RECOMMENDED">Direkomendasikan (Layak Diterima)</option>
+          <option value="CONSIDERED">Dipertimbangkan</option>
+        </select>
+      </div>
+
+      <!-- Keterangan / Alasan Bebas Wawancara -->
+      <div class="form-group" style="margin-bottom: 18px;">
+        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: flex; justify-content: space-between;">
+          <span>Keterangan / Alasan Dispensasi:</span>
+          <span style="font-weight: normal; color: var(--text-muted); font-size: 0.75rem;">(Disimpan di riwayat)</span>
+        </label>
+        <textarea id="exempt-interview-notes" class="form-control" rows="2" placeholder="Contoh: Bebas Wawancara / Jalur Prestasi / Santri Rekomendasi Khusus" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md, 8px); font-size: 0.85rem;">Bebas Wawancara (Jalur Mandiri / Prestasi)</textarea>
+      </div>
+
+      <div style="background: rgba(34, 197, 94, 0.08); border-left: 3px solid #22c55e; padding: 10px 14px; border-radius: 4px; margin-bottom: 20px; font-size: 0.8rem; color: #15803d;">
+        <i class="fa-solid fa-circle-check"></i> Status Wawancara santri akan langsung <strong>LULUS (COMPLETED)</strong> dan siap melanjutkan ke tahap verifikasi final.
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+        <button type="submit" id="btn-confirm-exempt-interview" class="btn btn-success" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; background: #16a34a; border-color: #16a34a; color: #fff;">
+          <i class="fa-solid fa-check-double"></i> Simpan & Luluskan Wawancara
+        </button>
+      </div>
+    </form>
+  `;
+
+  if (typeof openModal === 'function') {
+    openModal('Tandai Bebas Wawancara', bodyHtml);
+  }
+}
+
+function handleExemptInterviewCandidateSearch(searchTerm) {
+  clearTimeout(exemptInterviewSearchTimer);
+  const resultsDiv = document.getElementById('exempt-interview-candidate-results');
+  if (!resultsDiv) return;
+
+  const term = searchTerm?.trim();
+  if (!term || term.length < 2) {
+    resultsDiv.style.display = 'none';
+    resultsDiv.innerHTML = '';
+    return;
+  }
+
+  resultsDiv.style.display = 'block';
+  resultsDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;"><i class="fa-solid fa-spinner fa-spin"></i> Mencari santri...</div>';
+
+  exemptInterviewSearchTimer = setTimeout(async () => {
+    try {
+      const res = await apiRequest(`/api/interview/admin/participants?search=${encodeURIComponent(term)}&perPage=15`);
+      const candidates = (res && res.success && res.data) ? (res.data.items || res.data) : [];
+      if (!Array.isArray(candidates) || candidates.length === 0) {
+        resultsDiv.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">Tidak ditemukan calon santri dengan kata kunci tersebut.</div>';
+        return;
+      }
+
+      resultsDiv.innerHTML = candidates.map(c => {
+        const regId = c.id || c.registrationId;
+        const regNum = c.registrationNumber || '';
+        const name = c.name || c.studentName || c.user?.name || 'Calon Santri';
+        const schoolProg = `${c.schoolName || ''} ${c.classProgramName ? '• ' + c.classProgramName : ''}`;
+        const isDone = (c.interviewStatus || c.status) === 'COMPLETED';
+
+        return `
+          <div style="padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: background 0.2s;" 
+               onmouseover="this.style.background='var(--bg-body)'" 
+               onmouseout="this.style.background='transparent'" 
+               onclick="selectExemptInterviewCandidate('${regId}', '${escapeHtml(regNum)}', '${escapeHtml(name)}', '${escapeHtml(schoolProg)}')">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-weight: 700; color: var(--text-heading); font-size: 0.875rem;">${escapeHtml(name)}</div>
+              ${isDone ? '<span class="badge" style="background:#dcfce7; color:#15803d; font-size: 0.68rem; font-weight:700;">Lulus Wawancara</span>' : '<span class="badge" style="background:#f1f5f9; color:#64748b; font-size: 0.68rem;">Belum Wawancara</span>'}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+              <code>${escapeHtml(regNum)}</code> &bull; ${escapeHtml(schoolProg)}
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      resultsDiv.innerHTML = `<div style="padding: 12px; color: #dc2626; font-size: 0.8rem;">${escapeHtml(err.message)}</div>`;
+    }
+  }, 300);
+}
+
+function selectExemptInterviewCandidate(regId, regNum, name, schoolProgram) {
+  const hiddenInput = document.getElementById('exempt-interview-reg-id');
+  const resultsDiv = document.getElementById('exempt-interview-candidate-results');
+  const searchInput = document.getElementById('exempt-interview-search-input');
+  const selectedBox = document.getElementById('exempt-interview-selected-box');
+
+  if (hiddenInput) hiddenInput.value = regId;
+  if (resultsDiv) resultsDiv.style.display = 'none';
+  if (searchInput) searchInput.style.display = 'none';
+
+  if (selectedBox) {
+    selectedBox.style.display = 'flex';
+    selectedBox.style.justifyContent = 'space-between';
+    selectedBox.style.alignItems = 'center';
+    selectedBox.innerHTML = `
+      <div>
+        <div style="font-weight: 800; color: var(--text-heading); font-size: 0.95rem;">${escapeHtml(name)}</div>
+        <div style="font-size: 0.8rem; color: #a855f7; font-weight: 600; margin-top: 2px;">
+          No. Registrasi: <code>${escapeHtml(regNum)}</code> ${schoolProgram ? `&bull; ${escapeHtml(schoolProgram)}` : ''}
+        </div>
+      </div>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="resetExemptInterviewCandidateSelection()" style="padding: 4px 8px; font-size: 0.75rem;">
+        Ganti
+      </button>
+    `;
+  }
+}
+
+function resetExemptInterviewCandidateSelection() {
+  const hiddenInput = document.getElementById('exempt-interview-reg-id');
+  const searchInput = document.getElementById('exempt-interview-search-input');
+  const selectedBox = document.getElementById('exempt-interview-selected-box');
+
+  if (hiddenInput) hiddenInput.value = '';
+  if (selectedBox) selectedBox.style.display = 'none';
+  if (searchInput) {
+    searchInput.style.display = 'block';
+    searchInput.value = '';
+    searchInput.focus();
+  }
+}
+
+async function handleConfirmExemptInterview(e) {
+  e.preventDefault();
+  const regId = document.getElementById('exempt-interview-reg-id')?.value;
+  if (!regId) {
+    if (typeof showToast === 'function') showToast('Pilih calon santri terlebih dahulu.', 'warning');
+    else alert('Pilih calon santri terlebih dahulu.');
+    return;
+  }
+  const recommendation = document.getElementById('exempt-interview-recommendation')?.value || 'HIGHLY_RECOMMENDED';
+  const notes = document.getElementById('exempt-interview-notes')?.value?.trim() || 'Bebas Wawancara (Jalur Mandiri / Prestasi)';
+
+  const btn = document.getElementById('btn-confirm-exempt-interview');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+  }
+
+  try {
+    const res = await apiRequest(`/api/interview/admin/verify/${regId}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        status: 'COMPLETED',
+        recommendation: recommendation,
+        generalNotes: notes
+      })
+    });
+
+    if (!res.success) throw new Error(res.message || 'Gagal menyimpan status bebas wawancara.');
+
+    if (typeof showToast === 'function') {
+      showToast(res.message || 'Santri berhasil diverifikasi sebagai Bebas Wawancara!', 'success');
+    }
+    if (typeof closeModal === 'function') closeModal();
+    if (typeof closeInterviewVerifyModal === 'function') closeInterviewVerifyModal();
+    if (typeof loadInterviewVerificationTable === 'function') loadInterviewVerificationTable();
+    if (typeof loadInterviewResults === 'function') loadInterviewResults();
+    if (typeof renderInterviewerDashboard === 'function') renderInterviewerDashboard();
+  } catch (err) {
+    console.error('Error exempting interview:', err);
+    if (typeof showToast === 'function') {
+      showToast(err.message || 'Gagal menyimpan status bebas wawancara.', 'danger');
+    } else {
+      alert(err.message || 'Gagal menyimpan status bebas wawancara.');
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check-double"></i> Simpan & Luluskan Wawancara';
+    }
+  }
+}
+
+window.openExemptInterviewModal = openExemptInterviewModal;
+window.handleExemptInterviewCandidateSearch = handleExemptInterviewCandidateSearch;
+window.selectExemptInterviewCandidate = selectExemptInterviewCandidate;
+window.resetExemptInterviewCandidateSelection = resetExemptInterviewCandidateSelection;
+window.handleConfirmExemptInterview = handleConfirmExemptInterview;
+
 
