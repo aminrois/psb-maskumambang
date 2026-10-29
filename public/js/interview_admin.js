@@ -2959,8 +2959,8 @@ function handleExemptInterviewCandidateSearch(searchTerm) {
       resultsDiv.innerHTML = candidates.map(c => {
         const regId = c.id || c.registrationId;
         const regNum = c.registrationNumber || '';
-        const name = c.name || c.studentName || c.user?.name || 'Calon Santri';
-        const schoolProg = `${c.schoolName || ''} ${c.classProgramName ? '• ' + c.classProgramName : ''}`;
+        const name = c.participantName || c.studentName || c.candidateName || c.name || c.fullName || c.user?.name || (c.studentDetail?.fullName) || (c.individualParticipant?.fullName) || 'Calon Santri';
+        const schoolProg = `${c.schoolName || ''} ${(c.programName || c.classProgramName) ? '• ' + (c.programName || c.classProgramName) : ''}`;
         const isDone = (c.interviewStatus || c.status) === 'COMPLETED';
 
         return `

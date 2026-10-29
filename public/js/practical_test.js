@@ -3762,8 +3762,8 @@ function handleExemptPracticalCandidateSearch(searchTerm) {
       resultsDiv.innerHTML = candidates.map(c => {
         const regId = c.id;
         const regNum = c.registrationNumber || '';
-        const name = c.studentName || c.name || 'Calon Santri';
-        const schoolProg = `${c.schoolName || ''} ${c.className ? '• ' + c.className : ''}`;
+        const name = c.studentName || c.participantName || c.candidateName || c.name || c.fullName || (c.studentDetail?.fullName) || (c.individualParticipant?.fullName) || 'Calon Santri';
+        const schoolProg = `${c.schoolName || ''} ${(c.className || c.programName) ? '• ' + (c.className || c.programName) : ''}`;
         const isDone = c.practicalStatus === 'COMPLETED';
 
         return `

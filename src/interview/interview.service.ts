@@ -1333,6 +1333,11 @@ export class InterviewService {
             fullName: { contains: search, mode: 'insensitive' },
           },
         },
+        {
+          individualParticipant: {
+            fullName: { contains: search, mode: 'insensitive' },
+          },
+        },
       ];
     }
 
@@ -1368,6 +1373,7 @@ export class InterviewService {
         include: {
           user: { select: { id: true, name: true, email: true, phoneNumber: true } },
           studentDetail: true,
+          individualParticipant: true,
           classProgram: {
             include: {
               major: { include: { school: true } },
@@ -1398,14 +1404,17 @@ export class InterviewService {
 
     const formatted = regs.map((r) => {
       const interviewStatus = r.interview?.status || InterviewStatus.NOT_SCHEDULED;
-      const resolvedGender = r.studentDetail?.gender || 'L';
+      const resolvedGender = r.studentDetail?.gender || r.individualParticipant?.gender || 'L';
       const genderLabel = resolvedGender === 'P' ? 'Perempuan (Akhwat)' : 'Laki-laki (Ikhwan)';
 
       return {
         id: r.id,
         registrationNumber: r.registrationNumber,
         participantName:
-          r.studentDetail?.fullName || r.user.name || 'Calon Santri',
+          r.studentDetail?.fullName ||
+          r.individualParticipant?.fullName ||
+          r.user.name ||
+          'Calon Santri',
         gender: resolvedGender,
         genderLabel,
         photoPath: null, // can be extracted from documents if needed
