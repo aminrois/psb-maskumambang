@@ -3310,8 +3310,9 @@ async function exportCbtResultsSummaryExcel() {
 
     // Combine base columns with dynamic question columns (width: 5.5 each)
     const allColumns = [...baseColumns];
-    for (let q = 1; q <= mcQuestionsCount; q++) {
-      allColumns.push({ key: `q_${q}`, width: 5.5 });
+    for (let q = 0; q < mcQuestionsCount; q++) {
+      const qNum = sampleWithAnswers?.mcAnswers?.[q]?.no || (q + 1);
+      allColumns.push({ key: `q_${qNum}`, width: 5.5 });
     }
     ws.columns = allColumns;
 
@@ -3340,10 +3341,10 @@ async function exportCbtResultsSummaryExcel() {
     // Populate Row 1 & Row 2 for MC Question Columns
     for (let q = 0; q < mcQuestionsCount; q++) {
       const colNum = 16 + q;
-      const qNum = q + 1;
+      const qNum = sampleWithAnswers?.mcAnswers?.[q]?.no || (q + 1);
       const keyLetter = sampleWithAnswers?.mcAnswers?.[q]?.key || '-';
 
-      // Row 1: Question Number (1, 2, 3...)
+      // Row 1: Question Number (e.g. 1-55, 71-85)
       const cell1 = ws.getCell(1, colNum);
       cell1.value = qNum;
       cell1.font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FFFFFFFF' } };

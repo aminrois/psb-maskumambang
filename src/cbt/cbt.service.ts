@@ -882,9 +882,11 @@ export class CbtService {
             : '-';
 
         const ans = studentAnswersMap.get(q.id);
+        const qNumber = q.orderNumber != null ? q.orderNumber : idx + 1;
+
         if (!ans || !ans.selectedOptionId) {
           return {
-            no: idx + 1,
+            no: qNumber,
             key: keyLetter,
             answer: '-',
             isCorrect: null,
@@ -900,7 +902,7 @@ export class CbtService {
             : '-';
 
         return {
-          no: idx + 1,
+          no: qNumber,
           key: keyLetter,
           answer: chosenLetter,
           isCorrect: ans.isCorrect === true,
