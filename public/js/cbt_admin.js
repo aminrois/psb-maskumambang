@@ -563,7 +563,7 @@ async function loadCbtSchoolExamDetails(schoolId) {
             </select>
           </div>
 
-          <div style="display: flex; gap: 16px; align-items: center;">
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
             <div style="padding: 6px 12px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
               <div style="font-size: 0.75rem; color: var(--text-muted);">Total Soal</div>
               <div style="font-size: 1.1rem; font-weight: 800; color: var(--text-heading);">${questions.length} Soal</div>
@@ -572,6 +572,11 @@ async function loadCbtSchoolExamDetails(schoolId) {
               <div style="font-size: 0.75rem; color: var(--text-muted);">Total Bobot Nilai</div>
               <div style="font-size: 1.1rem; font-weight: 800; color: #16a34a;">${totalScore} Poin</div>
             </div>
+            ${questions.length > 0 ? `
+              <button type="button" class="btn btn-sm btn-outline-primary" onclick="openSetUniformWeightModal('${exam.id}', ${questions[0]?.score || 2})" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700; border-radius: var(--radius-md);" title="Samakan bobot seluruh butir soal di paket ini">
+                <i class="fa-solid fa-sliders"></i> Ubah Bobot Seragam (${questions[0]?.score || 2})
+              </button>
+            ` : ''}
           </div>
 
           <div>
@@ -1331,7 +1336,17 @@ function openAddQuestionModal(examId) {
       <!-- Score Weight Box -->
       <div class="form-group" style="margin-bottom: 20px;">
         <label class="form-label" id="lbl-score" style="font-weight: 700; font-size: 0.875rem; margin-bottom: 4px; display: block;">Nilai / Bobot Soal</label>
-        <input type="number" id="q-score" class="form-control" value="5" min="1" max="100" step="1" required style="width: 140px; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <input type="number" id="q-score" class="form-control" value="${(window.cbtAdminState?.currentExam?.questions?.length > 0) ? (window.cbtAdminState.currentExam.questions[0].score || 2) : 2}" min="1" max="100" step="1" required style="width: 140px; padding: 10px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
+          ${(window.cbtAdminState?.currentExam?.questions?.length > 0) ? `
+            <span class="badge" style="background: rgba(14, 165, 233, 0.12); color: var(--primary-600); border: 1px solid rgba(14, 165, 233, 0.3); padding: 6px 12px; font-size: 0.75rem; font-weight: 700; border-radius: 6px;">
+              <i class="fa-solid fa-lock"></i> Bobot Seragam Paket: ${window.cbtAdminState.currentExam.questions[0].score || 2}
+            </span>
+          ` : '<span style="font-size:0.75rem; color:var(--text-muted);">(Seluruh butir soal berikutnya akan otomatis mengikuti bobot ini)</span>'}
+        </div>
+        <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">
+          Ketentuan: Seluruh butir soal dalam 1 paket ujian CBT wajib memiliki nilai bobot yang sama.
+        </small>
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -1782,97 +1797,158 @@ async function loadCbtResultsTable() {
     window.cbtResultsData = data;
 
     slot.innerHTML = `
-      <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-sm);">
-        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
-          Total <strong>${data.length}</strong> peserta pendaftaran eligible.
+      // Compute summary statistics
+      const completedList = data.filter(r => r.attempt && (r.attempt.status === 'COMPLETED' || r.attempt.status === 'EXPIRED'));
+      const scores = completedList.map(r => r.attempt.totalScore != null ? Number(r.attempt.totalScore) : 0);
+      const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '-';
+      const maxScore = scores.length > 0 ? Math.max(...scores).toFixed(1) : '-';
+      const minScore = scores.length > 0 ? Math.min(...scores).toFixed(1) : '-';
+
+      const durations = completedList.filter(r => r.attempt.durationSeconds > 0).map(r => r.attempt.durationSeconds);
+      const avgDurSec = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
+      const avgDurationStr = avgDurSec > 0 ? `${Math.floor(avgDurSec / 60)}m ${avgDurSec % 60}s` : '-';
+
+      slot.innerHTML = `
+        <!-- Executive Statistics Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px; border-left: 4px solid var(--primary-600);">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Peserta Selesai / Total</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">
+              ${completedList.length} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">/ ${data.length} Calon Santri</span>
+            </div>
+          </div>
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px; border-left: 4px solid #16a34a;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Rata-Rata Nilai (Skala 100)</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #16a34a; margin-top: 4px;">
+              ${avgScore}
+            </div>
+          </div>
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px; border-left: 4px solid #6366f1;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Nilai Tertinggi / Terendah</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">
+              <span style="color: #16a34a;">${maxScore}</span> <span style="font-size: 0.9rem; color: var(--text-dim);">/</span> <span style="color: #ef4444;">${minScore}</span>
+            </div>
+          </div>
+          <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px; border-left: 4px solid #f59e0b;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Rata-Rata Durasi Ujian</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">
+              ${avgDurationStr}
+            </div>
+          </div>
         </div>
 
-        ${data.length === 0 ? `
-          <div style="text-align: center; padding: 36px; color: var(--text-muted);">
-            Tidak ada data peserta yang cocok dengan filter.
+        <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-sm);">
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>Total <strong>${data.length}</strong> peserta pendaftaran eligible.</div>
+            <div style="font-size: 0.75rem; color: var(--text-dim);"><i class="fa-solid fa-calculator"></i> Nilai menggunakan rumus terstandar skala 0 s.d. 100</div>
           </div>
-        ` : `
-          <div style="overflow-x: auto;">
-            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-              <thead>
-                <tr style="border-bottom: 2px solid var(--border-subtle); text-align: left; color: var(--text-heading);">
-                  <th style="padding: 10px 8px; width: 4%; text-align: center;">No</th>
-                  <th style="padding: 10px 8px; width: 22%;">Nama & No. Pendaftaran</th>
-                  <th style="padding: 10px 8px; width: 18%;">Program Kelas</th>
-                  <th style="padding: 10px 8px; width: 12%;">Status Ujian</th>
-                  <th style="padding: 10px 8px; width: 8%; text-align: center;">Nilai PG</th>
-                  <th style="padding: 10px 8px; width: 8%; text-align: center;">Nilai Essay</th>
-                  <th style="padding: 10px 8px; width: 8%; text-align: center;">Total</th>
-                  <th style="padding: 10px 8px; width: 12%;">Penilaian</th>
-                  <th style="padding: 10px 8px; width: 8%; text-align: right;">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${data.map((row, idx) => {
-                  const att = row.attempt;
 
-                  let statusBadge = '<span class="badge badge-secondary" style="font-size: 0.75rem;">Belum Mulai</span>';
-                  if (att) {
-                    if (att.status === 'IN_PROGRESS') {
-                      statusBadge = '<span class="badge badge-warning" style="font-size: 0.75rem;"><i class="fa-solid fa-clock fa-spin"></i> Sedang Ujian</span>';
-                    } else if (att.status === 'COMPLETED') {
-                      statusBadge = '<span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> Selesai</span>';
-                    } else if (att.status === 'EXPIRED') {
-                      statusBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-size: 0.75rem; font-weight: 700;">Waktu Habis</span>';
+          ${data.length === 0 ? `
+            <div style="text-align: center; padding: 36px; color: var(--text-muted);">
+              Tidak ada data peserta yang cocok dengan filter.
+            </div>
+          ` : `
+            <div style="overflow-x: auto;">
+              <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                  <tr style="border-bottom: 2px solid var(--border-subtle); text-align: left; color: var(--text-heading);">
+                    <th style="padding: 10px 8px; width: 4%; text-align: center;">No</th>
+                    <th style="padding: 10px 8px; width: 20%;">Nama & No. Pendaftaran</th>
+                    <th style="padding: 10px 8px; width: 14%;">Program Kelas</th>
+                    <th style="padding: 10px 8px; width: 11%;">Status Ujian</th>
+                    <th style="padding: 10px 8px; width: 8%; text-align: center;">Durasi</th>
+                    <th style="padding: 10px 8px; width: 10%; text-align: center;">Benar / Salah</th>
+                    <th style="padding: 10px 8px; width: 8%; text-align: center;">Nilai PG</th>
+                    <th style="padding: 10px 8px; width: 8%; text-align: center;">Nilai Essay</th>
+                    <th style="padding: 10px 8px; width: 8%; text-align: center;">Total (0-100)</th>
+                    <th style="padding: 10px 8px; width: 9%;">Penilaian</th>
+                    <th style="padding: 10px 8px; width: 10%; text-align: right;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${data.map((row, idx) => {
+                    const att = row.attempt;
+
+                    let statusBadge = '<span class="badge badge-secondary" style="font-size: 0.75rem;">Belum Mulai</span>';
+                    if (att) {
+                      if (att.status === 'IN_PROGRESS') {
+                        statusBadge = '<span class="badge badge-warning" style="font-size: 0.75rem;"><i class="fa-solid fa-clock fa-spin"></i> Sedang Ujian</span>';
+                      } else if (att.status === 'COMPLETED') {
+                        statusBadge = '<span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> Selesai</span>';
+                      } else if (att.status === 'EXPIRED') {
+                        statusBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-size: 0.75rem; font-weight: 700;">Waktu Habis</span>';
+                      }
                     }
-                  }
 
-                  let gradingBadge = '-';
-                  if (att && (att.status === 'COMPLETED' || att.status === 'EXPIRED')) {
-                    if (att.gradingStatus === 'GRADED') {
-                      gradingBadge = '<span class="badge badge-success" style="font-size: 0.7rem;"><i class="fa-solid fa-check"></i> Sudah Dinilai</span>';
-                    } else if (att.gradingStatus === 'NEEDS_ESSAY_GRADING') {
-                      gradingBadge = '<span class="badge badge-warning" style="font-size: 0.7rem;"><i class="fa-solid fa-triangle-exclamation"></i> Perlu Nilai Essay</span>';
-                    } else {
-                      gradingBadge = '<span class="badge badge-secondary" style="font-size: 0.7rem;">Belum Dinilai</span>';
+                    let gradingBadge = '-';
+                    if (att && (att.status === 'COMPLETED' || att.status === 'EXPIRED')) {
+                      if (att.gradingStatus === 'GRADED') {
+                        gradingBadge = '<span class="badge badge-success" style="font-size: 0.7rem;"><i class="fa-solid fa-check"></i> Sudah Dinilai</span>';
+                      } else if (att.gradingStatus === 'NEEDS_ESSAY_GRADING') {
+                        gradingBadge = '<span class="badge badge-warning" style="font-size: 0.7rem;"><i class="fa-solid fa-triangle-exclamation"></i> Perlu Nilai Essay</span>';
+                      } else {
+                        gradingBadge = '<span class="badge badge-secondary" style="font-size: 0.7rem;">Belum Dinilai</span>';
+                      }
                     }
-                  }
 
-                  return `
-                    <tr style="border-bottom: 1px solid var(--border-subtle);">
-                      <td style="padding: 10px 8px; text-align: center; color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
-                      <td style="padding: 10px 8px;">
-                        <strong style="color: var(--text-heading); font-size: 0.9rem;">${escapeHtml(row.candidateName)}</strong>
-                        <div style="font-size: 0.75rem; color: var(--primary-600); font-family: monospace; font-weight: 700;">${row.registrationNumber}</div>
-                      </td>
-                      <td style="padding: 10px 8px;">
-                        <div style="font-weight: 600; color: var(--text-heading);">${escapeHtml(row.classProgramName)}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(row.schoolName)}</div>
-                      </td>
-                      <td style="padding: 10px 8px;">
-                        ${statusBadge}
-                      </td>
-                      <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: var(--text-heading);">
-                        ${att && (att.status === 'COMPLETED' || att.status === 'EXPIRED') ? att.multipleChoiceScore : '-'}
-                      </td>
-                      <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: #6366f1;">
-                        ${att && (att.status === 'COMPLETED' || att.status === 'EXPIRED') ? att.essayScore : '-'}
-                      </td>
-                      <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: #16a34a; font-size: 0.95rem;">
-                        ${att && (att.status === 'COMPLETED' || att.status === 'EXPIRED') ? att.totalScore : '-'}
-                      </td>
-                      <td style="padding: 10px 8px;">
-                        ${gradingBadge}
-                      </td>
-                      <td style="padding: 10px 8px; text-align: right; white-space: nowrap;">
-                        ${att ? `
-                          <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                            <button type="button" class="btn btn-xs btn-outline-success" onclick="exportSingleStudentCbtExcel('${att.id}', this)" title="Unduh Lembar Evaluasi Excel Siswa Ini">
-                              <i class="fa-solid fa-file-excel"></i> Excel
-                            </button>
-                            <button type="button" class="btn btn-xs btn-outline-primary" onclick="openCbtResultDetailModal('${att.id}')" title="Buka Detail & Penilaian">
-                              <i class="fa-solid fa-eye"></i> Detail
-                            </button>
-                            <button type="button" class="btn btn-xs btn-outline-danger" data-attempt-id="${att.id}" data-candidate-name="${escapeHtml(row.candidateName)}" onclick="openResetCbtModal(this)" title="Reset Ujian Peserta">
-                              <i class="fa-solid fa-rotate-left"></i> Reset
-                            </button>
-                          </div>
-                        ` : `
+                    const isCompleted = att && (att.status === 'COMPLETED' || att.status === 'EXPIRED');
+
+                    return `
+                      <tr style="border-bottom: 1px solid var(--border-subtle);">
+                        <td style="padding: 10px 8px; text-align: center; color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
+                        <td style="padding: 10px 8px;">
+                          <strong style="color: var(--text-heading); font-size: 0.9rem;">${escapeHtml(row.candidateName)}</strong>
+                          <div style="font-size: 0.75rem; color: var(--primary-600); font-family: monospace; font-weight: 700;">${row.registrationNumber}</div>
+                        </td>
+                        <td style="padding: 10px 8px;">
+                          <div style="font-weight: 600; color: var(--text-heading);">${escapeHtml(row.classProgramName)}</div>
+                          <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(row.schoolName)}</div>
+                        </td>
+                        <td style="padding: 10px 8px;">
+                          ${statusBadge}
+                        </td>
+                        <td style="padding: 10px 8px; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">
+                          ${isCompleted ? (att.durationFormatted || '-') : '-'}
+                        </td>
+                        <td style="padding: 10px 8px; text-align: center;">
+                          ${isCompleted ? `
+                            <div style="font-size: 0.85rem;">
+                              <span style="font-weight: 800; color: #16a34a;" title="Jawaban Benar">${att.mcCorrect || 0} Benar</span> 
+                              <span style="color: var(--text-dim);">/</span> 
+                              <span style="font-weight: 800; color: #ef4444;" title="Jawaban Salah">${att.mcIncorrect || 0} Salah</span>
+                            </div>
+                            ${att.mcUnanswered > 0 ? `<div style="font-size: 0.7rem; color: var(--text-muted);">${att.mcUnanswered} Kosong</div>` : ''}
+                          ` : '-'}
+                        </td>
+                        <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: var(--text-heading);">
+                          ${isCompleted && att.multipleChoiceScore != null ? att.multipleChoiceScore.toFixed(2) : '-'}
+                        </td>
+                        <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: #6366f1;">
+                          ${isCompleted && att.essayScore != null ? att.essayScore.toFixed(2) : '-'}
+                        </td>
+                        <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: #16a34a; font-size: 1rem;">
+                          ${isCompleted && att.totalScore != null ? att.totalScore.toFixed(2) : '-'}
+                        </td>
+                        <td style="padding: 10px 8px;">
+                          ${gradingBadge}
+                        </td>
+                        <td style="padding: 10px 8px; text-align: right; white-space: nowrap;">
+                          ${att ? `
+                            <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                              <button type="button" class="btn btn-xs btn-outline-success" onclick="exportSingleStudentCbtExcel('${att.id}', this)" title="Unduh Lembar Evaluasi Excel Siswa Ini">
+                                <i class="fa-solid fa-file-excel"></i> Excel
+                              </button>
+                              <button type="button" class="btn btn-xs btn-outline-secondary" onclick="printSingleStudentCbtResult('${att.id}')" title="Cetak Lembar Hasil Ujian CBT">
+                                <i class="fa-solid fa-print"></i> Cetak
+                              </button>
+                              <button type="button" class="btn btn-xs btn-outline-primary" onclick="openCbtResultDetailModal('${att.id}')" title="Buka Detail & Penilaian">
+                                <i class="fa-solid fa-eye"></i> Detail
+                              </button>
+                              <button type="button" class="btn btn-xs btn-outline-danger" data-attempt-id="${att.id}" data-candidate-name="${escapeHtml(row.candidateName)}" onclick="openResetCbtModal(this)" title="Reset Ujian Peserta">
+                                <i class="fa-solid fa-rotate-left"></i>
+                              </button>
+                            </div>
+                          ` : `
                           <span style="font-size: 0.75rem; color: var(--text-dim);">-</span>
                         `}
                       </td>
@@ -1910,7 +1986,7 @@ async function openCbtResultDetailModal(attemptId) {
 
     modalBody.innerHTML = `
       <!-- Candidate & Exam Info Grid -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; background: var(--bg-body); padding: 14px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); margin-bottom: 20px; font-size: 0.85rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; background: var(--bg-body); padding: 14px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); margin-bottom: 16px; font-size: 0.85rem;">
         <div>Nama: <strong>${candidate.name}</strong> (<span style="font-family: monospace; font-weight: 700; color: var(--primary-600);">${candidate.registrationNumber}</span>)</div>
         <div>Program Kelas: <strong>${candidate.classProgramName}</strong> (${candidate.schoolName})</div>
         <div>Status: <strong>${attempt.status}</strong></div>
@@ -1918,21 +1994,32 @@ async function openCbtResultDetailModal(attemptId) {
         <div>Waktu Selesai: <strong>${attempt.completedAt ? new Date(attempt.completedAt).toLocaleString('id-ID') : '-'}</strong></div>
       </div>
 
-      <!-- Score Summary Banner -->
-      <div style="display: flex; justify-content: space-around; align-items: center; background: var(--bg-card); border: 2px solid var(--primary-600); border-radius: var(--radius-lg); padding: 14px; margin-bottom: 20px;">
-        <div style="text-align: center;">
-          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Nilai PG</div>
-          <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary-600);">${attempt.multipleChoiceScore}</div>
+      <!-- Detailed Exam Metrics Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px; text-align: center;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Durasi Pengerjaan</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">
+            ${attempt.durationFormatted || '-'}
+          </div>
         </div>
-        <div style="font-size: 1.5rem; color: var(--text-dim);">+</div>
-        <div style="text-align: center;">
-          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Nilai Essay</div>
-          <div style="font-size: 1.5rem; font-weight: 800; color: #6366f1;">${attempt.essayScore}</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px; text-align: center;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Jawaban Pilihan Ganda</div>
+          <div style="font-size: 1rem; font-weight: 800; margin-top: 4px;">
+            <span style="color: #16a34a;">${attempt.mcCorrect || 0} Benar</span> <span style="color: var(--text-dim);">|</span> <span style="color: #ef4444;">${attempt.mcIncorrect || 0} Salah</span>
+          </div>
+          ${(attempt.mcUnanswered || 0) > 0 ? `<div style="font-size: 0.7rem; color: var(--text-muted);">${attempt.mcUnanswered} Tidak Dijawab</div>` : ''}
         </div>
-        <div style="font-size: 1.5rem; color: var(--text-dim);">=</div>
-        <div style="text-align: center;">
-          <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Nilai Total</div>
-          <div style="font-size: 1.7rem; font-weight: 800; color: #16a34a;">${attempt.totalScore}</div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px; text-align: center;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Tingkat Akurasi PG</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: #0284c7; margin-top: 4px;">
+            ${attempt.accuracyPercentage || 0}%
+          </div>
+        </div>
+        <div style="background: var(--bg-card); border: 2px solid #16a34a; border-radius: 10px; padding: 12px; text-align: center;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Nilai Akhir (Skala 100)</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: #16a34a; margin-top: 2px;">
+            ${attempt.totalScore != null ? Number(attempt.totalScore).toFixed(2) : '0.00'}
+          </div>
         </div>
       </div>
 
@@ -1944,9 +2031,14 @@ async function openCbtResultDetailModal(attemptId) {
             <i class="fa-solid fa-list-ol" style="color: var(--primary-600);"></i>
             Rincian Jawaban Soal (${questions.length})
           </h4>
-          <button type="button" class="btn btn-sm btn-outline-success" onclick="exportSingleStudentCbtExcel('${attempt.id}', this)" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
-            <i class="fa-solid fa-file-excel"></i> Unduh Lembar Evaluasi (Excel)
-          </button>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="printSingleStudentCbtResult('${attempt.id}')" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+              <i class="fa-solid fa-print"></i> Cetak Lembar Hasil
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="exportSingleStudentCbtExcel('${attempt.id}', this)" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 700;">
+              <i class="fa-solid fa-file-excel"></i> Unduh Excel
+            </button>
+          </div>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 16px; max-height: 480px; overflow-y: auto; padding-right: 6px; margin-bottom: 20px;">
@@ -2368,6 +2460,441 @@ async function exportSingleStudentCbtExcel(attemptId, btnEl) {
 }
 
 /**
+ * Cetak Lembar Hasil Ujian CBT per Santri (Printable Document / PDF)
+ */
+async function printSingleStudentCbtResult(attemptId) {
+  let appSettings = window.appSettings || {};
+  let resData = null;
+
+  try {
+    const [res, settingsRes] = await Promise.all([
+      apiRequest(`/api/cbt/admin/results/${attemptId}`),
+      apiRequest('/api/settings').catch(() => ({ success: false })),
+    ]);
+
+    if (!res.success || !res.data) {
+      throw new Error(res.message || 'Gagal memuat data hasil ujian.');
+    }
+    resData = res.data;
+    if (settingsRes && settingsRes.success && settingsRes.data) {
+      appSettings = settingsRes.data;
+    }
+  } catch (err) {
+    showToast(err.message || 'Gagal memuat dokumen untuk dicetak.', 'danger');
+    return;
+  }
+
+  const { attempt, candidate, questions, examTitle, durationMinutes } = resData;
+
+  const rawLogo = appSettings.application_logo || 'logo_e7a8b6a95d.webp';
+  const logoUrl = (rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('/'))
+    ? rawLogo
+    : `/static/img/${rawLogo}`;
+  const appName = appSettings.application_name || 'Pondok Pesantren Maskumambang';
+
+  const dateNow = new Date().toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const startedAtFormatted = attempt.startedAt
+    ? new Date(attempt.startedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+    : '-';
+  const completedAtFormatted = attempt.completedAt
+    ? new Date(attempt.completedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+    : '-';
+
+  const totalScoreVal = attempt.totalScore != null ? Number(attempt.totalScore).toFixed(2) : '0.00';
+  const mcScoreVal = attempt.multipleChoiceScore != null ? Number(attempt.multipleChoiceScore).toFixed(2) : '0.00';
+  const essayScoreVal = attempt.essayScore != null ? Number(attempt.essayScore).toFixed(2) : '0.00';
+
+  const printHtml = `
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+      <meta charset="UTF-8">
+      <title>Hasil CBT - ${escapeHtml(candidate.name)} - ${escapeHtml(candidate.registrationNumber)}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+          font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+          color: #1e293b;
+          background: #fff;
+          font-size: 12px;
+          line-height: 1.5;
+          padding: 24px;
+        }
+        @media print {
+          body { padding: 0; }
+          .no-print { display: none !important; }
+          @page { size: A4; margin: 12mm 15mm; }
+        }
+        .header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          border-bottom: 3px double #0f172a;
+          padding-bottom: 12px;
+          margin-bottom: 18px;
+        }
+        .header img {
+          width: 68px;
+          height: 68px;
+          object-fit: contain;
+        }
+        .header-text {
+          flex: 1;
+          text-align: center;
+        }
+        .header-text h2 {
+          font-size: 16px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #0f172a;
+          margin-bottom: 2px;
+        }
+        .header-text h3 {
+          font-size: 14px;
+          font-weight: 700;
+          color: #166534;
+          margin-bottom: 4px;
+        }
+        .header-text p {
+          font-size: 11px;
+          color: #64748b;
+        }
+        .doc-title {
+          text-align: center;
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          margin-bottom: 16px;
+          padding: 6px;
+          background: #f1f5f9;
+          border: 1px solid #cbd5e1;
+          border-radius: 4px;
+        }
+        .grid-info {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .info-box {
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          padding: 10px 14px;
+          background: #f8fafc;
+        }
+        .info-box h4 {
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+          color: #475569;
+          margin-bottom: 8px;
+          border-bottom: 1px solid #e2e8f0;
+          padding-bottom: 4px;
+        }
+        .info-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        .info-table td {
+          padding: 3px 0;
+          font-size: 11.5px;
+          vertical-align: top;
+        }
+        .info-table td.label {
+          width: 110px;
+          color: #64748b;
+          font-weight: 600;
+        }
+        .info-table td.colon {
+          width: 12px;
+          color: #64748b;
+        }
+        .info-table td.value {
+          font-weight: 700;
+          color: #0f172a;
+        }
+        .score-banner {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+        .score-card {
+          border: 1px solid #cbd5e1;
+          border-radius: 6px;
+          padding: 10px;
+          text-align: center;
+          background: #ffffff;
+        }
+        .score-card.final {
+          background: #ecfdf5;
+          border-color: #86efac;
+        }
+        .score-card .title {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: #64748b;
+          margin-bottom: 4px;
+        }
+        .score-card .val {
+          font-size: 18px;
+          font-weight: 800;
+          color: #0f172a;
+        }
+        .score-card.final .val {
+          font-size: 24px;
+          color: #15803d;
+        }
+        .score-card .sub {
+          font-size: 9.5px;
+          color: #64748b;
+          margin-top: 2px;
+        }
+        table.results {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+          font-size: 11px;
+        }
+        table.results th, table.results td {
+          border: 1px solid #cbd5e1;
+          padding: 6px 8px;
+          vertical-align: middle;
+        }
+        table.results th {
+          background: #f1f5f9;
+          font-weight: 700;
+          text-align: center;
+          color: #334155;
+        }
+        .tag-correct {
+          background: #dcfce7;
+          color: #15803d;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 4px;
+          display: inline-block;
+        }
+        .tag-wrong {
+          background: #fee2e2;
+          color: #b91c1c;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 4px;
+          display: inline-block;
+        }
+        .tag-empty {
+          background: #f1f5f9;
+          color: #64748b;
+          font-weight: 600;
+          padding: 2px 6px;
+          border-radius: 4px;
+          display: inline-block;
+        }
+        .signature-section {
+          margin-top: 24px;
+          display: flex;
+          justify-content: space-between;
+          page-break-inside: avoid;
+        }
+        .sig-box {
+          text-align: center;
+          width: 220px;
+        }
+        .sig-box .date {
+          margin-bottom: 50px;
+          font-size: 11px;
+        }
+        .sig-box .name {
+          font-weight: 700;
+          text-decoration: underline;
+          font-size: 11.5px;
+        }
+        .sig-box .title {
+          font-size: 10.5px;
+          color: #64748b;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="no-print" style="margin-bottom: 16px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button onclick="window.print()" style="padding: 8px 16px; background: #166534; color: #fff; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">
+          🖨 Cetak Dokumen / Simpan PDF
+        </button>
+        <button onclick="window.close()" style="padding: 8px 16px; background: #64748b; color: #fff; border: none; border-radius: 6px; font-weight: 700; cursor: pointer;">
+          Tutup
+        </button>
+      </div>
+
+      <div class="header">
+        <img src="${logoUrl}" alt="Logo">
+        <div class="header-text">
+          <h2>${appName}</h2>
+          <h3>PANITIA PENERIMAAN SANTRI BARU (PSB)</h3>
+          <p>Jl. Raya Sembungan Kidul Dukun Gresik Jawa Timur | psb.maskumambang.ac.id</p>
+        </div>
+      </div>
+
+      <div class="doc-title">LEMBAR HASIL UJIAN COMPUTER BASED TEST (CBT)</div>
+
+      <div class="grid-info">
+        <div class="info-box">
+          <h4>Identitas Calon Santri</h4>
+          <table class="info-table">
+            <tr><td class="label">No. Pendaftaran</td><td class="colon">:</td><td class="value">${escapeHtml(candidate.registrationNumber || '-')}</td></tr>
+            <tr><td class="label">Nama Lengkap</td><td class="colon">:</td><td class="value">${escapeHtml(candidate.name || '-')}</td></tr>
+            <tr><td class="label">Lembaga / Unit</td><td class="colon">:</td><td class="value">${escapeHtml(candidate.schoolName || '-')}</td></tr>
+            <tr><td class="label">Peminatan/Jurusan</td><td class="colon">:</td><td class="value">${escapeHtml(candidate.majorName || '-')}</td></tr>
+            <tr><td class="label">Program Kelas</td><td class="colon">:</td><td class="value">${escapeHtml(candidate.classProgramName || '-')}</td></tr>
+          </table>
+        </div>
+
+        <div class="info-box">
+          <h4>Pelaksanaan Ujian</h4>
+          <table class="info-table">
+            <tr><td class="label">Paket Ujian</td><td class="colon">:</td><td class="value">${escapeHtml(examTitle || '-')}</td></tr>
+            <tr><td class="label">Waktu Mulai</td><td class="colon">:</td><td class="value">${startedAtFormatted}</td></tr>
+            <tr><td class="label">Waktu Selesai</td><td class="colon">:</td><td class="value">${completedAtFormatted}</td></tr>
+            <tr><td class="label">Durasi Ujian</td><td class="colon">:</td><td class="value">${escapeHtml(attempt.durationFormatted || '-')}</td></tr>
+            <tr><td class="label">Status Selesai</td><td class="colon">:</td><td class="value" style="color: #166534;">SELESAI</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="score-banner">
+        <div class="score-card final">
+          <div class="title">NILAI AKHIR CBT</div>
+          <div class="val">${totalScoreVal}</div>
+          <div class="sub">Skala 0 - 100</div>
+        </div>
+        <div class="score-card">
+          <div class="title">AKURASI PILIHAN GANDA</div>
+          <div class="val" style="color: #2563eb;">${attempt.accuracyPercentage != null ? attempt.accuracyPercentage : 0}%</div>
+          <div class="sub">${attempt.mcCorrect || 0} Benar dari ${attempt.mcTotal || 0} Soal</div>
+        </div>
+        <div class="score-card">
+          <div class="title">ANALISIS JAWABAN PG</div>
+          <div class="val" style="font-size: 14px; margin-top: 4px; display: flex; justify-content: center; gap: 8px;">
+            <span style="color:#15803d;">✔ ${attempt.mcCorrect || 0}</span>
+            <span style="color:#b91c1c;">✕ ${attempt.mcIncorrect || 0}</span>
+            <span style="color:#64748b;">- ${attempt.mcUnanswered || 0}</span>
+          </div>
+          <div class="sub">Benar / Salah / Kosong</div>
+        </div>
+        <div class="score-card">
+          <div class="title">KOMPOSISI NILAI</div>
+          <div class="val" style="font-size: 13px; margin-top: 4px;">
+            PG: ${mcScoreVal} | Essay: ${essayScoreVal}
+          </div>
+          <div class="sub">Total ${questions.length} Butir Soal</div>
+        </div>
+      </div>
+
+      <table class="results">
+        <thead>
+          <tr>
+            <th style="width: 35px;">No.</th>
+            <th style="width: 70px;">Tipe</th>
+            <th>Soal (Ringkasan)</th>
+            <th style="width: 140px;">Kunci Jawaban</th>
+            <th style="width: 140px;">Jawaban Peserta</th>
+            <th style="width: 85px;">Hasil</th>
+            <th style="width: 45px;">Skor</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${questions.map((q, idx) => {
+            const isMC = q.type === 'MULTIPLE_CHOICE';
+            const ans = q.answer;
+            const qClean = _stripHtml(q.questionText).substring(0, 100) + (_stripHtml(q.questionText).length > 100 ? '...' : '');
+
+            let keyText = '-';
+            let studentText = '(Kosong)';
+            let statusBadge = '<span class="tag-empty">KOSONG</span>';
+            let awardedScore = 0;
+
+            if (isMC) {
+              const correctOpt = (q.options || []).find(o => o.isCorrect);
+              keyText = correctOpt ? _stripHtml(correctOpt.content) : '-';
+              if (ans && ans.selectedOptionContent) {
+                studentText = _stripHtml(ans.selectedOptionContent);
+                if (ans.isCorrect) {
+                  statusBadge = '<span class="tag-correct">BENAR</span>';
+                  awardedScore = ans.score != null ? ans.score : q.maxScore;
+                } else {
+                  statusBadge = '<span class="tag-wrong">SALAH</span>';
+                  awardedScore = 0;
+                }
+              }
+            } else {
+              keyText = 'Rubrik Penguji';
+              if (ans && ans.essayAnswer) {
+                studentText = _stripHtml(ans.essayAnswer).substring(0, 80);
+                awardedScore = ans.score || 0;
+                statusBadge = awardedScore > 0
+                  ? '<span class="tag-correct">DINILAI</span>'
+                  : '<span class="tag-empty">0 POIN</span>';
+              }
+            }
+
+            return `
+              <tr>
+                <td style="text-align: center; font-weight: 700;">${q.questionOrder || (idx + 1)}</td>
+                <td style="text-align: center; font-size: 10px;">${isMC ? 'PG' : 'ESSAY'}</td>
+                <td>${escapeHtml(qClean)}</td>
+                <td>${escapeHtml(keyText)}</td>
+                <td>${escapeHtml(studentText)}</td>
+                <td style="text-align: center;">${statusBadge}</td>
+                <td style="text-align: center; font-weight: 700;">${awardedScore}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+
+      <div class="signature-section">
+        <div class="sig-box">
+          <div class="date">&nbsp;</div>
+          <div class="name">Petugas / Tim CBT</div>
+          <div class="title">Panitia PSB Putra/Putri</div>
+        </div>
+        <div class="sig-box">
+          <div class="date">Gresik, ${dateNow}</div>
+          <div class="name">Ketua Panitia PSB</div>
+          <div class="title">Pondok Pesantren Maskumambang</div>
+        </div>
+      </div>
+
+      <script>
+        window.addEventListener('load', () => {
+          setTimeout(() => {
+            window.print();
+          }, 350);
+        });
+      </script>
+    </body>
+    </html>
+  `;
+
+  const printWin = window.open('', '_blank', 'width=950,height=850');
+  if (printWin) {
+    printWin.document.open();
+    printWin.document.write(printHtml);
+    printWin.document.close();
+  } else {
+    showToast('Popup cetak terblokir oleh browser. Harap izinkan pop-up untuk situs ini.', 'warning');
+  }
+}
+
+/**
  * Ekspor Rekap Hasil Ujian CBT seluruh siswa yang sedang tampil ke file Excel
  */
 async function exportCbtResultsSummaryExcel() {
@@ -2390,14 +2917,19 @@ async function exportCbtResultsSummaryExcel() {
     ws.columns = [
       { header: 'No', key: 'no', width: 6 },
       { header: 'No. Pendaftaran', key: 'regNo', width: 18 },
-      { header: 'Nama Lengkap Santri', key: 'name', width: 30 },
-      { header: 'Lembaga / Sekolah', key: 'school', width: 22 },
-      { header: 'Program Kelas', key: 'classProgram', width: 22 },
-      { header: 'Status Ujian', key: 'status', width: 16 },
+      { header: 'Nama Lengkap Santri', key: 'name', width: 28 },
+      { header: 'Lembaga / Sekolah', key: 'school', width: 20 },
+      { header: 'Program Kelas', key: 'classProgram', width: 20 },
+      { header: 'Status Ujian', key: 'status', width: 14 },
+      { header: 'Durasi Ujian', key: 'duration', width: 14 },
+      { header: 'Benar', key: 'mcCorrect', width: 10 },
+      { header: 'Salah', key: 'mcIncorrect', width: 10 },
+      { header: 'Kosong', key: 'mcUnanswered', width: 10 },
+      { header: 'Akurasi (%)', key: 'accuracy', width: 12 },
       { header: 'Nilai PG', key: 'mcScore', width: 12 },
       { header: 'Nilai Essay', key: 'essayScore', width: 12 },
-      { header: 'Total Nilai', key: 'totalScore', width: 14 },
-      { header: 'Status Penilaian', key: 'gradingStatus', width: 18 },
+      { header: 'Total Nilai (0-100)', key: 'totalScore', width: 16 },
+      { header: 'Status Penilaian', key: 'gradingStatus', width: 16 },
     ];
 
     // Style Header
@@ -2423,6 +2955,8 @@ async function exportCbtResultsSummaryExcel() {
         else gradingStr = 'Belum Dinilai';
       }
 
+      const isCompleted = att && (att.status === 'COMPLETED' || att.status === 'EXPIRED');
+
       const r = ws.addRow({
         no: idx + 1,
         regNo: row.registrationNumber,
@@ -2430,9 +2964,14 @@ async function exportCbtResultsSummaryExcel() {
         school: row.schoolName,
         classProgram: row.classProgramName,
         status: statusStr,
-        mcScore: att && (att.status === 'COMPLETED' || att.status === 'EXPIRED') ? att.multipleChoiceScore : 0,
-        essayScore: att && (att.status === 'COMPLETED' || att.status === 'EXPIRED') ? att.essayScore : 0,
-        totalScore: att && (att.status === 'COMPLETED' || att.status === 'EXPIRED') ? att.totalScore : 0,
+        duration: isCompleted ? (att.durationFormatted || '-') : '-',
+        mcCorrect: isCompleted ? (att.mcCorrect || 0) : 0,
+        mcIncorrect: isCompleted ? (att.mcIncorrect || 0) : 0,
+        mcUnanswered: isCompleted ? (att.mcUnanswered || 0) : 0,
+        accuracy: isCompleted ? `${att.accuracyPercentage || 0}%` : '-',
+        mcScore: isCompleted && att.multipleChoiceScore != null ? Number(att.multipleChoiceScore).toFixed(2) : 0,
+        essayScore: isCompleted && att.essayScore != null ? Number(att.essayScore).toFixed(2) : 0,
+        totalScore: isCompleted && att.totalScore != null ? Number(att.totalScore).toFixed(2) : 0,
         gradingStatus: gradingStr,
       });
 
@@ -4712,6 +5251,78 @@ window.clearOptionContent = clearOptionContent;
 window.updateCorrectOptionBadge = updateCorrectOptionBadge;
 window.triggerQuestionImageUpload = triggerQuestionImageUpload;
 window.exportSingleStudentCbtExcel = exportSingleStudentCbtExcel;
-window.exportCbtResultsSummaryExcel = exportCbtResultsSummaryExcel;
+function openSetUniformWeightModal(examId, currentWeight = 2) {
+  const currentExam = window.cbtAdminState?.currentExam;
+  const qCount = currentExam?.questions?.length || 0;
+
+  const bodyHtml = `
+    <form onsubmit="handleSaveUniformWeight(event, '${examId}')">
+      <div style="margin-bottom: 16px;">
+        <p style="font-size: 0.875rem; color: var(--text-main); line-height: 1.5; margin-bottom: 12px;">
+          Fitur ini akan menyamakan bobot nilai seluruh <strong>${qCount} butir soal</strong> di paket ini ke satu angka yang sama sesuai ketentuan rumus penilaian CBT:
+        </p>
+        <div style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 16px;">
+          <div style="font-weight: 700; color: var(--text-heading); margin-bottom: 4px;">Rumus Penilaian Akhir CBT:</div>
+          <code>(Jumlah Skor / (Jumlah Soal &times; Bobot)) &times; 100</code>
+        </div>
+        <label style="font-weight: 700; font-size: 0.875rem; margin-bottom: 6px; display: block;">
+          Tentukan Bobot Nilai per Soal (Contoh: 2, 3, dst.) <span style="color: #ef4444;">*</span>
+        </label>
+        <input type="number" id="modal-uniform-weight" class="form-control" value="${currentWeight}" min="1" max="100" step="1" required style="width: 140px; padding: 10px 12px; font-weight: 700; font-size: 1rem;">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Batal</button>
+        <button type="submit" id="btn-save-uniform-weight" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-check"></i> Terapkan ke Seluruh Soal
+        </button>
+      </div>
+    </form>
+  `;
+
+  openModal('Atur Bobot Seragam Paket Soal', bodyHtml, 'modal-md');
+}
+
+async function handleSaveUniformWeight(e, examId) {
+  e.preventDefault();
+  const btn = document.getElementById('btn-save-uniform-weight');
+  const weightInput = document.getElementById('modal-uniform-weight');
+  const weight = parseFloat(weightInput?.value);
+
+  if (!weight || weight <= 0) {
+    showToast('Nilai bobot harus berupa angka positif lebih dari 0.', 'warning');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+  }
+
+  try {
+    const res = await apiRequest(`/api/cbt/admin/exams/${examId}/uniform-weight`, {
+      method: 'PATCH',
+      data: { weight }
+    });
+
+    if (!res.success) throw new Error(res.message || 'Gagal mengubah bobot soal.');
+
+    closeModal();
+    showToast(res.message || 'Bobot seluruh soal berhasil diseragamkan.', 'success');
+
+    if (window.cbtAdminState?.selectedSchoolId) {
+      await loadCbtSchoolExamDetails(window.cbtAdminState.selectedSchoolId);
+    }
+  } catch (err) {
+    showToast(err.message || 'Terjadi kesalahan.', 'danger');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Terapkan ke Seluruh Soal';
+    }
+  }
+}
+
+window.openSetUniformWeightModal = openSetUniformWeightModal;
+window.handleSaveUniformWeight = handleSaveUniformWeight;
+window.printSingleStudentCbtResult = printSingleStudentCbtResult;
 
 

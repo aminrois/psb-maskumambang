@@ -403,6 +403,18 @@ export class CbtService {
       }
     }
 
+    // Enforce uniform question weight across the exam package
+    let questionScore = dto.score ? Number(dto.score) : 2;
+    if (exam.questions.length > 0) {
+      const existingWeight = Number(exam.questions[0].score);
+      if (dto.score !== undefined && Number(dto.score) !== existingWeight) {
+        throw new BadRequestException(
+          `Paket soal ini menggunakan bobot seragam ${existingWeight} poin per butir soal. Semua butir soal dalam 1 paket wajib memiliki bobot yang sama (${existingWeight}). Gunakan tombol Ubah Bobot Seragam jika ingin mengubah seluruh soal sekaligus.`,
+        );
+      }
+      questionScore = existingWeight;
+    }
+
     const orderNumber = dto.orderNumber ?? exam.questions.length + 1;
 
     return this.prisma.$transaction(async (tx) => {
@@ -411,7 +423,7 @@ export class CbtService {
           examId,
           type: dto.type,
           question: dto.question,
-          score: new Prisma.Decimal(dto.score),
+          score: new Prisma.Decimal(questionScore),
           orderNumber,
         },
       });
@@ -469,11 +481,25 @@ export class CbtService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      const targetScore = dto.score ? new Prisma.Decimal(dto.score) : undefined;
+      
+      // If score is modified, synchronize all questions in this exam to maintain uniform weight
+      if (dto.score !== undefined && Number(dto.score) > 0) {
+        const existingWeight = Number(question.score);
+        const newWeight = Number(dto.score);
+        if (newWeight !== existingWeight) {
+          await tx.cBTQuestion.updateMany({
+            where: { examId: question.examId },
+            data: { score: new Prisma.Decimal(newWeight) },
+          });
+        }
+      }
+
       await tx.cBTQuestion.update({
         where: { id: questionId },
         data: {
           question: dto.question,
-          score: dto.score ? new Prisma.Decimal(dto.score) : undefined,
+          score: targetScore,
           orderNumber: dto.orderNumber,
         },
       });
@@ -500,6 +526,32 @@ export class CbtService {
         include: { options: { orderBy: { orderNumber: 'asc' } } },
       });
     });
+  }
+
+  /**
+   * Sets uniform weight for all questions in an exam package.
+   */
+  async setUniformWeight(examId: string, weight: number) {
+    if (!weight || isNaN(weight) || weight <= 0) {
+      throw new BadRequestException('Bobot nilai soal harus berupa angka lebih dari 0.');
+    }
+    const exam = await this.prisma.cBTExam.findUnique({
+      where: { id: examId },
+      include: { questions: true },
+    });
+    if (!exam) throw new NotFoundException('Ujian CBT tidak ditemukan.');
+
+    await this.prisma.cBTQuestion.updateMany({
+      where: { examId },
+      data: { score: new Prisma.Decimal(weight) },
+    });
+
+    return {
+      success: true,
+      message: `Bobot seluruh (${exam.questions.length}) butir soal pada paket ini berhasil diseragamkan menjadi ${weight} poin per soal.`,
+      weight,
+      affectedCount: exam.questions.length,
+    };
   }
 
   /**
@@ -558,7 +610,7 @@ export class CbtService {
   async importQuestions(examId: string, questions: CreateCbtQuestionDto[]) {
     const exam = await this.prisma.cBTExam.findUnique({
       where: { id: examId },
-      include: { questions: { select: { orderNumber: true } } },
+      include: { questions: { select: { orderNumber: true, score: true } } },
     });
 
     if (!exam) {
@@ -577,6 +629,11 @@ export class CbtService {
 
     return this.prisma.$transaction(async (tx) => {
       const createdQuestions = [];
+
+      // Determine uniform question weight: adopt existing question weight or imported weight (default: 2)
+      const uniformWeight = exam.questions.length > 0
+        ? Number(exam.questions[0].score)
+        : (questions[0]?.score ? Number(questions[0].score) : 2);
 
       for (let i = 0; i < questions.length; i++) {
         const qDto = questions[i];
@@ -601,7 +658,7 @@ export class CbtService {
             examId,
             type: qDto.type,
             question: qDto.question,
-            score: new Prisma.Decimal(qDto.score || 5),
+            score: new Prisma.Decimal(uniformWeight),
             orderNumber: nextOrder,
             options:
               qDto.type === CBTQuestionType.MULTIPLE_CHOICE && qDto.options
@@ -706,6 +763,22 @@ export class CbtService {
         cbtAttempt: {
           include: {
             gradedBy: { select: { id: true, name: true } },
+            exam: {
+              select: {
+                durationMinutes: true,
+                questions: {
+                  select: { id: true, type: true, score: true },
+                },
+              },
+            },
+            answers: {
+              select: {
+                questionId: true,
+                isCorrect: true,
+                selectedOptionId: true,
+                essayAnswer: true,
+              },
+            },
           },
         },
       },
@@ -718,6 +791,57 @@ export class CbtService {
         r.user.name;
 
       const attempt = r.cbtAttempt;
+
+      let mcTotal = 0;
+      let mcCorrect = 0;
+      let mcIncorrect = 0;
+      let mcUnanswered = 0;
+      let essayTotal = 0;
+      let durationSeconds = 0;
+      let durationFormatted = '-';
+      let accuracyPercentage = 0;
+
+      if (attempt) {
+        if (attempt.startedAt && attempt.completedAt) {
+          durationSeconds = Math.max(
+            0,
+            Math.round(
+              (new Date(attempt.completedAt).getTime() -
+                new Date(attempt.startedAt).getTime()) /
+                1000,
+            ),
+          );
+          const durMin = Math.floor(durationSeconds / 60);
+          const durSec = durationSeconds % 60;
+          durationFormatted = `${durMin}m ${durSec}s`;
+        }
+
+        const questions = attempt.exam?.questions || [];
+        const answersMap = new Map(
+          (attempt.answers || []).map((a) => [a.questionId, a]),
+        );
+
+        for (const q of questions) {
+          if (q.type === CBTQuestionType.MULTIPLE_CHOICE) {
+            mcTotal++;
+            const ans = answersMap.get(q.id);
+            if (!ans || !ans.selectedOptionId) {
+              mcUnanswered++;
+            } else if (ans.isCorrect) {
+              mcCorrect++;
+            } else {
+              mcIncorrect++;
+            }
+          } else if (q.type === CBTQuestionType.ESSAY) {
+            essayTotal++;
+          }
+        }
+
+        if (mcTotal > 0) {
+          accuracyPercentage =
+            Math.round(((mcCorrect / mcTotal) * 100) * 10) / 10;
+        }
+      }
 
       return {
         registrationId: r.id,
@@ -738,6 +862,14 @@ export class CbtService {
               gradingStatus: attempt.gradingStatus,
               gradedBy: attempt.gradedBy?.name || null,
               gradedAt: attempt.gradedAt,
+              mcTotal,
+              mcCorrect,
+              mcIncorrect,
+              mcUnanswered,
+              essayTotal,
+              durationSeconds,
+              durationFormatted,
+              accuracyPercentage,
             }
           : null,
       };
@@ -831,6 +963,50 @@ export class CbtService {
       };
     });
 
+    let mcTotal = 0;
+    let mcCorrect = 0;
+    let mcIncorrect = 0;
+    let mcUnanswered = 0;
+    let essayTotal = 0;
+    let durationSeconds = 0;
+    let durationFormatted = '-';
+    let accuracyPercentage = 0;
+
+    if (attempt.startedAt && attempt.completedAt) {
+      durationSeconds = Math.max(
+        0,
+        Math.round(
+          (new Date(attempt.completedAt).getTime() -
+            new Date(attempt.startedAt).getTime()) /
+            1000,
+        ),
+      );
+      const durMin = Math.floor(durationSeconds / 60);
+      const durSec = durationSeconds % 60;
+      durationFormatted = `${durMin} Menit ${durSec} Detik`;
+    }
+
+    for (const q of questionsDetail) {
+      if (q.type === CBTQuestionType.MULTIPLE_CHOICE) {
+        mcTotal++;
+        const ans = q.answer;
+        if (!ans || !ans.selectedOptionId) {
+          mcUnanswered++;
+        } else if (ans.isCorrect) {
+          mcCorrect++;
+        } else {
+          mcIncorrect++;
+        }
+      } else if (q.type === CBTQuestionType.ESSAY) {
+        essayTotal++;
+      }
+    }
+
+    if (mcTotal > 0) {
+      accuracyPercentage =
+        Math.round(((mcCorrect / mcTotal) * 100) * 10) / 10;
+    }
+
     return {
       attempt: {
         id: attempt.id,
@@ -841,6 +1017,14 @@ export class CbtService {
         essayScore: Number(attempt.essayScore),
         totalScore: Number(attempt.totalScore),
         gradingStatus: attempt.gradingStatus,
+        mcTotal,
+        mcCorrect,
+        mcIncorrect,
+        mcUnanswered,
+        essayTotal,
+        durationSeconds,
+        durationFormatted,
+        accuracyPercentage,
       },
       candidate: {
         registrationId: reg.id,
@@ -918,31 +1102,50 @@ export class CbtService {
         });
       }
 
-      // Recompute essay score
+      // Recompute scores using standard formula: (Jumlah Skor / (Jumlah Soal * Bobot)) * 100
       const allAnswers = await tx.cBTAnswer.findMany({
         where: { attemptId },
         include: { question: true },
       });
 
-      let essayScore = 0;
-      let mcScore = 0;
+      let rawEssayScore = 0;
+      let rawMcScore = 0;
 
       for (const ans of allAnswers) {
         if (ans.question.type === CBTQuestionType.ESSAY) {
-          essayScore += Number(ans.score);
-        } else if (ans.question.type === CBTQuestionType.MULTIPLE_CHOICE) {
-          mcScore += Number(ans.score);
+          rawEssayScore += Number(ans.score);
+        } else if (ans.question.type === CBTQuestionType.MULTIPLE_CHOICE && ans.isCorrect) {
+          rawMcScore += Number(ans.score);
         }
       }
 
-      const totalScore = mcScore + essayScore;
+      const totalRawScore = rawMcScore + rawEssayScore;
+      const attemptData = await tx.cBTAttempt.findUnique({
+        where: { id: attemptId },
+        include: { exam: { include: { questions: true } } },
+      });
+
+      const totalQuestions = attemptData?.exam?.questions?.length || allAnswers.length;
+      const sampleQuestion = attemptData?.exam?.questions?.[0];
+      const uniformWeight = sampleQuestion ? Number(sampleQuestion.score) : 2;
+      const maxPossibleScore = totalQuestions > 0 ? totalQuestions * uniformWeight : 0;
+
+      let finalTotalScore = 0;
+      let finalMcScore = 0;
+      let finalEssayScore = 0;
+
+      if (maxPossibleScore > 0) {
+        finalTotalScore = Math.round(((totalRawScore / maxPossibleScore) * 100) * 100) / 100;
+        finalMcScore = Math.round(((rawMcScore / maxPossibleScore) * 100) * 100) / 100;
+        finalEssayScore = Math.round(((rawEssayScore / maxPossibleScore) * 100) * 100) / 100;
+      }
 
       await tx.cBTAttempt.update({
         where: { id: attemptId },
         data: {
-          multipleChoiceScore: new Prisma.Decimal(mcScore),
-          essayScore: new Prisma.Decimal(essayScore),
-          totalScore: new Prisma.Decimal(totalScore),
+          multipleChoiceScore: new Prisma.Decimal(finalMcScore),
+          essayScore: new Prisma.Decimal(finalEssayScore),
+          totalScore: new Prisma.Decimal(finalTotalScore),
           gradingStatus: CBTGradingStatus.GRADED,
           gradedByUserId: graderUserId,
           gradedAt: new Date(),
@@ -1930,15 +2133,26 @@ export class CbtService {
       return this.formatCandidateCompletionSummary(reg, attempt);
     }
 
-    // Auto calculate Multiple Choice score
-    let mcScore = 0;
+    // Auto calculate Multiple Choice raw score
+    let rawMcScore = 0;
     for (const ans of attempt.answers) {
       if (
         ans.question.type === CBTQuestionType.MULTIPLE_CHOICE &&
         ans.isCorrect
       ) {
-        mcScore += Number(ans.score);
+        rawMcScore += Number(ans.score);
       }
+    }
+
+    // Standard scoring formula: (Jumlah Skor / (Jumlah Soal * Bobot)) * 100
+    const totalQuestions = attempt.exam.questions.length;
+    const sampleQuestion = attempt.exam.questions[0];
+    const uniformWeight = sampleQuestion ? Number(sampleQuestion.score) : 2;
+    const maxPossibleScore = totalQuestions > 0 ? totalQuestions * uniformWeight : 0;
+
+    let finalMcScore = 0;
+    if (maxPossibleScore > 0) {
+      finalMcScore = Math.round(((rawMcScore / maxPossibleScore) * 100) * 100) / 100;
     }
 
     const hasEssay = attempt.exam.questions.some(
@@ -1954,10 +2168,8 @@ export class CbtService {
       data: {
         status: CBTAttemptStatus.COMPLETED,
         completedAt: new Date(),
-        multipleChoiceScore: new Prisma.Decimal(mcScore),
-        totalScore: hasEssay
-          ? new Prisma.Decimal(mcScore)
-          : new Prisma.Decimal(mcScore),
+        multipleChoiceScore: new Prisma.Decimal(finalMcScore),
+        totalScore: new Prisma.Decimal(finalMcScore),
         gradingStatus,
       },
     });
@@ -1980,14 +2192,25 @@ export class CbtService {
 
     if (!attempt || attempt.status !== CBTAttemptStatus.IN_PROGRESS) return;
 
-    let mcScore = 0;
+    let rawMcScore = 0;
     for (const ans of attempt.answers) {
       if (
         ans.question.type === CBTQuestionType.MULTIPLE_CHOICE &&
         ans.isCorrect
       ) {
-        mcScore += Number(ans.score);
+        rawMcScore += Number(ans.score);
       }
+    }
+
+    // Standard scoring formula: (Jumlah Skor / (Jumlah Soal * Bobot)) * 100
+    const totalQuestions = attempt.exam.questions.length;
+    const sampleQuestion = attempt.exam.questions[0];
+    const uniformWeight = sampleQuestion ? Number(sampleQuestion.score) : 2;
+    const maxPossibleScore = totalQuestions > 0 ? totalQuestions * uniformWeight : 0;
+
+    let finalMcScore = 0;
+    if (maxPossibleScore > 0) {
+      finalMcScore = Math.round(((rawMcScore / maxPossibleScore) * 100) * 100) / 100;
     }
 
     const hasEssay = attempt.exam.questions.some(
@@ -1999,8 +2222,8 @@ export class CbtService {
       data: {
         status: CBTAttemptStatus.EXPIRED,
         completedAt: attempt.expiresAt || new Date(),
-        multipleChoiceScore: new Prisma.Decimal(mcScore),
-        totalScore: new Prisma.Decimal(mcScore),
+        multipleChoiceScore: new Prisma.Decimal(finalMcScore),
+        totalScore: new Prisma.Decimal(finalMcScore),
         gradingStatus: hasEssay
           ? CBTGradingStatus.NEEDS_ESSAY_GRADING
           : CBTGradingStatus.GRADED,

@@ -95,6 +95,20 @@ export class CbtController {
   }
 
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Patch('admin/exams/:id/uniform-weight')
+  async setUniformWeight(
+    @Param('id') id: string,
+    @Body('weight') weight: number,
+  ) {
+    const data = await this.cbtService.setUniformWeight(id, Number(weight));
+    return {
+      success: true,
+      message: data.message,
+      data,
+    };
+  }
+
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   @Post('admin/exams/:id/questions')
   async addQuestion(
     @Param('id') id: string,

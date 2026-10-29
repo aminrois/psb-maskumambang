@@ -35,7 +35,19 @@ function renderCbtOptionRichContent(html) {
   return escapeHtml(html);
 }
 
-// Fullscreen Utility Helpers
+// ============================================================================
+// FULLSCREEN & EXAM SECURITY ENGINE
+// ============================================================================
+
+function isCurrentlyFullscreen() {
+  return !!(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  );
+}
+
 function requestAppFullscreen() {
   try {
     const el = document.documentElement;
@@ -43,7 +55,9 @@ function requestAppFullscreen() {
     if (rfs) {
       const promise = rfs.call(el);
       if (promise && promise.catch) {
-        promise.catch(() => { });
+        promise.catch((err) => {
+          console.warn('Auto fullscreen request was deferred or blocked by browser:', err);
+        });
       }
     }
   } catch (e) { }
@@ -52,7 +66,7 @@ function requestAppFullscreen() {
 function exitAppFullscreen() {
   try {
     const efs = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
-    if (efs && (document.fullscreenElement || document.webkitFullscreenElement)) {
+    if (efs && isCurrentlyFullscreen()) {
       const promise = efs.call(document);
       if (promise && promise.catch) {
         promise.catch(() => { });
@@ -62,11 +76,137 @@ function exitAppFullscreen() {
 }
 
 function toggleAppFullscreen() {
-  if (document.fullscreenElement || document.webkitFullscreenElement) {
+  if (isCurrentlyFullscreen()) {
     exitAppFullscreen();
   } else {
     requestAppFullscreen();
   }
+}
+
+// ----------------------------------------------------------------------------
+// ANTI-CHEAT & SECURITY HANDLERS (BLOCK RIGHT-CLICK & DEVTOOLS)
+// ----------------------------------------------------------------------------
+
+function onCbtContextMenu(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  return false;
+}
+
+function onCbtKeyDown(e) {
+  // 1. Block F12 (DevTools)
+  if (e.key === 'F12' || e.keyCode === 123) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+
+  // 2. Block Ctrl/Cmd + Shift + I/J/C (DevTools, Console, Inspector)
+  if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+
+  // 3. Block Ctrl/Cmd + U (View Page Source)
+  if ((e.ctrlKey || e.metaKey) && ['u', 'U'].includes(e.key)) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+
+  // 4. Block Ctrl/Cmd + S / P (Save / Print)
+  if ((e.ctrlKey || e.metaKey) && ['s', 'S', 'p', 'P'].includes(e.key)) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+
+  // 5. Block Copy/Select outside textarea or text input
+  if ((e.ctrlKey || e.metaKey) && ['c', 'C', 'x', 'X', 'a', 'A'].includes(e.key)) {
+    const tag = e.target?.tagName?.toUpperCase();
+    if (tag === 'TEXTAREA' || tag === 'INPUT') {
+      return true; // allow typing in essay or input
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+  }
+}
+
+function onCbtFullscreenChange() {
+  if (window.location.hash === '#cbt-exam') {
+    if (!isCurrentlyFullscreen()) {
+      showFullscreenGuard();
+    } else {
+      hideFullscreenGuard();
+    }
+  }
+}
+
+function showFullscreenGuard() {
+  let guard = document.getElementById('cbt-fullscreen-guard');
+  if (!guard) {
+    guard = document.createElement('div');
+    guard.id = 'cbt-fullscreen-guard';
+    guard.style.cssText = 'position: fixed; inset: 0; z-index: 9999999; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; color: white; text-align: center;';
+    guard.innerHTML = `
+      <div style="max-width: 500px; background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 36px 28px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(14, 165, 233, 0.15); color: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 18px; border: 2px solid rgba(56, 189, 248, 0.3);">
+          <i class="fa-solid fa-expand"></i>
+        </div>
+        <h3 style="font-size: 1.3rem; font-weight: 800; margin: 0 0 10px 0; color: #f8fafc;">Mode Layar Penuh Diperlukan</h3>
+        <p style="font-size: 0.875rem; color: #94a3b8; margin: 0 0 24px 0; line-height: 1.6;">
+          Ujian CBT PSB Maskumambang wajib dikerjakan dalam mode <strong>layar penuh (fullscreen)</strong> demi keamanan, integritas, dan kelancaran pengerjaan soal.
+        </p>
+        <button type="button" class="btn btn-primary" onclick="enterExamFullscreenAndResume()" style="width: 100%; padding: 13px 24px; font-size: 1rem; font-weight: 800; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);">
+          <i class="fa-solid fa-expand"></i> Masuk Layar Penuh (Fullscreen)
+        </button>
+      </div>
+    `;
+    document.body.appendChild(guard);
+  }
+  guard.style.display = 'flex';
+}
+
+function hideFullscreenGuard() {
+  const guard = document.getElementById('cbt-fullscreen-guard');
+  if (guard) {
+    guard.style.display = 'none';
+  }
+}
+
+function enterExamFullscreenAndResume() {
+  requestAppFullscreen();
+  setTimeout(() => {
+    if (isCurrentlyFullscreen()) {
+      hideFullscreenGuard();
+    }
+  }, 150);
+}
+
+function enableCbtExamSecurity() {
+  document.addEventListener('contextmenu', onCbtContextMenu, true);
+  document.addEventListener('keydown', onCbtKeyDown, true);
+  document.addEventListener('fullscreenchange', onCbtFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onCbtFullscreenChange);
+  document.addEventListener('mozfullscreenchange', onCbtFullscreenChange);
+  document.addEventListener('MSFullscreenChange', onCbtFullscreenChange);
+
+  // If not currently in fullscreen, prompt guard overlay
+  if (!isCurrentlyFullscreen()) {
+    showFullscreenGuard();
+  }
+}
+
+function disableCbtExamSecurity() {
+  document.removeEventListener('contextmenu', onCbtContextMenu, true);
+  document.removeEventListener('keydown', onCbtKeyDown, true);
+  document.removeEventListener('fullscreenchange', onCbtFullscreenChange);
+  document.removeEventListener('webkitfullscreenchange', onCbtFullscreenChange);
+  document.removeEventListener('mozfullscreenchange', onCbtFullscreenChange);
+  document.removeEventListener('MSFullscreenChange', onCbtFullscreenChange);
+  hideFullscreenGuard();
 }
 
 // ============================================================================
@@ -74,7 +214,8 @@ function toggleAppFullscreen() {
 // ============================================================================
 
 async function renderCbtPesertaView() {
-  // Ensure we remove exam mode if on status view
+  // Ensure we remove exam mode & security listeners if on status view
+  disableCbtExamSecurity();
   document.body.classList.remove('cbt-exam-mode');
 
   // Clear any running timer
@@ -247,11 +388,8 @@ async function renderCbtPesertaView() {
             </p>
 
             <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
-              <button type="button" class="btn btn-primary" onclick="launchExamRunnerInNewTab()" style="font-size: 1rem; padding: 12px 28px; display: inline-flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-up-right-from-square"></i> Buka Ujian di Tab Baru
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="window.location.hash='#cbt-exam'" style="font-size: 1rem; padding: 12px 24px; display: inline-flex; align-items: center; gap: 8px;">
-                <i class="fa-solid fa-expand"></i> Lanjutkan di Tab Ini
+              <button type="button" class="btn btn-primary" onclick="requestAppFullscreen(); window.location.hash='#cbt-exam';" style="font-size: 1rem; padding: 12px 28px; display: inline-flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-expand"></i> Lanjutkan Ujian (Mode Layar Penuh)
               </button>
             </div>
           </div>
@@ -357,17 +495,22 @@ async function handleStartPesertaAttempt() {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyiapkan Soal...';
   }
 
+  // Trigger fullscreen directly on user click gesture
+  requestAppFullscreen();
+
   try {
     const res = await apiRequest('/api/cbt/peserta/start', { method: 'POST' });
     if (!res.success) throw new Error(res.message || 'Gagal memulai sesi ujian.');
 
     closeModal();
 
-    // Open Exam Runner in new tab and auto fullscreen
-    launchExamRunnerInNewTab();
-
-    // Refresh current view to show in-progress state
-    renderCbtPesertaView();
+    // Navigate directly in current tab for seamless fullscreen & avoid popup blockers
+    window.location.hash = '#cbt-exam';
+    if (typeof handleHashChange === 'function') {
+      handleHashChange();
+    } else {
+      renderCbtPesertaExamRunner();
+    }
   } catch (err) {
     showToast(err.message || 'Terjadi kesalahan.', 'danger');
     if (btn) {
@@ -378,12 +521,8 @@ async function handleStartPesertaAttempt() {
 }
 
 function launchExamRunnerInNewTab() {
-  const url = `${window.location.origin}/dashboard.html#cbt-exam`;
-  const win = window.open(url, '_blank');
-  if (!win || win.closed || typeof win.closed === 'undefined') {
-    // If pop-up blocker prevents new tab, fallback to current window navigation
-    window.location.hash = '#cbt-exam';
-  }
+  requestAppFullscreen();
+  window.location.hash = '#cbt-exam';
 }
 
 // ============================================================================
@@ -394,8 +533,9 @@ async function renderCbtPesertaExamRunner() {
   // Activate focus/fullscreen mode for exam
   document.body.classList.add('cbt-exam-mode');
 
-  // Trigger auto fullscreen
+  // Trigger auto fullscreen & security restrictions (disable right-click, shortcuts)
   requestAppFullscreen();
+  enableCbtExamSecurity();
 
   const container = document.getElementById('main-view-slot');
   if (!container) return;
@@ -412,6 +552,7 @@ async function renderCbtPesertaExamRunner() {
     const res = await apiRequest('/api/cbt/peserta/session');
     if (!res.success || !res.data) {
       // If cannot get session, attempt may be completed or not started yet
+      disableCbtExamSecurity();
       document.body.classList.remove('cbt-exam-mode');
       exitAppFullscreen();
       window.location.hash = '#cbt-peserta';
@@ -449,6 +590,7 @@ async function renderCbtPesertaExamRunner() {
     startCountdownTimer(new Date(expiresAt).getTime());
 
   } catch (err) {
+    disableCbtExamSecurity();
     document.body.classList.remove('cbt-exam-mode');
     exitAppFullscreen();
     container.innerHTML = `
@@ -898,6 +1040,7 @@ async function handleAutoSubmitOnExpiry() {
     // Ignore error if expired
   }
 
+  disableCbtExamSecurity();
   exitAppFullscreen();
   document.body.classList.remove('cbt-exam-mode');
   renderCbtPesertaView();
@@ -984,6 +1127,7 @@ async function handleFinishPesertaAttempt() {
     if (!res.success) throw new Error(res.message || 'Gagal mengumpulkan ujian.');
 
     closeModal();
+    disableCbtExamSecurity();
     exitAppFullscreen();
     document.body.classList.remove('cbt-exam-mode');
 
@@ -1015,3 +1159,6 @@ window.handleFinishPesertaAttempt = handleFinishPesertaAttempt;
 window.requestAppFullscreen = requestAppFullscreen;
 window.exitAppFullscreen = exitAppFullscreen;
 window.toggleAppFullscreen = toggleAppFullscreen;
+window.enterExamFullscreenAndResume = enterExamFullscreenAndResume;
+window.enableCbtExamSecurity = enableCbtExamSecurity;
+window.disableCbtExamSecurity = disableCbtExamSecurity;
