@@ -1597,4 +1597,52 @@ tr.has-active-dropdown {
   }
 }
 
+/* ==========================================================================
+   CBT RESULTS TABLE ENHANCEMENTS: HORIZONTAL SCROLL & ACTION DROPDOWN
+   ========================================================================== */
+.cbt-table-responsive-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  position: relative;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  min-height: 250px;
+}
+
+.cbt-table-responsive-wrapper.is-dragging {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.cbt-table-responsive-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+.cbt-table-responsive-wrapper::-webkit-scrollbar-track {
+  background: var(--bg-body, #f1f5f9);
+  border-radius: 4px;
+}
+.cbt-table-responsive-wrapper::-webkit-scrollbar-thumb {
+  background: var(--border-subtle, #cbd5e1);
+  border-radius: 4px;
+}
+.cbt-table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-600, #166534);
+}
+
+.cbt-action-dropdown-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  min-width: 190px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+  z-index: 1050;
+  padding: 6px 0;
+  text-align: left;
+}
+
 

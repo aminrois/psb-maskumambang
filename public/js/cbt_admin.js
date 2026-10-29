@@ -1772,6 +1772,77 @@ async function renderCbtResultsView() {
   }
 }
 
+function _escapeQuotes(str) {
+  if (!str) return '';
+  return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+function toggleCbtActionDropdown(e, attemptId) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById(`cbt-dd-${attemptId}`);
+  if (!menu) return;
+  const isShown = menu.style.display === 'block';
+  closeAllCbtActionDropdowns();
+  if (!isShown) {
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    if (spaceBelow < 210) {
+      menu.style.top = 'auto';
+      menu.style.bottom = 'calc(100% + 4px)';
+    } else {
+      menu.style.top = 'calc(100% + 4px)';
+      menu.style.bottom = 'auto';
+    }
+    menu.style.display = 'block';
+  }
+}
+
+function closeAllCbtActionDropdowns() {
+  document.querySelectorAll('.cbt-action-dropdown-menu').forEach(el => {
+    el.style.display = 'none';
+  });
+}
+
+document.addEventListener('click', () => {
+  closeAllCbtActionDropdowns();
+});
+
+function enableCbtTableDragToScroll(container) {
+  if (!container) return;
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+
+  container.addEventListener('mousedown', (e) => {
+    if (e.target.closest('button, a, input, select, .cbt-action-dropdown-menu')) return;
+    isDown = true;
+    container.classList.add('is-dragging');
+    startX = e.pageX - container.offsetLeft;
+    scrollLeft = container.scrollLeft;
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDown) {
+      isDown = false;
+      container.classList.remove('is-dragging');
+    }
+  });
+
+  container.addEventListener('mouseleave', () => {
+    isDown = false;
+    container.classList.remove('is-dragging');
+  });
+
+  container.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - container.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    container.scrollLeft = scrollLeft - walk;
+  });
+}
+
 async function loadCbtResultsTable() {
   const slot = document.getElementById('cbt-results-table-slot');
   if (!slot) return;
@@ -1837,9 +1908,14 @@ async function loadCbtResultsTable() {
         </div>
 
         <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 24px; box-shadow: var(--shadow-sm);">
-          <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div>Total <strong>${data.length}</strong> peserta pendaftaran eligible.</div>
-            <div style="font-size: 0.75rem; color: var(--text-dim);"><i class="fa-solid fa-calculator"></i> Nilai menggunakan rumus terstandar skala 0 s.d. 100</div>
+            <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+              <div style="font-size: 0.75rem; color: var(--primary-600); font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                <i class="fa-solid fa-arrows-left-right"></i> Tabel dapat digeser kanan / kiri
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);"><i class="fa-solid fa-calculator"></i> Nilai rumus terstandar skala 0 - 100</div>
+            </div>
           </div>
 
           ${data.length === 0 ? `
@@ -1847,21 +1923,22 @@ async function loadCbtResultsTable() {
               Tidak ada data peserta yang cocok dengan filter.
             </div>
           ` : `
-            <div style="overflow-x: auto;">
-              <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+            <div class="cbt-table-responsive-wrapper" id="cbt-results-scroll-container">
+              <table class="table" style="width: 100%; min-width: 1320px; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 0;">
                 <thead>
-                  <tr style="border-bottom: 2px solid var(--border-subtle); text-align: left; color: var(--text-heading);">
-                    <th style="padding: 10px 8px; width: 4%; text-align: center;">No</th>
-                    <th style="padding: 10px 8px; width: 20%;">Nama & No. Pendaftaran</th>
-                    <th style="padding: 10px 8px; width: 14%;">Program Kelas</th>
-                    <th style="padding: 10px 8px; width: 11%;">Status Ujian</th>
-                    <th style="padding: 10px 8px; width: 8%; text-align: center;">Durasi</th>
-                    <th style="padding: 10px 8px; width: 10%; text-align: center;">Benar / Salah</th>
-                    <th style="padding: 10px 8px; width: 8%; text-align: center;">Nilai PG</th>
-                    <th style="padding: 10px 8px; width: 8%; text-align: center;">Nilai Essay</th>
-                    <th style="padding: 10px 8px; width: 8%; text-align: center;">Total (0-100)</th>
-                    <th style="padding: 10px 8px; width: 9%;">Penilaian</th>
-                    <th style="padding: 10px 8px; width: 10%; text-align: right;">Aksi</th>
+                  <tr style="border-bottom: 2px solid var(--border-subtle); text-align: left; color: var(--text-heading); background: var(--bg-card); position: sticky; top: 0; z-index: 2;">
+                    <th style="padding: 12px 10px; width: 45px; text-align: center;">No</th>
+                    <th style="padding: 12px 10px; min-width: 220px;">Nama & No. Pendaftaran</th>
+                    <th style="padding: 12px 10px; min-width: 160px;">Program Kelas</th>
+                    <th style="padding: 12px 10px; min-width: 120px;">Status Ujian</th>
+                    <th style="padding: 12px 10px; min-width: 110px; text-align: center;">Durasi</th>
+                    <th style="padding: 12px 10px; min-width: 80px; text-align: center; color: #16a34a;">Benar</th>
+                    <th style="padding: 12px 10px; min-width: 80px; text-align: center; color: #ef4444;">Salah</th>
+                    <th style="padding: 12px 10px; min-width: 90px; text-align: center;">Nilai PG</th>
+                    <th style="padding: 12px 10px; min-width: 90px; text-align: center; color: #6366f1;">Nilai Essay</th>
+                    <th style="padding: 12px 10px; min-width: 105px; text-align: center; color: #16a34a;">Total (0-100)</th>
+                    <th style="padding: 12px 10px; min-width: 125px;">Penilaian</th>
+                    <th style="padding: 12px 10px; min-width: 100px; text-align: center;">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1894,72 +1971,97 @@ async function loadCbtResultsTable() {
 
                     return `
                       <tr style="border-bottom: 1px solid var(--border-subtle);">
-                        <td style="padding: 10px 8px; text-align: center; color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
-                        <td style="padding: 10px 8px;">
+                        <td style="padding: 12px 10px; text-align: center; color: var(--text-muted); font-weight: 700;">${idx + 1}</td>
+                        <td style="padding: 12px 10px;">
                           <strong style="color: var(--text-heading); font-size: 0.9rem;">${escapeHtml(row.candidateName)}</strong>
                           <div style="font-size: 0.75rem; color: var(--primary-600); font-family: monospace; font-weight: 700;">${row.registrationNumber}</div>
                         </td>
-                        <td style="padding: 10px 8px;">
+                        <td style="padding: 12px 10px;">
                           <div style="font-weight: 600; color: var(--text-heading);">${escapeHtml(row.classProgramName)}</div>
                           <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(row.schoolName)}</div>
                         </td>
-                        <td style="padding: 10px 8px;">
+                        <td style="padding: 12px 10px;">
                           ${statusBadge}
                         </td>
-                        <td style="padding: 10px 8px; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">
+                        <td style="padding: 12px 10px; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">
                           ${isCompleted ? (att.durationFormatted || '-') : '-'}
                         </td>
-                        <td style="padding: 10px 8px; text-align: center;">
+                        <!-- Kolom Benar (Terpisah) -->
+                        <td style="padding: 12px 10px; text-align: center;">
                           ${isCompleted ? `
-                            <div style="font-size: 0.85rem;">
-                              <span style="font-weight: 800; color: #16a34a;" title="Jawaban Benar">${att.mcCorrect || 0} Benar</span> 
-                              <span style="color: var(--text-dim);">/</span> 
-                              <span style="font-weight: 800; color: #ef4444;" title="Jawaban Salah">${att.mcIncorrect || 0} Salah</span>
-                            </div>
-                            ${att.mcUnanswered > 0 ? `<div style="font-size: 0.7rem; color: var(--text-muted);">${att.mcUnanswered} Kosong</div>` : ''}
+                            <span class="badge" style="background: rgba(22, 163, 74, 0.12); color: #16a34a; font-weight: 800; font-size: 0.82rem; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="${att.mcCorrect || 0} Soal PG Benar">
+                              <i class="fa-solid fa-check"></i> ${att.mcCorrect || 0}
+                            </span>
                           ` : '-'}
                         </td>
-                        <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: var(--text-heading);">
+                        <!-- Kolom Salah (Terpisah) -->
+                        <td style="padding: 12px 10px; text-align: center;">
+                          ${isCompleted ? `
+                            <span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-weight: 800; font-size: 0.82rem; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="${att.mcIncorrect || 0} Soal PG Salah">
+                              <i class="fa-solid fa-xmark"></i> ${att.mcIncorrect || 0}
+                            </span>
+                            ${att.mcUnanswered > 0 ? `<div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;" title="${att.mcUnanswered} soal kosong">(${att.mcUnanswered} Kosong)</div>` : ''}
+                          ` : '-'}
+                        </td>
+                        <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: var(--text-heading);">
                           ${isCompleted && att.multipleChoiceScore != null ? att.multipleChoiceScore.toFixed(2) : '-'}
                         </td>
-                        <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: #6366f1;">
+                        <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: #6366f1;">
                           ${isCompleted && att.essayScore != null ? att.essayScore.toFixed(2) : '-'}
                         </td>
-                        <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: #16a34a; font-size: 1rem;">
+                        <td style="padding: 12px 10px; text-align: center; font-weight: 800; color: #16a34a; font-size: 1rem;">
                           ${isCompleted && att.totalScore != null ? att.totalScore.toFixed(2) : '-'}
                         </td>
-                        <td style="padding: 10px 8px;">
+                        <td style="padding: 12px 10px;">
                           ${gradingBadge}
                         </td>
-                        <td style="padding: 10px 8px; text-align: right; white-space: nowrap;">
+                        <!-- Kolom Aksi Dropdown -->
+                        <td style="padding: 12px 10px; text-align: center; white-space: nowrap;">
                           ${att ? `
-                            <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                              <button type="button" class="btn btn-xs btn-outline-success" onclick="exportSingleStudentCbtExcel('${att.id}', this)" title="Unduh Lembar Evaluasi Excel Siswa Ini">
-                                <i class="fa-solid fa-file-excel"></i> Excel
+                            <div class="dropdown" style="position: relative; display: inline-block;">
+                              <button type="button" class="btn btn-sm btn-secondary" onclick="toggleCbtActionDropdown(event, '${att.id}')" style="padding: 5px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; border-radius: var(--radius-md);">
+                                <span>Aksi</span>
+                                <i class="fa-solid fa-chevron-down" style="font-size: 0.65rem;"></i>
                               </button>
-                              <button type="button" class="btn btn-xs btn-outline-secondary" onclick="printSingleStudentCbtResult('${att.id}')" title="Cetak Lembar Hasil Ujian CBT">
-                                <i class="fa-solid fa-print"></i> Cetak
-                              </button>
-                              <button type="button" class="btn btn-xs btn-outline-primary" onclick="openCbtResultDetailModal('${att.id}')" title="Buka Detail & Penilaian">
-                                <i class="fa-solid fa-eye"></i> Detail
-                              </button>
-                              <button type="button" class="btn btn-xs btn-outline-danger" data-attempt-id="${att.id}" data-candidate-name="${escapeHtml(row.candidateName)}" onclick="openResetCbtModal(this)" title="Reset Ujian Peserta">
-                                <i class="fa-solid fa-rotate-left"></i>
-                              </button>
+                              <div id="cbt-dd-${att.id}" class="cbt-action-dropdown-menu">
+                                <a href="javascript:void(0)" onclick="openCbtResultDetailModal('${att.id}'); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                                  <i class="fa-solid fa-eye" style="width: 16px; color: var(--primary-600);"></i>
+                                  <span>Detail & Penilaian</span>
+                                </a>
+                                <a href="javascript:void(0)" onclick="printSingleStudentCbtResult('${att.id}'); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                                  <i class="fa-solid fa-print" style="width: 16px; color: #64748b;"></i>
+                                  <span>Cetak Hasil CBT</span>
+                                </a>
+                                <a href="javascript:void(0)" onclick="exportSingleStudentCbtExcel('${att.id}', this); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                                  <i class="fa-solid fa-file-excel" style="width: 16px; color: #16a34a;"></i>
+                                  <span>Unduh Excel Siswa</span>
+                                </a>
+                                <div style="border-top: 1px solid var(--border-subtle); margin: 4px 0;"></div>
+                                <a href="javascript:void(0)" onclick="openResetCbtModal('${att.id}', '${_escapeQuotes(row.candidateName)}'); closeAllCbtActionDropdowns();" style="display: flex; align-items: center; gap: 10px; padding: 8px 14px; font-size: 0.82rem; color: var(--danger-600); text-decoration: none; font-weight: 600;" onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='transparent'">
+                                  <i class="fa-solid fa-rotate-left" style="width: 16px; color: var(--danger-600);"></i>
+                                  <span>Reset Ujian</span>
+                                </a>
+                              </div>
                             </div>
                           ` : `
-                          <span style="font-size: 0.75rem; color: var(--text-dim);">-</span>
-                        `}
-                      </td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>
-    `;
+                            <span style="font-size: 0.75rem; color: var(--text-dim);">-</span>
+                          `}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `}
+        </div>
+      `;
+
+      // Enable drag to scroll for smooth horizontal navigation
+      const scrollContainer = document.getElementById('cbt-results-scroll-container');
+      if (scrollContainer) {
+        enableCbtTableDragToScroll(scrollContainer);
+      }
 
   } catch (err) {
     slot.innerHTML = `<div class="alert alert-danger">${err.message}</div>`;
@@ -5323,5 +5425,7 @@ async function handleSaveUniformWeight(e, examId) {
 window.openSetUniformWeightModal = openSetUniformWeightModal;
 window.handleSaveUniformWeight = handleSaveUniformWeight;
 window.printSingleStudentCbtResult = printSingleStudentCbtResult;
+window.toggleCbtActionDropdown = toggleCbtActionDropdown;
+window.closeAllCbtActionDropdowns = closeAllCbtActionDropdowns;
 
 
