@@ -53,4 +53,42 @@ describe('RolesGuard', () => {
 
     expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
   });
+
+  it('should allow access if user has multiple roles and one matches the required role', () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.PETUGAS_TES_PRAKTIK]);
+
+    const context = {
+      getHandler: () => {},
+      getClass: () => {},
+      switchToHttp: () => ({
+        getRequest: () => ({
+          user: {
+            role: Role.PEWAWANCARA,
+            roles: [Role.PEWAWANCARA, Role.PETUGAS_TES_PRAKTIK],
+          },
+        }),
+      }),
+    } as unknown as ExecutionContext;
+
+    expect(guard.canActivate(context)).toBe(true);
+  });
+
+  it('should allow access for interviewer endpoint when user has PEWAWANCARA and PETUGAS_TES_PRAKTIK', () => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue([Role.PEWAWANCARA]);
+
+    const context = {
+      getHandler: () => {},
+      getClass: () => {},
+      switchToHttp: () => ({
+        getRequest: () => ({
+          user: {
+            role: Role.PETUGAS_TES_PRAKTIK,
+            roles: [Role.PETUGAS_TES_PRAKTIK, Role.PEWAWANCARA],
+          },
+        }),
+      }),
+    } as unknown as ExecutionContext;
+
+    expect(guard.canActivate(context)).toBe(true);
+  });
 });

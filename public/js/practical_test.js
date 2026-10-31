@@ -225,7 +225,7 @@ async function renderPracticalDashboardView() {
   if (!container) return;
 
   const user = window.currentUser || window.state?.user || {};
-  const isExaminer = (user.role === 'PETUGAS_TES_PRAKTIK' || window.currentUserRole === 'PETUGAS_TES_PRAKTIK');
+  const isExaminer = !window.userIsAdmin?.(user) && (user.role === 'PETUGAS_TES_PRAKTIK' || window.currentUserRole === 'PETUGAS_TES_PRAKTIK' || (window.userHasRole && window.userHasRole(user, 'PETUGAS_TES_PRAKTIK')));
 
   container.innerHTML = `
     <!-- HEADER -->
@@ -376,7 +376,7 @@ async function renderPracticalDashboardView() {
 
   // Load stats & recent
   try {
-    const isEx = user.role === 'PETUGAS_TES_PRAKTIK';
+    const isEx = isExaminer;
     const endpointStats = isEx ? '/api/practical-test/examiner/dashboard' : '/api/practical-test/admin/dashboard';
     const [statsRes, candidatesRes, schedulesRes] = await Promise.all([
       apiRequest(endpointStats).catch(() => ({ success: false, data: {} })),
@@ -2117,7 +2117,8 @@ async function handlePracticalScoreSubmit(e, registrationId) {
       } else if (window.location.hash.includes('practical-recap') || window.location.hash.includes('rekap-praktik')) {
         renderPracticalRecapView();
       } else if (window.location.hash.includes('practical-schedules') || window.location.hash.includes('practical-my-schedules')) {
-        if (typeof renderExaminerMySchedules === 'function' && window.currentUserRole === 'PETUGAS_TES_PRAKTIK') {
+        const isExamUser = window.currentUserRole === 'PETUGAS_TES_PRAKTIK' || (window.userHasRole && window.userHasRole(window.currentUser, 'PETUGAS_TES_PRAKTIK') && !window.userIsAdmin?.(window.currentUser));
+        if (typeof renderExaminerMySchedules === 'function' && isExamUser) {
           renderExaminerMySchedules();
         } else if (typeof loadPracticalSchedulesData === 'function') {
           loadPracticalSchedulesData();

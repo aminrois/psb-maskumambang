@@ -83,7 +83,10 @@ export class PracticalTestService {
       }),
       this.prisma.user.count({
         where: {
-          role: Role.PETUGAS_TES_PRAKTIK,
+          OR: [
+            { role: Role.PETUGAS_TES_PRAKTIK },
+            { roles: { has: Role.PETUGAS_TES_PRAKTIK } },
+          ],
           isActive: true,
         },
       }),
@@ -773,7 +776,10 @@ export class PracticalTestService {
   async listExaminers() {
     const users = await this.prisma.user.findMany({
       where: {
-        role: Role.PETUGAS_TES_PRAKTIK,
+        OR: [
+          { role: Role.PETUGAS_TES_PRAKTIK },
+          { roles: { has: Role.PETUGAS_TES_PRAKTIK } },
+        ],
         isActive: true,
       },
       select: {
@@ -781,6 +787,8 @@ export class PracticalTestService {
         name: true,
         email: true,
         phoneNumber: true,
+        role: true,
+        roles: true,
       },
       orderBy: { name: 'asc' },
     });

@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { Role } from '@prisma/client';
 
 export class ChangePasswordDto {
@@ -20,8 +20,14 @@ export class ResetPasswordDto {
 }
 
 export class ChangeRoleDto {
-  @IsEnum(Role, { message: 'Role harus SUPER_ADMIN, BENDAHARA, atau PESERTA.' })
-  role!: Role;
+  @IsEnum(Role, { message: 'Role tidak valid.' })
+  @IsOptional()
+  role?: Role;
+
+  @IsArray({ message: 'Roles harus berupa daftar array.' })
+  @IsEnum(Role, { each: true, message: 'Daftar role mengandung pilihan yang tidak valid.' })
+  @IsOptional()
+  roles?: Role[];
 }
 
 export class CreateUserDto {
@@ -42,7 +48,12 @@ export class CreateUserDto {
   @MinLength(6, { message: 'Password minimal 6 karakter.' })
   password!: string;
 
-  @IsEnum(Role, { message: 'Role harus SUPER_ADMIN, BENDAHARA, atau PESERTA.' })
+  @IsEnum(Role, { message: 'Role tidak valid.' })
   @IsOptional()
   role?: Role;
+
+  @IsArray({ message: 'Roles harus berupa daftar array.' })
+  @IsEnum(Role, { each: true, message: 'Daftar role mengandung pilihan yang tidak valid.' })
+  @IsOptional()
+  roles?: Role[];
 }

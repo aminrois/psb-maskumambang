@@ -145,6 +145,7 @@ export class AuthService {
           phoneNumber: dto.phoneNumber.trim(),
           passwordHash,
           role: Role.PESERTA,
+          roles: [Role.PESERTA],
           isActive: true,
         },
       });
@@ -174,6 +175,7 @@ export class AuthService {
       username: newUser.username,
       email: newUser.email,
       role: newUser.role,
+      roles: newUser.roles,
       sessionVersion: newUser.sessionVersion,
     };
 
@@ -215,11 +217,16 @@ export class AuthService {
       throw new UnauthorizedException('Username/email atau kata sandi tidak valid.');
     }
 
+    const userRoles = Array.isArray(user.roles) && user.roles.length > 0
+      ? user.roles
+      : (user.role ? [user.role] : []);
+
     const payload = {
       sub: user.id,
       username: user.username,
       email: user.email,
       role: user.role,
+      roles: userRoles,
       sessionVersion: user.sessionVersion,
     };
 

@@ -95,11 +95,15 @@ export class UsersController {
     @CurrentUser('id') staffId: string,
     @Body() dto: ChangeRoleDto,
   ) {
-    const updated = await this.usersService.changeRole(id, dto.role, staffId);
+    const updated = await this.usersService.changeRole(id, dto.role, dto.roles, staffId);
     const { passwordHash, ...safeUser } = updated;
+    const rolesList =
+      Array.isArray(updated.roles) && updated.roles.length > 0
+        ? updated.roles.join(', ')
+        : updated.role;
     return {
       success: true,
-      message: `Role pengguna berhasil diubah menjadi: ${updated.role}`,
+      message: `Role pengguna berhasil diubah menjadi: ${rolesList}`,
       data: safeUser,
     };
   }

@@ -713,6 +713,9 @@ function renderUniversalTable({
   if (filterKey && filterValue) {
     filtered = filtered.filter(item => {
       const val = typeof filterKey === 'function' ? filterKey(item) : item[filterKey];
+      if (Array.isArray(val)) {
+        return val.map(String).includes(String(filterValue));
+      }
       return String(val) === String(filterValue);
     });
   }
@@ -940,6 +943,28 @@ function renderUniversalTable({
 }
 
 // ============================================================================
+// ROLE HELPERS & MULTI-ROLE SUPPORT
+// ============================================================================
+function getUserRoles(user) {
+  if (!user) return [];
+  if (Array.isArray(user.roles) && user.roles.length > 0) return user.roles;
+  if (user.role) return [user.role];
+  return [];
+}
+window.getUserRoles = getUserRoles;
+
+function userHasRole(user, role) {
+  const roles = getUserRoles(user);
+  return roles.includes(role);
+}
+window.userHasRole = userHasRole;
+
+function userIsAdmin(user) {
+  return userHasRole(user, 'SUPER_ADMIN') || userHasRole(user, 'ADMIN');
+}
+window.userIsAdmin = userIsAdmin;
+
+// ============================================================================
 // DASHBOARD INITIALIZATION & HASH ROUTING
 // ============================================================================
 async function initDashboardApp() {
@@ -962,7 +987,10 @@ async function initDashboardApp() {
     }
     state.user = profile;
     window.currentUser = profile;
-    window.currentUserRole = profile.role;
+    const userRoles = getUserRoles(profile);
+    window.currentUserRole = userRoles.includes('SUPER_ADMIN')
+      ? 'SUPER_ADMIN'
+      : (userRoles.includes('ADMIN') ? 'ADMIN' : (profile.role || userRoles[0] || 'PESERTA'));
     window.state = state;
     safeStorage.setItem('lomba_user_data', JSON.stringify(profile));
   } catch (e) {
@@ -988,25 +1016,27 @@ async function initDashboardApp() {
 
   // 3. Update User Header & Sidebar Labels
   const user = state.user;
+  const userRoles = getUserRoles(user);
   document.querySelectorAll('#sidebar-username, #topbar-username').forEach(el => el.innerText = user.name);
   document.querySelectorAll('#sidebar-avatar').forEach(el => el.innerText = user.name.charAt(0).toUpperCase());
   document.querySelectorAll('#sidebar-role-badge, #topbar-role-badge').forEach(el => {
-    el.innerText = user.role;
-    el.className = `role-badge-pill role-${user.role}`;
+    el.innerText = userRoles.length > 1 ? userRoles.join(' & ') : (userRoles[0] || user.role || 'PESERTA');
+    el.className = `role-badge-pill role-${userRoles[0] || user.role || 'PESERTA'}`;
+    el.title = userRoles.join(', ');
   });
 
   // 4. Build Sidebar Menu
-  buildRoleSidebar(user.role);
+  buildRoleSidebar(user);
 
   // 5. Setup CTA button on Topbar
   const topbarCta = document.getElementById('topbar-cta-container');
   if (topbarCta) {
-    if (user.role === 'PESERTA') {
-      topbarCta.innerHTML = '';
-    } else if (user.role === 'BENDAHARA' || user.role === 'SUPER_ADMIN') {
+    if (userHasRole(user, 'BENDAHARA') || userHasRole(user, 'SUPER_ADMIN')) {
       topbarCta.innerHTML = '<a href="#checkin-scanner" class="btn btn-sm btn-secondary"><i class="fa-solid fa-qrcode"></i> Scanner QR</a>';
-    } else if (user.role === 'ADMIN_BARCODE') {
+    } else if (userHasRole(user, 'ADMIN_BARCODE')) {
       topbarCta.innerHTML = '<a href="#checkin-scanner" class="btn btn-sm btn-primary"><i class="fa-solid fa-qrcode"></i> Scanner QR</a>';
+    } else {
+      topbarCta.innerHTML = '';
     }
   }
 
@@ -1031,9 +1061,15 @@ function toggleNavGroup(groupId) {
 }
 window.toggleNavGroup = toggleNavGroup;
 
-function buildRoleSidebar(role) {
+function buildRoleSidebar(userOrRole) {
   const menu = document.getElementById('sidebar-nav-menu');
   if (!menu) return;
+
+  const user = (userOrRole && typeof userOrRole === 'object') ? userOrRole : (state.user || {});
+  const userRoles = getUserRoles(user);
+  if (userRoles.length === 0 && typeof userOrRole === 'string') {
+    userRoles.push(userOrRole);
+  }
 
   // Retrieve saved group states from localStorage
   let savedGroups = { 'homepage': true, 'master-psb': true, 'cbt': true, 'practical': true, 'interview': true, 'system': false };
@@ -1042,28 +1078,7 @@ function buildRoleSidebar(role) {
     if (raw) savedGroups = { ...savedGroups, ...JSON.parse(raw) };
   } catch (e) { }
 
-  if (role === 'PESERTA') {
-    menu.innerHTML = `
-      <div class="nav-section-title">MENU CALON SISWA</div>
-      <a href="#overview" id="nav-overview" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-house"></i></span><span class="nav-label">Dashboard Saya</span></a>
-      <a href="#formulir" id="nav-formulir" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-signature"></i></span><span class="nav-label">Formulir Pendaftaran</span></a>
-      <a href="#cbt-peserta" id="nav-cbt-peserta" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-laptop-code"></i></span><span class="nav-label">Ujian Online CBT</span></a>
-      <a href="#panduan" id="nav-panduan" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-book-open"></i></span><span class="nav-label">Panduan</span></a>
-      <div class="nav-section-title">AKUN SAYA</div>
-      <a href="#change-password" id="nav-change-password" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-key"></i></span><span class="nav-label">Ubah Password</span></a>
-      <a href="javascript:void(0)" onclick="handleLogout()" class="sidebar-nav-item logout-item"><span class="nav-icon"><i class="fa-solid fa-door-open"></i></span><span class="nav-label">Keluar</span></a>
-    `;
-  } else if (role === 'BENDAHARA') {
-    menu.innerHTML = `
-      <div class="nav-section-title">MENU BENDAHARA</div>
-      <a href="#overview" id="nav-overview" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Dashboard</span></a>
-      <a href="#verifikasi-pembayaran" id="nav-verifikasi-pembayaran" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span><span class="nav-label">Verifikasi Pembayaran</span></a>
-      <a href="#checkin-scanner" id="nav-checkin-scanner" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-qrcode"></i></span><span class="nav-label">Check-In Scanner</span></a>
-      <div class="nav-section-title">AKUN SAYA</div>
-      <a href="#change-password" id="nav-change-password" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-key"></i></span><span class="nav-label">Ubah Password</span></a>
-      <a href="javascript:void(0)" onclick="handleLogout()" class="sidebar-nav-item logout-item"><span class="nav-icon"><i class="fa-solid fa-door-open"></i></span><span class="nav-label">Keluar</span></a>
-    `;
-  } else if (role === 'SUPER_ADMIN') {
+  if (userRoles.includes('SUPER_ADMIN')) {
     menu.innerHTML = `
       <div class="nav-section-title">MENU UTAMA</div>
       <a href="#overview" id="nav-overview" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Dashboard</span></a>
@@ -1172,7 +1187,7 @@ function buildRoleSidebar(role) {
       <div class="nav-section-title">PEMELIHARAAN SISTEM</div>
       <a href="#reset-operasional" id="nav-reset-operasional" class="sidebar-nav-item danger-item" style="color: var(--danger-500);"><span class="nav-icon"><i class="fa-solid fa-triangle-exclamation"></i></span><span class="nav-label">Reset Data</span></a>
     `;
-  } else if (role === 'ADMIN') {
+  } else if (userRoles.includes('ADMIN')) {
     menu.innerHTML = `
       <div class="nav-section-title">MENU OPERASIONAL ADMIN</div>
       <a href="#overview" id="nav-overview" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Dashboard Monitoring</span></a>
@@ -1246,36 +1261,74 @@ function buildRoleSidebar(role) {
       <a href="#change-password" id="nav-change-password" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-key"></i></span><span class="nav-label">Ubah Password</span></a>
       <a href="javascript:void(0)" onclick="handleLogout()" class="sidebar-nav-item logout-item"><span class="nav-icon"><i class="fa-solid fa-door-open"></i></span><span class="nav-label">Keluar</span></a>
     `;
-  } else if (role === 'ADMIN_BARCODE') {
+  } else if (userRoles.length === 1 && userRoles[0] === 'PESERTA') {
     menu.innerHTML = `
-      <div class="nav-section-title">MENU SCANNER</div>
-      <a href="#checkin-scanner" id="nav-checkin-scanner" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-qrcode"></i></span><span class="nav-label">Check-In Scanner</span></a>
+      <div class="nav-section-title">MENU CALON SISWA</div>
+      <a href="#overview" id="nav-overview" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-house"></i></span><span class="nav-label">Dashboard Saya</span></a>
+      <a href="#formulir" id="nav-formulir" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-signature"></i></span><span class="nav-label">Formulir Pendaftaran</span></a>
+      <a href="#cbt-peserta" id="nav-cbt-peserta" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-laptop-code"></i></span><span class="nav-label">Ujian Online CBT</span></a>
+      <a href="#panduan" id="nav-panduan" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-book-open"></i></span><span class="nav-label">Panduan</span></a>
       <div class="nav-section-title">AKUN SAYA</div>
       <a href="#change-password" id="nav-change-password" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-key"></i></span><span class="nav-label">Ubah Password</span></a>
       <a href="javascript:void(0)" onclick="handleLogout()" class="sidebar-nav-item logout-item"><span class="nav-icon"><i class="fa-solid fa-door-open"></i></span><span class="nav-label">Keluar</span></a>
     `;
-  } else if (role === 'PEWAWANCARA') {
-    menu.innerHTML = `
-      <div class="nav-section-title">MENU PEWAWANCARA</div>
+  } else {
+    // Composite multi-role sidebar for Guru / Petugas / Staff
+    let html = `
+      <div class="nav-section-title">MENU UTAMA</div>
       <a href="#overview" id="nav-overview" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Dashboard</span></a>
-      <a href="#iw-my-schedules" id="nav-iw-my-schedules" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-week"></i></span><span class="nav-label">Jadwal Saya</span></a>
-      <a href="#iw-my-participants" id="nav-iw-my-participants" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-users"></i></span><span class="nav-label">Daftar Peserta</span></a>
-      <a href="#iw-history" id="nav-iw-history" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span><span class="nav-label">Riwayat Wawancara</span></a>
+    `;
+
+    if (userRoles.includes('PEWAWANCARA')) {
+      html += `
+        <div class="nav-section-title">MENU PEWAWANCARA</div>
+        <a href="#iw-my-schedules" id="nav-iw-my-schedules" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-week"></i></span><span class="nav-label">Jadwal Wawancara Saya</span></a>
+        <a href="#iw-my-participants" id="nav-iw-my-participants" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-users"></i></span><span class="nav-label">Daftar Peserta</span></a>
+        <a href="#iw-history" id="nav-iw-history" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-clock-rotate-left"></i></span><span class="nav-label">Riwayat Wawancara</span></a>
+      `;
+    }
+
+    if (userRoles.includes('PETUGAS_TES_PRAKTIK')) {
+      html += `
+        <div class="nav-section-title">MENU TES PRAKTIK</div>
+        <a href="#practical-dashboard" id="nav-practical-dashboard" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-book-quran"></i></span><span class="nav-label">Dashboard Praktik</span></a>
+        <a href="#practical-my-schedules" id="nav-practical-my-schedules" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span><span class="nav-label">Jadwal Praktik Saya</span></a>
+        <a href="#practical-candidates" id="nav-practical-candidates" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-user-check"></i></span><span class="nav-label">Penilaian Santri</span></a>
+        <a href="#practical-recap" id="nav-practical-recap" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span><span class="nav-label">Rekapitulasi Nilai</span></a>
+      `;
+    }
+
+    if (userRoles.includes('BENDAHARA')) {
+      html += `
+        <div class="nav-section-title">MENU BENDAHARA</div>
+        <a href="#verifikasi-pembayaran" id="nav-verifikasi-pembayaran" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span><span class="nav-label">Verifikasi Pembayaran</span></a>
+        <a href="#checkin-scanner" id="nav-checkin-scanner" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-qrcode"></i></span><span class="nav-label">Check-In Scanner</span></a>
+      `;
+    }
+
+    if (userRoles.includes('ADMIN_BARCODE') && !userRoles.includes('BENDAHARA')) {
+      html += `
+        <div class="nav-section-title">MENU SCANNER</div>
+        <a href="#checkin-scanner" id="nav-checkin-scanner" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-qrcode"></i></span><span class="nav-label">Check-In Scanner</span></a>
+      `;
+    }
+
+    if (userRoles.includes('PESERTA')) {
+      html += `
+        <div class="nav-section-title">MENU CALON SISWA</div>
+        <a href="#formulir" id="nav-formulir" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-signature"></i></span><span class="nav-label">Formulir Pendaftaran</span></a>
+        <a href="#cbt-peserta" id="nav-cbt-peserta" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-laptop-code"></i></span><span class="nav-label">Ujian Online CBT</span></a>
+        <a href="#panduan" id="nav-panduan" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-book-open"></i></span><span class="nav-label">Panduan</span></a>
+      `;
+    }
+
+    html += `
       <div class="nav-section-title">AKUN SAYA</div>
       <a href="#change-password" id="nav-change-password" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-key"></i></span><span class="nav-label">Ubah Password</span></a>
       <a href="javascript:void(0)" onclick="handleLogout()" class="sidebar-nav-item logout-item"><span class="nav-icon"><i class="fa-solid fa-door-open"></i></span><span class="nav-label">Keluar</span></a>
     `;
-  } else if (role === 'PETUGAS_TES_PRAKTIK') {
-    menu.innerHTML = `
-      <div class="nav-section-title">MENU TES PRAKTIK</div>
-      <a href="#practical-dashboard" id="nav-practical-dashboard" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span><span class="nav-label">Dashboard Praktik</span></a>
-      <a href="#practical-my-schedules" id="nav-practical-my-schedules" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span><span class="nav-label">Jadwal Saya</span></a>
-      <a href="#practical-candidates" id="nav-practical-candidates" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-user-check"></i></span><span class="nav-label">Penilaian Santri</span></a>
-      <a href="#practical-recap" id="nav-practical-recap" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-file-lines"></i></span><span class="nav-label">Rekapitulasi Nilai</span></a>
-      <div class="nav-section-title">AKUN SAYA</div>
-      <a href="#change-password" id="nav-change-password" class="sidebar-nav-item"><span class="nav-icon"><i class="fa-solid fa-key"></i></span><span class="nav-label">Ubah Password</span></a>
-      <a href="javascript:void(0)" onclick="handleLogout()" class="sidebar-nav-item logout-item"><span class="nav-icon"><i class="fa-solid fa-door-open"></i></span><span class="nav-label">Keluar</span></a>
-    `;
+
+    menu.innerHTML = html;
   }
 }
 
@@ -1384,45 +1437,17 @@ function handleDashboardRoute() {
     }
   }
 
-  const role = state.user.role;
+  const user = state.user || {};
+  const userRoles = getUserRoles(user);
+  const isSuperAdmin = userRoles.includes('SUPER_ADMIN');
+  const isAdmin = userRoles.includes('ADMIN');
+  const isInterviewer = userRoles.includes('PEWAWANCARA');
+  const isExaminer = userRoles.includes('PETUGAS_TES_PRAKTIK');
+  const isBendahara = userRoles.includes('BENDAHARA');
+  const isBarcode = userRoles.includes('ADMIN_BARCODE');
+  const isPeserta = userRoles.includes('PESERTA');
 
-  if (role === 'PESERTA') {
-    if (mainRoute === 'daftar') {
-      renderPesertaRegistrationWizard();
-    }
-    else if (mainRoute === 'detail') renderPesertaRegistrationDetail(param);
-    else if (mainRoute === 'formulir') {
-      if (typeof renderPesertaFullFormMenu === 'function') {
-        renderPesertaFullFormMenu(param);
-      } else if (typeof renderPesertaFullFormView === 'function') {
-        renderPesertaFullFormView(param);
-      }
-    }
-    else if (mainRoute === 'cbt-exam') {
-      if (typeof renderCbtPesertaExamRunner === 'function') {
-        renderCbtPesertaExamRunner();
-      } else if (typeof renderCbtPesertaView === 'function') {
-        renderCbtPesertaView();
-      }
-    }
-    else if (mainRoute === 'cbt-peserta' || mainRoute === 'cbt') {
-      if (typeof renderCbtPesertaView === 'function') renderCbtPesertaView();
-    }
-    else if (mainRoute === 'panduan') renderPanduanView();
-    else if (mainRoute === 'card') renderParticipantCardView(param);
-    else if (mainRoute === 'change-password') renderChangePasswordView();
-    else renderPesertaDashboard();
-  } else if (role === 'BENDAHARA') {
-    if (mainRoute === 'verifikasi-pembayaran') renderBendaharaPaymentsView();
-    else if (mainRoute === 'checkin-scanner') renderCheckInScannerView();
-    else if (mainRoute === 'download-data' || mainRoute === 'export-data') {
-      if (typeof renderAdminDownloadDataView === 'function') renderAdminDownloadDataView();
-    }
-    else if (mainRoute === 'detail') renderPesertaRegistrationDetail(param);
-    else if (mainRoute === 'card') renderParticipantCardView(param);
-    else if (mainRoute === 'change-password') renderChangePasswordView();
-    else renderBendaharaDashboard();
-  } else if (role === 'SUPER_ADMIN') {
+  if (isSuperAdmin) {
     if (mainRoute === 'verifikasi-data') renderAdminVerificationView();
     else if (mainRoute === 'verifikasi-final') {
       if (typeof renderAdminFinalVerificationView === 'function') renderAdminFinalVerificationView();
@@ -1521,7 +1546,7 @@ function handleDashboardRoute() {
     else if (mainRoute === 'card') renderParticipantCardView(param);
     else if (mainRoute === 'change-password') renderChangePasswordView();
     else renderAdminDashboard();
-  } else if (role === 'ADMIN') {
+  } else if (isAdmin) {
     // Operational admin - all routes except system-only ones
     if (mainRoute === 'verifikasi-data') renderAdminVerificationView();
     else if (mainRoute === 'verifikasi-final') {
@@ -1607,34 +1632,96 @@ function handleDashboardRoute() {
     else if (mainRoute === 'countdown-settings') renderAdminCountdownView();
     else if (mainRoute === 'change-password') renderChangePasswordView();
     else renderAdminDashboard();
-  } else if (role === 'ADMIN_BARCODE') {
-    if (mainRoute === 'change-password') renderChangePasswordView();
-    else renderCheckInScannerView();
-  } else if (role === 'PEWAWANCARA') {
-    if (mainRoute === 'iw-my-schedules' || mainRoute === 'interview-schedules') {
-      if (typeof renderInterviewerMySchedules === 'function') renderInterviewerMySchedules();
-    } else if (mainRoute === 'iw-my-participants' || mainRoute === 'interview-participants') {
-      if (typeof renderInterviewerMyParticipants === 'function') renderInterviewerMyParticipants();
-    } else if (mainRoute === 'iw-process' || mainRoute === 'interview-process') {
-      if (typeof renderInterviewerProcess === 'function') renderInterviewerProcess(param);
-    } else if (mainRoute === 'iw-history' || mainRoute === 'interview-results') {
-      if (typeof renderInterviewerHistory === 'function') renderInterviewerHistory();
-    } else if (mainRoute === 'change-password') {
-      renderChangePasswordView();
-    } else {
-      if (typeof renderInterviewerDashboard === 'function') renderInterviewerDashboard();
+  } else if (userRoles.length === 1 && isPeserta) {
+    if (mainRoute === 'daftar') {
+      renderPesertaRegistrationWizard();
     }
-  } else if (role === 'PETUGAS_TES_PRAKTIK') {
-    if (mainRoute === 'practical-schedules' || mainRoute === 'practical-my-schedules' || mainRoute === 'jadwal-praktik') {
-      if (typeof renderExaminerMySchedules === 'function') renderExaminerMySchedules();
-    } else if (mainRoute === 'practical-candidates' || mainRoute === 'penilaian-praktik') {
-      if (typeof renderPracticalCandidatesView === 'function') renderPracticalCandidatesView();
-    } else if (mainRoute === 'practical-recap' || mainRoute === 'rekap-praktik') {
-      if (typeof renderPracticalRecapView === 'function') renderPracticalRecapView();
-    } else if (mainRoute === 'change-password') {
+    else if (mainRoute === 'detail') renderPesertaRegistrationDetail(param);
+    else if (mainRoute === 'formulir') {
+      if (typeof renderPesertaFullFormMenu === 'function') {
+        renderPesertaFullFormMenu(param);
+      } else if (typeof renderPesertaFullFormView === 'function') {
+        renderPesertaFullFormView(param);
+      }
+    }
+    else if (mainRoute === 'cbt-exam') {
+      if (typeof renderCbtPesertaExamRunner === 'function') {
+        renderCbtPesertaExamRunner();
+      } else if (typeof renderCbtPesertaView === 'function') {
+        renderCbtPesertaView();
+      }
+    }
+    else if (mainRoute === 'cbt-peserta' || mainRoute === 'cbt') {
+      if (typeof renderCbtPesertaView === 'function') renderCbtPesertaView();
+    }
+    else if (mainRoute === 'panduan') renderPanduanView();
+    else if (mainRoute === 'card') renderParticipantCardView(param);
+    else if (mainRoute === 'change-password') renderChangePasswordView();
+    else renderPesertaDashboard();
+  } else {
+    // Composite multi-role router for Staff / Guru (PEWAWANCARA, PETUGAS_TES_PRAKTIK, BENDAHARA, ADMIN_BARCODE)
+    if (mainRoute === 'change-password') {
       renderChangePasswordView();
-    } else {
+    } else if (mainRoute === 'detail') {
+      renderPesertaRegistrationDetail(param);
+    } else if (mainRoute === 'card') {
+      renderParticipantCardView(param);
+    }
+    // ---- TES PRAKTIK ROUTES ----
+    else if (isExaminer && (mainRoute === 'practical-dashboard')) {
       if (typeof renderPracticalDashboardView === 'function') renderPracticalDashboardView();
+    } else if (isExaminer && (mainRoute === 'practical-schedules' || mainRoute === 'practical-my-schedules' || mainRoute === 'jadwal-praktik')) {
+      if (typeof renderExaminerMySchedules === 'function') renderExaminerMySchedules();
+    } else if (isExaminer && (mainRoute === 'practical-candidates' || mainRoute === 'penilaian-praktik')) {
+      if (typeof renderPracticalCandidatesView === 'function') renderPracticalCandidatesView();
+    } else if (isExaminer && (mainRoute === 'practical-recap' || mainRoute === 'rekap-praktik')) {
+      if (typeof renderPracticalRecapView === 'function') renderPracticalRecapView();
+    }
+    // ---- WAWANCARA ROUTES ----
+    else if (isInterviewer && (mainRoute === 'iw-my-schedules' || mainRoute === 'interview-schedules')) {
+      if (typeof renderInterviewerMySchedules === 'function') renderInterviewerMySchedules();
+    } else if (isInterviewer && (mainRoute === 'iw-my-participants' || mainRoute === 'interview-participants')) {
+      if (typeof renderInterviewerMyParticipants === 'function') renderInterviewerMyParticipants();
+    } else if (isInterviewer && (mainRoute === 'iw-process' || mainRoute === 'interview-process')) {
+      if (typeof renderInterviewerProcess === 'function') renderInterviewerProcess(param);
+    } else if (isInterviewer && (mainRoute === 'iw-history' || mainRoute === 'interview-results')) {
+      if (typeof renderInterviewerHistory === 'function') renderInterviewerHistory();
+    }
+    // ---- BENDAHARA & SCANNER ROUTES ----
+    else if (isBendahara && mainRoute === 'verifikasi-pembayaran') {
+      renderBendaharaPaymentsView();
+    } else if ((isBendahara || isBarcode) && mainRoute === 'checkin-scanner') {
+      renderCheckInScannerView();
+    } else if (isBendahara && (mainRoute === 'download-data' || mainRoute === 'export-data')) {
+      if (typeof renderAdminDownloadDataView === 'function') renderAdminDownloadDataView();
+    }
+    // ---- CALON SISWA ROUTES ----
+    else if (isPeserta && mainRoute === 'daftar') {
+      renderPesertaRegistrationWizard();
+    } else if (isPeserta && mainRoute === 'formulir') {
+      if (typeof renderPesertaFullFormMenu === 'function') renderPesertaFullFormMenu(param);
+      else if (typeof renderPesertaFullFormView === 'function') renderPesertaFullFormView(param);
+    } else if (isPeserta && mainRoute === 'cbt-exam') {
+      if (typeof renderCbtPesertaExamRunner === 'function') renderCbtPesertaExamRunner();
+      else if (typeof renderCbtPesertaView === 'function') renderCbtPesertaView();
+    } else if (isPeserta && (mainRoute === 'cbt-peserta' || mainRoute === 'cbt')) {
+      if (typeof renderCbtPesertaView === 'function') renderCbtPesertaView();
+    } else if (isPeserta && mainRoute === 'panduan') {
+      renderPanduanView();
+    }
+    // ---- DEFAULT VIEW FOR ROLE ----
+    else {
+      if (isInterviewer) {
+        if (typeof renderInterviewerDashboard === 'function') renderInterviewerDashboard();
+      } else if (isExaminer) {
+        if (typeof renderPracticalDashboardView === 'function') renderPracticalDashboardView();
+      } else if (isBendahara) {
+        renderBendaharaDashboard();
+      } else if (isBarcode) {
+        renderCheckInScannerView();
+      } else {
+        renderPesertaDashboard();
+      }
     }
   }
 }
@@ -3517,7 +3604,7 @@ async function renderPesertaRegistrationDetail(regId) {
             <h2 style="font-size: 1.6rem; color: var(--text-heading); margin: 0;">Ringkasan Pendaftaran Calon Siswa</h2>
           </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            ${(state.user?.role === 'SUPER_ADMIN' || state.user?.role === 'ADMIN') ? `
+            ${userIsAdmin(state.user) ? `
               <button type="button" class="btn btn-primary" onclick="openAdminEditStudentModal('${reg.id}')"><i class="fa-solid fa-pen-to-square"></i> Edit Data Calon Siswa</button>
             ` : ''}
             ${reg.status === 'APPROVED' ? `
@@ -3723,7 +3810,7 @@ async function renderPesertaRegistrationDetail(regId) {
             <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0;">Lengkapi biodata santri, data orang tua/wali, data asal sekolah, dan upload berkas.</p>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            ${(reg.isFormUnlocked || reg.status === 'APPROVED' || state.user?.role === 'SUPER_ADMIN' || state.user?.role === 'ADMIN') ? `
+            ${(reg.isFormUnlocked || reg.status === 'APPROVED' || userIsAdmin(state.user)) ? `
               <button type="button" class="btn btn-secondary" onclick="printFullStudentForm('${reg.id}')">
                 <i class="fa-solid fa-print"></i> Print
               </button>
@@ -3731,7 +3818,7 @@ async function renderPesertaRegistrationDetail(regId) {
                 <i class="fa-solid fa-file-pdf"></i> Download PDF
               </button>
               <a href="#formulir/${reg.id}" class="btn btn-primary">
-                <i class="fa-solid fa-pen-to-square"></i> ${(state.user?.role === 'SUPER_ADMIN' || state.user?.role === 'ADMIN') ? 'Edit Formulir (Admin)' : 'Buka Formulir'}
+                <i class="fa-solid fa-pen-to-square"></i> ${userIsAdmin(state.user) ? 'Edit Formulir (Admin)' : 'Buka Formulir'}
               </a>
             ` : `
               <a href="#formulir/${reg.id}" class="btn btn-secondary">
@@ -6601,7 +6688,16 @@ function renderAdminUsersTable() {
       { header: 'Nama Lengkap', key: 'name', render: u => `<strong>${u.name}</strong>` },
       { header: 'Email', key: 'email' },
       { header: 'No. WhatsApp', sortValue: u => u.phoneNumber || '', render: u => u.phoneNumber || '-' },
-      { header: 'Role', key: 'role', render: u => `<span class="role-badge-pill role-${u.role}">${u.role}</span>` },
+      {
+        header: 'Role / Hak Akses',
+        sortValue: u => (Array.isArray(u.roles) && u.roles.length > 0 ? u.roles.join(', ') : (u.role || '')),
+        render: u => {
+          const roles = Array.isArray(u.roles) && u.roles.length > 0 ? u.roles : (u.role ? [u.role] : []);
+          return `<div style="display: flex; flex-wrap: wrap; gap: 4px;">` +
+            roles.map(r => `<span class="role-badge-pill role-${r}" style="font-size: 0.72rem; padding: 2px 7px;">${r}</span>`).join('') +
+            `</div>`;
+        },
+      },
       { header: 'Status', sortValue: u => u.isActive ? 1 : 0, render: u => `<span class="badge ${u.isActive ? 'badge-success' : 'badge-danger'}">${u.isActive ? 'AKTIF' : 'NONAKTIF'}</span>` },
       { header: 'Tgl Daftar', key: 'createdAt', render: u => formatDate(u.createdAt) },
       {
@@ -6610,6 +6706,7 @@ function renderAdminUsersTable() {
         sortable: false,
         render: u => {
           const isSelf = currentAdmin && currentAdmin.id === u.id;
+          const userRolesJson = JSON.stringify(Array.isArray(u.roles) && u.roles.length > 0 ? u.roles : [u.role || 'PESERTA']).replace(/"/g, '&quot;');
           return `
             <div class="dropdown" style="position: relative; display: inline-block;">
               <button type="button" class="btn btn-sm btn-secondary" onclick="toggleUserDropdown(event, '${u.id}')" style="padding: 5px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer;">
@@ -6619,8 +6716,8 @@ function renderAdminUsersTable() {
                 <a href="javascript:void(0)" onclick="executeToggleUserStatus('${u.id}'); closeAllUserDropdowns();" style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
                   <i class="fa-solid ${u.isActive ? 'fa-user-slash' : 'fa-user-check'}" style="width: 16px; color: ${u.isActive ? 'var(--warning-600)' : 'var(--success-600)'};"></i> ${u.isActive ? 'Nonaktifkan' : 'Aktifkan'}
                 </a>
-                <a href="javascript:void(0)" onclick="openChangeRoleModal('${u.id}', '${escapeQuotes(u.name)}', '${u.role}'); closeAllUserDropdowns();" style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
-                  <i class="fa-solid fa-user-tag" style="width: 16px; color: var(--primary-600);"></i> Ubah Role
+                <a href="javascript:void(0)" onclick="openChangeRoleModal('${u.id}', '${escapeQuotes(u.name)}', ${userRolesJson}); closeAllUserDropdowns();" style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+                  <i class="fa-solid fa-user-tag" style="width: 16px; color: var(--primary-600);"></i> Ubah Role / Hak Akses
                 </a>
                 <a href="javascript:void(0)" onclick="openResetPasswordModal('${u.id}', '${escapeQuotes(u.name)}', '${u.email}'); closeAllUserDropdowns();" style="display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 0.82rem; color: var(--text-main); text-decoration: none;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
                   <i class="fa-solid fa-key" style="width: 16px; color: var(--warning-600);"></i> Reset Password
@@ -6639,10 +6736,10 @@ function renderAdminUsersTable() {
     ],
     data: ts.data,
     searchQuery: ts.search,
-    searchFields: ['name', 'email', 'phoneNumber', 'role'],
+    searchFields: ['name', 'email', 'phoneNumber', u => (Array.isArray(u.roles) && u.roles.length > 0 ? u.roles.join(' ') : (u.role || ''))],
     sortKey: ts.sortKey,
     sortDir: ts.sortDir,
-    filterKey: 'role',
+    filterKey: u => (Array.isArray(u.roles) && u.roles.length > 0 ? u.roles : (u.role ? [u.role] : [])),
     filterValue: ts.filterVal,
     filterOptions: [
       { label: 'Semua Role Pengguna', value: '' },
@@ -6790,7 +6887,13 @@ function exportAdminUsersExcel() {
     { header: 'Nama Lengkap', key: 'name' },
     { header: 'Email Akun', key: 'email' },
     { header: 'No. WhatsApp', exportValue: u => u.phoneNumber || '-' },
-    { header: 'Role Pengguna', key: 'role' },
+    {
+      header: 'Role Pengguna',
+      exportValue: u => {
+        const roles = Array.isArray(u.roles) && u.roles.length > 0 ? u.roles : (u.role ? [u.role] : []);
+        return roles.join(', ');
+      },
+    },
     { header: 'Status Akun', exportValue: u => u.isActive ? 'AKTIF' : 'NONAKTIF' },
     { header: 'Tanggal Dibuat', exportValue: u => formatDate(u.createdAt) },
   ];
@@ -6839,16 +6942,44 @@ function openCreateUserModal() {
         <input type="password" id="usr-pass-input" class="form-control" placeholder="••••••••" required minlength="6" style="width: 100%; padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
       </div>
       <div class="form-group" style="margin-bottom: 18px;">
-        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Role Akses</label>
-        <select id="usr-role-input" class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-          <option value="PESERTA">PESERTA (Pendaftar)</option>
-          <option value="ADMIN">ADMIN (Operasional)</option>
-          <option value="BENDAHARA">BENDAHARA</option>
-          <option value="ADMIN_BARCODE">ADMIN SCANNER (BARCODE)</option>
-          <option value="PEWAWANCARA">PEWAWANCARA</option>
-          <option value="PETUGAS_TES_PRAKTIK">PETUGAS TES PRAKTIK</option>
-          <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-        </select>
+        <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Role / Hak Akses (Bisa pilih lebih dari satu):</label>
+        <div style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; background: var(--bg-surface); padding: 10px; border-radius: var(--radius-md); border: 1px solid var(--input-border);">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+            <input type="checkbox" class="create-role-checkbox" value="PEWAWANCARA" style="-webkit-appearance:checkbox; appearance:checkbox; width:16px; height:16px; accent-color:var(--primary-600);">
+            <span class="role-badge-pill role-PEWAWANCARA" style="font-size:0.68rem; padding:2px 6px;">PEWAWANCARA</span>
+            <span>Pewawancara</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+            <input type="checkbox" class="create-role-checkbox" value="PETUGAS_TES_PRAKTIK" style="-webkit-appearance:checkbox; appearance:checkbox; width:16px; height:16px; accent-color:var(--primary-600);">
+            <span class="role-badge-pill role-PETUGAS_TES_PRAKTIK" style="font-size:0.68rem; padding:2px 6px;">PETUGAS_TES_PRAKTIK</span>
+            <span>Petugas Tes Praktik</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+            <input type="checkbox" class="create-role-checkbox" value="ADMIN" style="-webkit-appearance:checkbox; appearance:checkbox; width:16px; height:16px; accent-color:var(--primary-600);">
+            <span class="role-badge-pill role-ADMIN" style="font-size:0.68rem; padding:2px 6px;">ADMIN</span>
+            <span>Admin (Operasional)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+            <input type="checkbox" class="create-role-checkbox" value="BENDAHARA" style="-webkit-appearance:checkbox; appearance:checkbox; width:16px; height:16px; accent-color:var(--primary-600);">
+            <span class="role-badge-pill role-BENDAHARA" style="font-size:0.68rem; padding:2px 6px;">BENDAHARA</span>
+            <span>Bendahara</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+            <input type="checkbox" class="create-role-checkbox" value="ADMIN_BARCODE" style="-webkit-appearance:checkbox; appearance:checkbox; width:16px; height:16px; accent-color:var(--primary-600);">
+            <span class="role-badge-pill role-ADMIN_BARCODE" style="font-size:0.68rem; padding:2px 6px;">ADMIN_BARCODE</span>
+            <span>Admin Scanner (Barcode)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+            <input type="checkbox" class="create-role-checkbox" value="SUPER_ADMIN" style="-webkit-appearance:checkbox; appearance:checkbox; width:16px; height:16px; accent-color:var(--primary-600);">
+            <span class="role-badge-pill role-SUPER_ADMIN" style="font-size:0.68rem; padding:2px 6px;">SUPER_ADMIN</span>
+            <span>Super Admin</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+            <input type="checkbox" class="create-role-checkbox" value="PESERTA" checked style="-webkit-appearance:checkbox; appearance:checkbox; width:16px; height:16px; accent-color:var(--primary-600);">
+            <span class="role-badge-pill role-PESERTA" style="font-size:0.68rem; padding:2px 6px;">PESERTA</span>
+            <span>Peserta (Calon Siswa)</span>
+          </label>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700;">Simpan Pengguna Baru</button>
     </form>
@@ -6857,6 +6988,9 @@ function openCreateUserModal() {
 
 async function submitCreateUser(e) {
   e.preventDefault();
+  const checked = Array.from(document.querySelectorAll('.create-role-checkbox:checked')).map(cb => cb.value);
+  const selectedRoles = checked.length > 0 ? checked : ['PESERTA'];
+
   try {
     const res = await apiRequest('/api/users', {
       method: 'POST',
@@ -6865,7 +6999,8 @@ async function submitCreateUser(e) {
         email: document.getElementById('usr-email-input').value,
         phoneNumber: document.getElementById('usr-phone-input').value,
         password: document.getElementById('usr-pass-input').value,
-        role: document.getElementById('usr-role-input').value,
+        role: selectedRoles[0],
+        roles: selectedRoles,
       },
     });
     if (res.success) {
@@ -6890,30 +7025,82 @@ async function executeToggleUserStatus(userId) {
   }
 }
 
-function openChangeRoleModal(userId, name, currentRole) {
+function openChangeRoleModal(userId, name, currentRoles) {
+  let rolesList = [];
+  if (Array.isArray(currentRoles)) {
+    rolesList = currentRoles;
+  } else if (typeof currentRoles === 'string') {
+    try {
+      const parsed = JSON.parse(currentRoles);
+      rolesList = Array.isArray(parsed) ? parsed : [currentRoles];
+    } catch (e) {
+      rolesList = [currentRoles];
+    }
+  }
+
+  const availableRoles = [
+    { value: 'PEWAWANCARA', label: 'Pewawancara (Ujian Wawancara)', desc: 'Menilai dan mengelola jadwal wawancara santri' },
+    { value: 'PETUGAS_TES_PRAKTIK', label: 'Petugas Tes Praktik', desc: 'Menilai dan menguji tes praktik (baca Al-Qur\'an, ibadah, dll)' },
+    { value: 'ADMIN', label: 'Admin (Operasional)', desc: 'Verifikasi pendaftaran santri, CBT, kartu, dan hasil seleksi' },
+    { value: 'BENDAHARA', label: 'Bendahara', desc: 'Verifikasi transaksi keuangan, pembayaran, dan scanner QR' },
+    { value: 'ADMIN_BARCODE', label: 'Admin Scanner (Barcode)', desc: 'Petugas check-in kehadiran santri di lokasi ujian' },
+    { value: 'SUPER_ADMIN', label: 'Super Admin', desc: 'Akses penuh ke seluruh modul sistem dan pengaturan master' },
+    { value: 'PESERTA', label: 'Peserta (Calon Siswa)', desc: 'Akun santri/calon siswa baru yang mendaftar' },
+  ];
+
+  const checkboxesHtml = availableRoles.map(r => {
+    const isChecked = rolesList.includes(r.value);
+    return `
+      <label style="display: flex; align-items: flex-start; gap: 12px; padding: 10px 14px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--primary-500)'" onmouseout="this.style.borderColor='var(--border-subtle)'">
+        <input type="checkbox" class="modal-role-checkbox" value="${r.value}" ${isChecked ? 'checked' : ''} style="margin-top: 3px; -webkit-appearance: checkbox; appearance: checkbox; width: 18px; height: 18px; accent-color: var(--primary-600); cursor: pointer;">
+        <div style="flex: 1;">
+          <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-heading); display: flex; align-items: center; gap: 8px;">
+            <span class="role-badge-pill role-${r.value}" style="font-size: 0.7rem; padding: 2px 8px;">${r.value}</span>
+            <span>${r.label}</span>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 3px;">${r.desc}</div>
+        </div>
+      </label>
+    `;
+  }).join('');
+
   openAppModal(`
-    <h3 style="font-size: 1.2rem; color: var(--text-heading); margin-bottom: 12px;"><i class="fa-solid fa-user-tag"></i> Ubah Role Pengguna</h3>
-    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 16px;">Pengguna: <strong>${name}</strong></p>
-    <div class="form-group" style="margin-bottom: 16px;">
-      <label class="form-label" style="display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 6px;">Pilih Role Baru</label>
-      <select id="modal-new-role" class="form-select" style="width: 100%; padding: 10px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md);">
-        <option value="PESERTA" ${currentRole === 'PESERTA' ? 'selected' : ''}>PESERTA</option>
-        <option value="ADMIN" ${currentRole === 'ADMIN' ? 'selected' : ''}>ADMIN (Operasional)</option>
-        <option value="BENDAHARA" ${currentRole === 'BENDAHARA' ? 'selected' : ''}>BENDAHARA</option>
-        <option value="ADMIN_BARCODE" ${currentRole === 'ADMIN_BARCODE' ? 'selected' : ''}>ADMIN SCANNER (BARCODE)</option>
-        <option value="PEWAWANCARA" ${currentRole === 'PEWAWANCARA' ? 'selected' : ''}>PEWAWANCARA</option>
-        <option value="PETUGAS_TES_PRAKTIK" ${currentRole === 'PETUGAS_TES_PRAKTIK' ? 'selected' : ''}>PETUGAS TES PRAKTIK</option>
-        <option value="SUPER_ADMIN" ${currentRole === 'SUPER_ADMIN' ? 'selected' : ''}>SUPER_ADMIN</option>
-      </select>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 style="font-size: 1.25rem; color: var(--text-heading); margin: 0; display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-user-tag" style="color: var(--primary-600);"></i> Pengaturan Role Hak Akses
+      </h3>
+      <button onclick="closeAppModal()" style="background: none; border: none; font-size: 1.4rem; color: var(--text-muted); cursor: pointer;">&times;</button>
     </div>
-    <button class="btn btn-primary" style="width: 100%;" onclick="submitChangeRole('${userId}')">Simpan Perubahan Role</button>
+    <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 14px;">
+      Pengguna: <strong>${name}</strong>
+    </p>
+    <div style="font-size: 0.82rem; color: var(--primary-600); font-weight: 600; margin-bottom: 12px; background: rgba(59, 130, 246, 0.08); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid rgba(59, 130, 246, 0.2);">
+      <i class="fa-solid fa-circle-info"></i> Guru/Pengguna dapat memiliki <strong>lebih dari satu role</strong> (misal: Pewawancara sekaligus Petugas Tes Praktik). Centang semua role yang berlaku:
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 4px; margin-bottom: 18px;">
+      ${checkboxesHtml}
+    </div>
+    <button class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 700;" onclick="submitChangeRole('${userId}')">Simpan Perubahan Role</button>
   `);
 }
 
 async function submitChangeRole(userId) {
-  const role = document.getElementById('modal-new-role').value;
+  const checkboxes = Array.from(document.querySelectorAll('.modal-role-checkbox:checked'));
+  const selectedRoles = checkboxes.map(cb => cb.value);
+
+  if (selectedRoles.length === 0) {
+    alert('Pilih setidaknya satu role hak akses untuk pengguna ini.');
+    return;
+  }
+
   try {
-    const res = await apiRequest(`/api/users/${userId}/role`, { method: 'PATCH', body: { role } });
+    const res = await apiRequest(`/api/users/${userId}/role`, {
+      method: 'PATCH',
+      body: {
+        roles: selectedRoles,
+        role: selectedRoles[0],
+      },
+    });
     if (res.success) {
       alert(res.message);
       closeAppModal();

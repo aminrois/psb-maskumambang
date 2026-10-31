@@ -9,6 +9,7 @@ export interface JwtPayload {
   username?: string | null;
   email: string;
   role: string;
+  roles?: string[];
   sessionVersion: number;
 }
 

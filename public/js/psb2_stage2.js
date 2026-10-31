@@ -2268,7 +2268,9 @@ async function renderPesertaFullFormView(regId) {
     const st = d.studentDetail || {};
     const achs = d.achievements || [];
     const docs = d.documents || [];
-    const isAdmin = (typeof state !== 'undefined' && state?.user?.role && ['SUPER_ADMIN', 'ADMIN'].includes(state.user.role));
+    const isAdmin = (typeof window.userIsAdmin === 'function')
+      ? window.userIsAdmin(state?.user)
+      : (typeof state !== 'undefined' && ((state?.user?.roles && state.user.roles.some(r => ['SUPER_ADMIN', 'ADMIN'].includes(r))) || ['SUPER_ADMIN', 'ADMIN'].includes(state?.user?.role)));
     const isReadOnly = !isAdmin && (d.formStatus === 'SUBMITTED' || d.formStatus === 'VERIFIED');
     const isRevision = d.formStatus === 'REVISION_REQUIRED';
 

@@ -22,7 +22,12 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('Akses ditolak: Autentikasi diperlukan.');
     }
 
-    const hasRole = requiredRoles.includes(user.role);
+    const userRoles: Role[] =
+      Array.isArray(user.roles) && user.roles.length > 0
+        ? user.roles
+        : (user.role ? [user.role] : []);
+
+    const hasRole = requiredRoles.some((r) => userRoles.includes(r));
     if (!hasRole) {
       throw new ForbiddenException(
         `Akses ditolak: Anda tidak memiliki izin untuk tindakan ini. Diperlukan role: ${requiredRoles.join(', ')}`,

@@ -131,6 +131,7 @@ model User {
   phoneNumber    String    @map("phone_number") @db.VarChar(30)
   passwordHash   String    @map("password_hash") @db.VarChar(255)
   role           Role      @default(PESERTA)
+  roles          Role[]    @default([])
   isActive             Boolean   @default(true) @map("is_active")
   sessionVersion       Int       @default(1) @map("session_version")
   resetPasswordToken   String?   @map("reset_password_token") @db.VarChar(255)

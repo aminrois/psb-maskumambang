@@ -742,16 +742,24 @@ export class InterviewService {
   // ==========================================================================
 
   async listInterviewers(search?: string, isActive?: boolean, page = 1, perPage = 25) {
-    const where: Prisma.UserWhereInput = {
-      role: Role.PEWAWANCARA,
-    };
+    const andConditions: Prisma.UserWhereInput[] = [
+      {
+        OR: [
+          { role: Role.PEWAWANCARA },
+          { roles: { has: Role.PEWAWANCARA } },
+        ],
+      },
+    ];
     if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { phoneNumber: { contains: search, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+          { phoneNumber: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
+    const where: Prisma.UserWhereInput = { AND: andConditions };
     if (isActive !== undefined) where.isActive = isActive;
 
     const skip = (page - 1) * perPage;
@@ -768,6 +776,8 @@ export class InterviewService {
           email: true,
           phoneNumber: true,
           isActive: true,
+          role: true,
+          roles: true,
           createdAt: true,
           interviewerSchedules: {
             include: {
@@ -818,7 +828,13 @@ export class InterviewService {
 
   async getInterviewerDetail(id: string) {
     const user = await this.prisma.user.findFirst({
-      where: { id, role: Role.PEWAWANCARA },
+      where: {
+        id,
+        OR: [
+          { role: Role.PEWAWANCARA },
+          { roles: { has: Role.PEWAWANCARA } },
+        ],
+      },
       select: {
         id: true,
         name: true,
@@ -1546,7 +1562,7 @@ export class InterviewService {
 
   async getInterviewDetailForProcess(
     identifier: string, // interviewId, registrationId, or registrationNumber
-    currentUser: { id: string; role: Role },
+    currentUser: { id: string; role: Role; roles?: Role[] },
   ) {
     let interview = await this.prisma.interview.findFirst({
       where: {
@@ -1656,7 +1672,13 @@ export class InterviewService {
     }
 
     // Role-based Access Check
-    if (currentUser.role === Role.PEWAWANCARA) {
+    const userRoles = Array.isArray(currentUser.roles) && currentUser.roles.length > 0
+      ? currentUser.roles
+      : (currentUser.role ? [currentUser.role] : []);
+    const isInterviewerRole = userRoles.includes(Role.PEWAWANCARA);
+    const isAdminOrSuper = userRoles.includes(Role.ADMIN) || userRoles.includes(Role.SUPER_ADMIN);
+
+    if (isInterviewerRole && !isAdminOrSuper) {
       const isAssignedDirectly = interview.interviewerId === currentUser.id;
       const isAssignedViaSchedule = interview.schedule?.interviewers?.some(
         (si) => si.interviewerUserId === currentUser.id,
@@ -1820,7 +1842,7 @@ export class InterviewService {
   async saveInterviewAssessment(
     interviewId: string,
     dto: SaveInterviewAssessmentDto,
-    currentUser: { id: string; name: string; role: Role },
+    currentUser: { id: string; name: string; role: Role; roles?: Role[] },
   ) {
     let interview = await this.prisma.interview.findUnique({
       where: { id: interviewId },
@@ -1852,7 +1874,13 @@ export class InterviewService {
     const actualInterviewId = interview.id;
 
     // Authorization check
-    if (currentUser.role === Role.PEWAWANCARA) {
+    const userRoles = Array.isArray(currentUser.roles) && currentUser.roles.length > 0
+      ? currentUser.roles
+      : (currentUser.role ? [currentUser.role] : []);
+    const isInterviewerRole = userRoles.includes(Role.PEWAWANCARA);
+    const isAdminOrSuper = userRoles.includes(Role.ADMIN) || userRoles.includes(Role.SUPER_ADMIN);
+
+    if (isInterviewerRole && !isAdminOrSuper) {
       const isAssigned =
         interview.interviewerId === currentUser.id ||
         interview.schedule?.interviewers.some(
@@ -2075,7 +2103,13 @@ export class InterviewService {
 
     // Active interviewers
     const interviewers = await this.prisma.user.findMany({
-      where: { role: Role.PEWAWANCARA, isActive: true },
+      where: {
+        OR: [
+          { role: Role.PEWAWANCARA },
+          { roles: { has: Role.PEWAWANCARA } },
+        ],
+        isActive: true,
+      },
       take: 6,
       select: {
         id: true,

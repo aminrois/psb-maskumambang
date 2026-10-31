@@ -35,13 +35,20 @@ export class UsersService {
       throw new BadRequestException('Email sudah terdaftar.');
     }
     const passwordHash = await HashUtil.hashPassword(dto.password);
+    const assignedRoles: Role[] =
+      dto.roles && dto.roles.length > 0
+        ? dto.roles
+        : [dto.role || Role.PESERTA];
+    const primaryRole = assignedRoles[0] || Role.PESERTA;
+
     const user = await this.prisma.user.create({
       data: {
         name: dto.name.trim(),
         email: dto.email.trim().toLowerCase(),
         phoneNumber: dto.phoneNumber.trim(),
         passwordHash,
-        role: dto.role || Role.PESERTA,
+        role: primaryRole,
+        roles: assignedRoles,
         isActive: true,
       },
     });
@@ -50,7 +57,7 @@ export class UsersService {
       action: 'ADMIN_CREATE_USER',
       targetTable: 'users',
       targetId: user.id,
-      details: `Admin membuat user baru: ${user.name} (${user.email}) dengan role ${user.role}`,
+      details: `Admin membuat user baru: ${user.name} (${user.email}) dengan role: ${assignedRoles.join(', ')}`,
     });
     const { passwordHash: _, ...safeUser } = user;
     return safeUser;
@@ -59,9 +66,15 @@ export class UsersService {
   async listUsers(search?: string, role?: Role, isActive?: boolean, page = 1, perPage = 25) {
     const skip = (page - 1) * perPage;
     const where: any = {};
+    const andConditions: any[] = [];
 
     if (role) {
-      where.role = role;
+      andConditions.push({
+        OR: [
+          { role: role },
+          { roles: { has: role } },
+        ],
+      });
     }
 
     if (isActive !== undefined) {
@@ -70,12 +83,18 @@ export class UsersService {
 
     if (search && search.trim()) {
       const q = search.trim();
-      where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { username: { contains: q, mode: 'insensitive' } },
-        { email: { contains: q, mode: 'insensitive' } },
-        { phoneNumber: { contains: q, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { username: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } },
+          { phoneNumber: { contains: q, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const [users, total] = await Promise.all([
@@ -88,6 +107,7 @@ export class UsersService {
           email: true,
           phoneNumber: true,
           role: true,
+          roles: true,
           isActive: true,
           sessionVersion: true,
           createdAt: true,
@@ -138,16 +158,23 @@ export class UsersService {
     return updated;
   }
 
-  async changeRole(userId: string, newRole: Role, staffId?: string): Promise<User> {
+  async changeRole(userId: string, newRole?: Role, roles?: Role[], staffId?: string): Promise<User> {
     const user = await this.findById(userId);
     if (!user) {
       throw new NotFoundException('Pengguna tidak ditemukan.');
     }
 
+    const assignedRoles: Role[] =
+      roles && roles.length > 0
+        ? roles
+        : (newRole ? [newRole] : [Role.PESERTA]);
+    const primaryRole = assignedRoles[0] || Role.PESERTA;
+
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        role: newRole,
+        role: primaryRole,
+        roles: assignedRoles,
         sessionVersion: { increment: 1 },
       },
     });
@@ -158,7 +185,7 @@ export class UsersService {
         action: 'CHANGE_USER_ROLE',
         targetTable: 'users',
         targetId: user.id,
-        details: `Role akun ${user.email} diubah dari ${user.role} menjadi ${newRole}`,
+        details: `Role akun ${user.email} diubah menjadi: ${assignedRoles.join(', ')}`,
       });
     }
 
