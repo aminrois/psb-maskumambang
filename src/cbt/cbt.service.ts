@@ -31,6 +31,12 @@ import {
   ExemptCbtDto,
 } from './dto/cbt.dto';
 
+export function isCbtExempt(att: { verificationNotes?: string | null } | null | undefined): boolean {
+  if (!att || !att.verificationNotes) return false;
+  const n = att.verificationNotes.toLowerCase();
+  return n.includes('bebas') || n.includes('offline');
+}
+
 @Injectable()
 export class CbtService {
   constructor(private readonly prisma: PrismaService) {}
@@ -963,6 +969,15 @@ export class CbtService {
               essayScore: Number(attempt.essayScore),
               totalScore: Number(attempt.totalScore),
               gradingStatus: attempt.gradingStatus,
+              verificationStatus: attempt.verificationStatus,
+              verificationNotes: attempt.verificationNotes,
+              isExempt: isCbtExempt(attempt),
+              scoreDisplay: isCbtExempt(attempt)
+                ? 'Terverifikasi (Bebas CBT)'
+                : Number(attempt.totalScore).toFixed(2),
+              cbtStatusDisplay: isCbtExempt(attempt)
+                ? 'Bebas CBT'
+                : (attempt.verificationStatus === CBTVerificationStatus.VERIFIED ? 'Lulus CBT' : attempt.status),
               gradedBy: attempt.gradedBy?.name || null,
               gradedAt: attempt.gradedAt,
               mcTotal,
@@ -1146,6 +1161,15 @@ export class CbtService {
         essayScore: Number(attempt.essayScore),
         totalScore: Number(attempt.totalScore),
         gradingStatus: attempt.gradingStatus,
+        verificationStatus: attempt.verificationStatus,
+        verificationNotes: attempt.verificationNotes,
+        isExempt: isCbtExempt(attempt),
+        scoreDisplay: isCbtExempt(attempt)
+          ? 'Terverifikasi (Bebas CBT)'
+          : Number(attempt.totalScore).toFixed(2),
+        cbtStatusDisplay: isCbtExempt(attempt)
+          ? 'Bebas CBT'
+          : (attempt.verificationStatus === CBTVerificationStatus.VERIFIED ? 'Lulus CBT' : attempt.status),
         mcTotal,
         mcCorrect,
         mcIncorrect,
@@ -1372,6 +1396,8 @@ export class CbtService {
         r.individualParticipant?.schoolName ||
         '-';
 
+      const isExempt = isCbtExempt(att);
+
       return {
         registrationId: r.id,
         registrationNumber: r.registrationNumber,
@@ -1386,6 +1412,13 @@ export class CbtService {
         multipleChoiceScore: Number(att.multipleChoiceScore),
         essayScore: Number(att.essayScore),
         totalScore: Number(att.totalScore),
+        isExempt,
+        scoreDisplay: isExempt
+          ? 'Terverifikasi (Bebas CBT)'
+          : Number(att.totalScore).toFixed(2),
+        cbtStatusDisplay: isExempt
+          ? 'Bebas CBT'
+          : (att.verificationStatus === CBTVerificationStatus.VERIFIED ? 'Lulus CBT' : att.status),
         gradingStatus: att.gradingStatus,
         verificationStatus: att.verificationStatus,
         verificationNotes: att.verificationNotes,
@@ -1557,6 +1590,7 @@ export class CbtService {
         r.user.name;
 
       const att = r.cbtAttempt;
+      const isExempt = isCbtExempt(att);
 
       return {
         registrationId: r.id,
@@ -1570,6 +1604,13 @@ export class CbtService {
         cbtStatus: att?.status || 'NOT_STARTED',
         cbtVerificationStatus: att?.verificationStatus || null,
         cbtScore: att?.totalScore != null ? Number(att.totalScore) : null,
+        isExempt,
+        scoreDisplay: isExempt
+          ? 'Terverifikasi (Bebas CBT)'
+          : (att?.totalScore != null ? Number(att.totalScore).toFixed(2) : '-'),
+        cbtStatusDisplay: isExempt
+          ? 'Bebas CBT'
+          : (att?.verificationStatus === CBTVerificationStatus.VERIFIED ? 'Lulus CBT' : (att?.status || 'NOT_STARTED')),
         verificationNotes: att?.verificationNotes || null,
       };
     });
@@ -1636,8 +1677,10 @@ export class CbtService {
         : 100;
     const finalNotes =
       dto.notes && dto.notes.trim().length > 0
-        ? dto.notes.trim()
-        : 'Ujian Offline / Bebas CBT';
+        ? (dto.notes.trim().toLowerCase().includes('bebas')
+            ? dto.notes.trim()
+            : `Bebas CBT - ${dto.notes.trim()}`)
+        : 'Bebas CBT';
 
     const attempt = await this.prisma.cBTAttempt.upsert({
       where: { registrationId: registration.id },
@@ -1674,7 +1717,7 @@ export class CbtService {
 
     return {
       success: true,
-      message: `Status CBT calon santri '${candidateName}' berhasil diverifikasi (Bebas CBT / Ujian Offline). Nilai: ${finalScore}. Santri dapat melanjutkan ke tahap berikutnya.`,
+      message: `Status CBT calon santri '${candidateName}' berhasil diverifikasi sebagai Bebas CBT. Santri dapat melanjutkan ke tahap berikutnya.`,
       data: attempt,
     };
   }
@@ -1803,6 +1846,14 @@ export class CbtService {
           totalScore: Number(attempt.totalScore),
           gradingStatus: attempt.gradingStatus,
           verificationStatus: attempt.verificationStatus,
+          verificationNotes: attempt.verificationNotes,
+          isExempt: isCbtExempt(attempt),
+          scoreDisplay: isCbtExempt(attempt)
+            ? 'Terverifikasi (Bebas CBT)'
+            : Number(attempt.totalScore).toFixed(2),
+          cbtStatusDisplay: isCbtExempt(attempt)
+            ? 'Bebas CBT'
+            : (attempt.verificationStatus === CBTVerificationStatus.VERIFIED ? 'Lulus CBT' : attempt.status),
         },
       };
     }

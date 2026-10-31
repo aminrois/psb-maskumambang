@@ -281,10 +281,30 @@ export class PracticalTestService {
         nisn: reg.studentDetail?.nisn || '-',
         schoolName: reg.classProgram?.major?.school?.name || '-',
         className: reg.classProgram?.name || '-',
+        isCbtExempt: Boolean(
+          reg.cbtAttempt?.verificationNotes &&
+            (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        ),
         cbtScore: reg.cbtAttempt?.totalScore
           ? Number(reg.cbtAttempt.totalScore)
           : null,
-        cbtStatus: reg.cbtAttempt?.verificationStatus || reg.cbtAttempt?.status || '-',
+        cbtScoreDisplay: Boolean(
+          reg.cbtAttempt?.verificationNotes &&
+            (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        )
+          ? 'Terverifikasi (Bebas CBT)'
+          : reg.cbtAttempt?.totalScore
+            ? Number(reg.cbtAttempt.totalScore).toFixed(1)
+            : '-',
+        cbtStatus: Boolean(
+          reg.cbtAttempt?.verificationNotes &&
+            (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        )
+          ? 'Bebas CBT'
+          : reg.cbtAttempt?.verificationStatus || reg.cbtAttempt?.status || '-',
         practicalStatus: t.status,
         btqScore: t.btqScore,
         wudhuScore: t.wudhuScore,
@@ -688,10 +708,34 @@ export class PracticalTestService {
         schoolName: reg.classProgram?.major?.school?.name || '-',
         className: reg.classProgram?.name || '-',
         waveName: reg.admissionWave?.name || '-',
-        cbtStatus: isCbtVerified ? 'VERIFIED' : isCbtDone ? 'COMPLETED' : 'PENDING',
+        isCbtExempt: Boolean(
+          reg.cbtAttempt?.verificationNotes &&
+            (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        ),
+        cbtStatus: Boolean(
+          reg.cbtAttempt?.verificationNotes &&
+            (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        )
+          ? 'Bebas CBT'
+          : isCbtVerified
+            ? 'VERIFIED'
+            : isCbtDone
+              ? 'COMPLETED'
+              : 'PENDING',
         cbtScore: reg.cbtAttempt?.totalScore
           ? Number(reg.cbtAttempt.totalScore)
           : null,
+        cbtScoreDisplay: Boolean(
+          reg.cbtAttempt?.verificationNotes &&
+            (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        )
+          ? 'Terverifikasi (Bebas CBT)'
+          : reg.cbtAttempt?.totalScore
+            ? Number(reg.cbtAttempt.totalScore).toFixed(1)
+            : '-',
         practicalStatus: p?.status || PracticalTestStatus.NOT_SCHEDULED,
         schedule: p?.schedule
           ? {
@@ -839,9 +883,23 @@ export class PracticalTestService {
         nisn: reg.studentDetail?.nisn || '-',
         schoolName: reg.classProgram?.major?.school?.name || '-',
         className: reg.classProgram?.name || '-',
+        isCbtExempt: Boolean(
+          reg.cbtAttempt?.verificationNotes &&
+            (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        ),
         cbtScore: reg.cbtAttempt?.totalScore
           ? Number(reg.cbtAttempt.totalScore)
           : null,
+        cbtScoreDisplay: Boolean(
+          reg.cbtAttempt?.verificationNotes &&
+            (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        )
+          ? 'Terverifikasi (Bebas CBT)'
+          : reg.cbtAttempt?.totalScore
+            ? Number(reg.cbtAttempt.totalScore).toFixed(1)
+            : '-',
         practicalStatus: t.status,
         btqScore: t.btqScore,
         wudhuScore: t.wudhuScore,
@@ -930,6 +988,20 @@ export class PracticalTestService {
           ? {
               status: reg.cbtAttempt.status,
               verificationStatus: reg.cbtAttempt.verificationStatus,
+              isExempt: Boolean(
+                reg.cbtAttempt.verificationNotes &&
+                  (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+                    reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+              ),
+              scoreDisplay: Boolean(
+                reg.cbtAttempt.verificationNotes &&
+                  (reg.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+                    reg.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+              )
+                ? 'Terverifikasi (Bebas CBT)'
+                : reg.cbtAttempt.totalScore
+                  ? Number(reg.cbtAttempt.totalScore).toFixed(1)
+                  : '-',
               totalScore: reg.cbtAttempt.totalScore
                 ? Number(reg.cbtAttempt.totalScore)
                 : 0,

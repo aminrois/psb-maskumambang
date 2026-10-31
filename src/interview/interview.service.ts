@@ -1386,6 +1386,7 @@ export class InterviewService {
               id: true,
               totalScore: true,
               verificationStatus: true,
+              verificationNotes: true,
               status: true,
             },
           },
@@ -1425,6 +1426,20 @@ export class InterviewService {
         cbtScore: r.cbtAttempt?.totalScore
           ? Number(r.cbtAttempt.totalScore)
           : null,
+        isCbtExempt: Boolean(
+          r.cbtAttempt?.verificationNotes &&
+            (r.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              r.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        ),
+        cbtScoreDisplay: Boolean(
+          r.cbtAttempt?.verificationNotes &&
+            (r.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+              r.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+        )
+          ? 'Terverifikasi (Bebas CBT)'
+          : r.cbtAttempt?.totalScore
+            ? Number(r.cbtAttempt.totalScore).toFixed(1)
+            : '-',
         cbtVerificationStatus: r.cbtAttempt?.verificationStatus || null,
         fileVerificationStatus: r.formStatus,
         scheduleId: r.interview?.scheduleId || null,
@@ -1759,6 +1774,28 @@ export class InterviewService {
         cbtScore: interview.registration.cbtAttempt?.totalScore
           ? Number(interview.registration.cbtAttempt.totalScore)
           : null,
+        isCbtExempt: Boolean(
+          interview.registration.cbtAttempt?.verificationNotes &&
+            (interview.registration.cbtAttempt.verificationNotes
+              .toLowerCase()
+              .includes('bebas') ||
+              interview.registration.cbtAttempt.verificationNotes
+                .toLowerCase()
+                .includes('offline')),
+        ),
+        cbtScoreDisplay: Boolean(
+          interview.registration.cbtAttempt?.verificationNotes &&
+            (interview.registration.cbtAttempt.verificationNotes
+              .toLowerCase()
+              .includes('bebas') ||
+              interview.registration.cbtAttempt.verificationNotes
+                .toLowerCase()
+                .includes('offline')),
+        )
+          ? 'Terverifikasi (Bebas CBT)'
+          : interview.registration.cbtAttempt?.totalScore
+            ? Number(interview.registration.cbtAttempt.totalScore).toFixed(1)
+            : '-',
         photoPath: photoDoc?.filePath || null,
       },
       // Info Wawancara
@@ -2087,18 +2124,28 @@ export class InterviewService {
       },
     });
 
-    const formattedUnInterviewed = unInterviewedParticipants.map((r) => ({
-      id: r.id,
-      registrationNumber: r.registrationNumber,
-      name: r.studentDetail?.fullName || r.user.name || 'Peserta',
-      program: r.classProgram.name,
-      cbtScore: r.cbtAttempt?.totalScore
-        ? Number(r.cbtAttempt.totalScore)
-        : '-',
-      schedule: r.interview?.schedule
-        ? `${r.interview.schedule.startTime} (${r.interview.schedule.roomLocation})`
-        : 'Belum Dijadwalkan',
-    }));
+    const formattedUnInterviewed = unInterviewedParticipants.map((r) => {
+      const isExempt = Boolean(
+        r.cbtAttempt?.verificationNotes &&
+          (r.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+            r.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+      );
+      return {
+        id: r.id,
+        registrationNumber: r.registrationNumber,
+        name: r.studentDetail?.fullName || r.user.name || 'Peserta',
+        program: r.classProgram.name,
+        isCbtExempt: isExempt,
+        cbtScore: isExempt
+          ? 'Terverifikasi (Bebas CBT)'
+          : r.cbtAttempt?.totalScore
+            ? Number(r.cbtAttempt.totalScore)
+            : '-',
+        schedule: r.interview?.schedule
+          ? `${r.interview.schedule.startTime} (${r.interview.schedule.roomLocation})`
+          : 'Belum Dijadwalkan',
+      };
+    });
 
     return {
       summary: {
@@ -2273,6 +2320,20 @@ export class InterviewService {
       cbtScore: i.registration.cbtAttempt?.totalScore
         ? Number(i.registration.cbtAttempt.totalScore)
         : null,
+      isCbtExempt: Boolean(
+        i.registration.cbtAttempt?.verificationNotes &&
+          (i.registration.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+            i.registration.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+      ),
+      cbtScoreDisplay: Boolean(
+        i.registration.cbtAttempt?.verificationNotes &&
+          (i.registration.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') ||
+            i.registration.cbtAttempt.verificationNotes.toLowerCase().includes('offline')),
+      )
+        ? 'Terverifikasi (Bebas CBT)'
+        : i.registration.cbtAttempt?.totalScore
+          ? Number(i.registration.cbtAttempt.totalScore).toFixed(1)
+          : '-',
       interviewerName: i.interviewer?.name || '-',
       scheduleDate: i.schedule?.scheduleDate || null,
       scheduleTime: i.schedule

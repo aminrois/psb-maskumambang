@@ -5055,14 +5055,23 @@ function renderFinalTableRows(items) {
 
     // 2. CBT
     const cbt = reg.cbtAttempt;
-    const cbtScore = cbt?.totalScore !== undefined && cbt?.totalScore !== null ? Number(cbt.totalScore).toFixed(1) : '-';
+    const isCbtExempt = Boolean(
+      cbt && (
+        cbt.isExempt === true ||
+        (cbt.verificationNotes && (cbt.verificationNotes.toLowerCase().includes('bebas') || cbt.verificationNotes.toLowerCase().includes('offline')))
+      )
+    );
     const isCbtVerified = cbt?.verificationStatus === 'VERIFIED';
     const isCbtCompleted = cbt?.status === 'COMPLETED' || cbt?.status === 'EXPIRED';
+    const cbtScore = isCbtExempt
+      ? '<span style="font-size:0.75rem; font-weight:800; color:#16a34a; white-space:nowrap; background:rgba(34,197,94,0.12); border:1px solid #86efac; padding:2px 6px; border-radius:4px;">Terverifikasi (Bebas CBT)</span>'
+      : (cbt?.totalScore !== undefined && cbt?.totalScore !== null ? Number(cbt.totalScore).toFixed(1) : '-');
+    const cbtBadgeText = isCbtExempt ? 'Bebas CBT' : (isCbtVerified ? 'LULUS CBT' : isCbtCompleted ? 'SUDAH CBT' : 'BELUM CBT');
     const cbtHtml = `
       <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-        <strong style="color: #16a34a; font-size: 0.95rem;">${cbtScore}</strong>
-        <span class="badge" style="background:${isCbtVerified ? '#dcfce7' : isCbtCompleted ? '#e0f2fe' : '#f1f5f9'}; color:${isCbtVerified ? '#15803d' : isCbtCompleted ? '#0284c7' : '#64748b'}; border:1px solid ${isCbtVerified ? '#86efac' : isCbtCompleted ? '#7dd3fc' : '#cbd5e1'}; font-size:0.7rem; padding:2px 6px; border-radius:4px;">
-          ${isCbtVerified ? 'LULUS CBT' : isCbtCompleted ? 'SUDAH CBT' : 'BELUM CBT'}
+        <strong style="color: #16a34a; font-size: ${isCbtExempt ? '0.8rem' : '0.95rem'};">${cbtScore}</strong>
+        <span class="badge" style="background:${isCbtVerified || isCbtExempt ? '#dcfce7' : isCbtCompleted ? '#e0f2fe' : '#f1f5f9'}; color:${isCbtVerified || isCbtExempt ? '#15803d' : isCbtCompleted ? '#0284c7' : '#64748b'}; border:1px solid ${isCbtVerified || isCbtExempt ? '#86efac' : isCbtCompleted ? '#7dd3fc' : '#cbd5e1'}; font-size:0.7rem; padding:2px 6px; border-radius:4px;">
+          ${cbtBadgeText}
         </span>
       </div>
     `;
@@ -5328,8 +5337,32 @@ async function exportFinalVerificationExcel() {
     { header: 'Periode TP', exportValue: r => r.academicPeriod?.name || '-' },
     { header: 'Status Berkas', exportValue: r => r.formStatus === 'VERIFIED' ? 'Terverifikasi (OK)' : (r.formStatus || 'DRAFT') },
     { header: 'Status Pembayaran', exportValue: r => r.status === 'APPROVED' ? 'Lunas (Disetujui)' : (r.status || '-') },
-    { header: 'Nilai CBT', exportValue: r => (r.cbtAttempt?.totalScore !== undefined && r.cbtAttempt?.totalScore !== null) ? Number(r.cbtAttempt.totalScore).toFixed(1) : '-' },
-    { header: 'Status CBT', exportValue: r => r.cbtAttempt?.verificationStatus === 'VERIFIED' ? 'LULUS CBT' : ((r.cbtAttempt?.status === 'COMPLETED' || r.cbtAttempt?.status === 'EXPIRED') ? 'SUDAH CBT' : 'BELUM CBT') },
+    { 
+      header: 'Nilai CBT', 
+      exportValue: r => {
+        const isExempt = Boolean(
+          r.cbtAttempt && (
+            r.cbtAttempt.isExempt === true ||
+            (r.cbtAttempt.verificationNotes && (r.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') || r.cbtAttempt.verificationNotes.toLowerCase().includes('offline')))
+          )
+        );
+        if (isExempt) return 'Terverifikasi (Bebas CBT)';
+        return (r.cbtAttempt?.totalScore !== undefined && r.cbtAttempt?.totalScore !== null) ? Number(r.cbtAttempt.totalScore).toFixed(1) : '-';
+      }
+    },
+    { 
+      header: 'Status CBT', 
+      exportValue: r => {
+        const isExempt = Boolean(
+          r.cbtAttempt && (
+            r.cbtAttempt.isExempt === true ||
+            (r.cbtAttempt.verificationNotes && (r.cbtAttempt.verificationNotes.toLowerCase().includes('bebas') || r.cbtAttempt.verificationNotes.toLowerCase().includes('offline')))
+          )
+        );
+        if (isExempt) return 'Bebas CBT';
+        return r.cbtAttempt?.verificationStatus === 'VERIFIED' ? 'LULUS CBT' : ((r.cbtAttempt?.status === 'COMPLETED' || r.cbtAttempt?.status === 'EXPIRED') ? 'SUDAH CBT' : 'BELUM CBT');
+      }
+    },
     { header: 'Status Wawancara', exportValue: r => r.interview?.status === 'COMPLETED' ? 'SELESAI' : 'BELUM SELESAI' },
     { header: 'Rekomendasi Wawancara', exportValue: r => r.interview?.recommendation || '-' },
     { header: 'Ruang Wawancara', exportValue: r => r.interview?.schedule?.roomLocation || '-' },

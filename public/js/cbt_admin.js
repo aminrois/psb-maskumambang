@@ -1936,9 +1936,16 @@ function renderCbtResultsTable() {
 
   tbody.innerHTML = pageRows.map((row, idx) => {
     const att = row.attempt;
+    const isExempt = Boolean(
+      row.isExempt ||
+      att?.isExempt ||
+      (att?.verificationNotes && (att.verificationNotes.toLowerCase().includes('bebas') || att.verificationNotes.toLowerCase().includes('offline')))
+    );
 
     let statusBadge = '<span class="badge badge-secondary" style="font-size: 0.75rem;">Belum Mulai</span>';
-    if (att) {
+    if (isExempt) {
+      statusBadge = '<span class="badge badge-success" style="font-size: 0.75rem; background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid #86efac; font-weight: 700;"><i class="fa-solid fa-user-check"></i> Bebas CBT</span>';
+    } else if (att) {
       if (att.status === 'IN_PROGRESS') {
         statusBadge = '<span class="badge badge-warning" style="font-size: 0.75rem;"><i class="fa-solid fa-clock fa-spin"></i> Sedang Ujian</span>';
       } else if (att.status === 'COMPLETED') {
@@ -1949,7 +1956,9 @@ function renderCbtResultsTable() {
     }
 
     let gradingBadge = '-';
-    if (att && (att.status === 'COMPLETED' || att.status === 'EXPIRED')) {
+    if (isExempt) {
+      gradingBadge = '<span class="badge badge-success" style="font-size: 0.7rem;"><i class="fa-solid fa-check-double"></i> Terverifikasi</span>';
+    } else if (att && (att.status === 'COMPLETED' || att.status === 'EXPIRED')) {
       if (att.gradingStatus === 'GRADED') {
         gradingBadge = '<span class="badge badge-success" style="font-size: 0.7rem;"><i class="fa-solid fa-check"></i> Sudah Dinilai</span>';
       } else if (att.gradingStatus === 'NEEDS_ESSAY_GRADING') {
@@ -1961,12 +1970,19 @@ function renderCbtResultsTable() {
 
     const isCompleted = att && (att.status === 'COMPLETED' || att.status === 'EXPIRED');
 
+    const totalScoreDisplay = isExempt
+      ? '<span class="badge" style="background: rgba(34, 197, 94, 0.15); color: #16a34a; font-weight: 800; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; border: 1px solid #86efac; white-space: nowrap;">Terverifikasi (Bebas CBT)</span>'
+      : (isCompleted && att.totalScore != null ? att.totalScore.toFixed(2) : '-');
+
     return `
       <tr style="border-bottom: 1px solid var(--border-subtle);">
         <!-- 1. Nama & No. Pendaftaran (Freeze Left) -->
         <td class="cbt-freeze-left" style="padding: 12px 10px; border-bottom: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle);">
           <strong style="color: var(--text-heading); font-size: 0.9rem;">${escapeHtml(row.candidateName)}</strong>
-          <div style="font-size: 0.75rem; color: var(--primary-600); font-family: monospace; font-weight: 700;">${row.registrationNumber}</div>
+          <div style="font-size: 0.75rem; color: var(--primary-600); font-family: monospace; font-weight: 700; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+            <span>${row.registrationNumber}</span>
+            ${isExempt ? '<span class="badge" style="background: rgba(34, 197, 94, 0.15); color: #16a34a; font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; font-weight: 700;">Bebas CBT</span>' : ''}
+          </div>
         </td>
 
         <!-- 3. Program Kelas -->
@@ -1977,41 +1993,41 @@ function renderCbtResultsTable() {
 
         <!-- 4. Durasi -->
         <td style="padding: 12px 10px; text-align: center; font-size: 0.8rem; font-weight: 600; color: var(--text-dim); border-bottom: 1px solid var(--border-subtle);">
-          ${isCompleted ? (att.durationFormatted || '-') : '-'}
+          ${isExempt ? '<span style="font-size:0.75rem; color:var(--text-muted);">Bebas CBT</span>' : (isCompleted ? (att.durationFormatted || '-') : '-')}
         </td>
 
         <!-- 5. Benar -->
         <td style="padding: 12px 10px; text-align: center; border-bottom: 1px solid var(--border-subtle);">
-          ${isCompleted ? `
+          ${isExempt ? '-' : (isCompleted ? `
             <span class="badge" style="background: rgba(22, 163, 74, 0.12); color: #16a34a; font-weight: 800; font-size: 0.82rem; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="${att.mcCorrect || 0} Soal PG Benar">
               <i class="fa-solid fa-check"></i> ${att.mcCorrect || 0}
             </span>
-          ` : '-'}
+          ` : '-')}
         </td>
 
         <!-- 6. Salah -->
         <td style="padding: 12px 10px; text-align: center; border-bottom: 1px solid var(--border-subtle);">
-          ${isCompleted ? `
+          ${isExempt ? '-' : (isCompleted ? `
             <span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; font-weight: 800; font-size: 0.82rem; padding: 4px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;" title="${att.mcIncorrect || 0} Soal PG Salah">
               <i class="fa-solid fa-xmark"></i> ${att.mcIncorrect || 0}
             </span>
             ${att.mcUnanswered > 0 ? `<div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 3px;" title="${att.mcUnanswered} soal kosong">(${att.mcUnanswered} Kosong)</div>` : ''}
-          ` : '-'}
+          ` : '-')}
         </td>
 
         <!-- 7. Nilai PG -->
         <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: var(--text-heading); border-bottom: 1px solid var(--border-subtle);">
-          ${isCompleted && att.multipleChoiceScore != null ? att.multipleChoiceScore.toFixed(2) : '-'}
+          ${isExempt ? '-' : (isCompleted && att.multipleChoiceScore != null ? att.multipleChoiceScore.toFixed(2) : '-')}
         </td>
 
         <!-- 8. Nilai Essay -->
         <td style="padding: 12px 10px; text-align: center; font-weight: 700; color: #6366f1; border-bottom: 1px solid var(--border-subtle);">
-          ${isCompleted && att.essayScore != null ? att.essayScore.toFixed(2) : '-'}
+          ${isExempt ? '-' : (isCompleted && att.essayScore != null ? att.essayScore.toFixed(2) : '-')}
         </td>
 
         <!-- 9. Total (Renamed from Total (0-100)) -->
         <td style="padding: 12px 10px; text-align: center; font-weight: 800; color: #16a34a; font-size: 1rem; border-bottom: 1px solid var(--border-subtle);">
-          ${isCompleted && att.totalScore != null ? att.totalScore.toFixed(2) : '-'}
+          ${totalScoreDisplay}
         </td>
 
         <!-- 10. Status Ujian (Dipindah ke SETELAH Total) -->
@@ -2336,13 +2352,17 @@ async function openCbtResultDetailModal(attemptId) {
 
     const d = res.data;
     const { attempt, candidate, questions } = d;
+    const isExempt = Boolean(
+      attempt.isExempt ||
+      (attempt.verificationNotes && (attempt.verificationNotes.toLowerCase().includes('bebas') || attempt.verificationNotes.toLowerCase().includes('offline')))
+    );
 
     modalBody.innerHTML = `
       <!-- Candidate & Exam Info Grid -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; background: var(--bg-body); padding: 14px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); margin-bottom: 16px; font-size: 0.85rem;">
         <div>Nama: <strong>${candidate.name}</strong> (<span style="font-family: monospace; font-weight: 700; color: var(--primary-600);">${candidate.registrationNumber}</span>)</div>
         <div>Program Kelas: <strong>${candidate.classProgramName}</strong> (${candidate.schoolName})</div>
-        <div>Status: <strong>${attempt.status}</strong></div>
+        <div>Status: <strong>${isExempt ? 'Bebas CBT' : attempt.status}</strong></div>
         <div>Waktu Mulai: <strong>${attempt.startedAt ? new Date(attempt.startedAt).toLocaleString('id-ID') : '-'}</strong></div>
         <div>Waktu Selesai: <strong>${attempt.completedAt ? new Date(attempt.completedAt).toLocaleString('id-ID') : '-'}</strong></div>
       </div>
@@ -2352,26 +2372,26 @@ async function openCbtResultDetailModal(attemptId) {
         <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px; text-align: center;">
           <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Durasi Pengerjaan</div>
           <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-heading); margin-top: 4px;">
-            ${attempt.durationFormatted || '-'}
+            ${isExempt ? 'Bebas CBT' : (attempt.durationFormatted || '-')}
           </div>
         </div>
         <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px; text-align: center;">
           <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Jawaban Pilihan Ganda</div>
           <div style="font-size: 1rem; font-weight: 800; margin-top: 4px;">
-            <span style="color: #16a34a;">${attempt.mcCorrect || 0} Benar</span> <span style="color: var(--text-dim);">|</span> <span style="color: #ef4444;">${attempt.mcIncorrect || 0} Salah</span>
+            ${isExempt ? '<span style="color:var(--text-muted); font-size:0.85rem;">Bebas CBT</span>' : `<span style="color: #16a34a;">${attempt.mcCorrect || 0} Benar</span> <span style="color: var(--text-dim);">|</span> <span style="color: #ef4444;">${attempt.mcIncorrect || 0} Salah</span>`}
           </div>
-          ${(attempt.mcUnanswered || 0) > 0 ? `<div style="font-size: 0.7rem; color: var(--text-muted);">${attempt.mcUnanswered} Tidak Dijawab</div>` : ''}
+          ${!isExempt && (attempt.mcUnanswered || 0) > 0 ? `<div style="font-size: 0.7rem; color: var(--text-muted);">${attempt.mcUnanswered} Tidak Dijawab</div>` : ''}
         </div>
         <div style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px; text-align: center;">
           <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Tingkat Akurasi PG</div>
           <div style="font-size: 1.15rem; font-weight: 800; color: #0284c7; margin-top: 4px;">
-            ${attempt.accuracyPercentage || 0}%
+            ${isExempt ? '-' : `${attempt.accuracyPercentage || 0}%`}
           </div>
         </div>
         <div style="background: var(--bg-card); border: 2px solid #16a34a; border-radius: 10px; padding: 12px; text-align: center;">
-          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Nilai Akhir (Skala 100)</div>
-          <div style="font-size: 1.4rem; font-weight: 800; color: #16a34a; margin-top: 2px;">
-            ${attempt.totalScore != null ? Number(attempt.totalScore).toFixed(2) : '0.00'}
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">${isExempt ? 'Status Nilai' : 'Nilai Akhir (Skala 100)'}</div>
+          <div style="font-size: ${isExempt ? '1.05rem' : '1.4rem'}; font-weight: 800; color: #16a34a; margin-top: 2px;">
+            ${isExempt ? 'Terverifikasi (Bebas CBT)' : (attempt.totalScore != null ? Number(attempt.totalScore).toFixed(2) : '0.00')}
           </div>
         </div>
       </div>
@@ -2606,12 +2626,16 @@ async function exportSingleStudentCbtExcel(attemptId, btnEl) {
     // Row 4-7: Metadata Info Block
     const startedStr = attempt.startedAt ? new Date(attempt.startedAt).toLocaleString('id-ID') : '-';
     const completedStr = attempt.completedAt ? new Date(attempt.completedAt).toLocaleString('id-ID') : '-';
+    const isExempt = Boolean(
+      attempt.isExempt ||
+      (attempt.verificationNotes && (attempt.verificationNotes.toLowerCase().includes('bebas') || attempt.verificationNotes.toLowerCase().includes('offline')))
+    );
 
     const metaRows = [
       ['Nama Santri', candidate.name, 'Ujian CBT', examTitle || 'Ujian Masuk CBT'],
-      ['No. Pendaftaran', candidate.registrationNumber, 'Waktu Mulai', startedStr],
-      ['Lembaga / Sekolah', candidate.schoolName, 'Waktu Selesai', completedStr],
-      ['Program / Jurusan', `${candidate.classProgramName} (${candidate.majorName})`, 'Status Ujian', attempt.status],
+      ['No. Pendaftaran', candidate.registrationNumber, 'Waktu Mulai', isExempt ? 'Bebas CBT' : startedStr],
+      ['Lembaga / Sekolah', candidate.schoolName, 'Waktu Selesai', isExempt ? 'Bebas CBT' : completedStr],
+      ['Program / Jurusan', `${candidate.classProgramName} (${candidate.majorName})`, 'Status Ujian', isExempt ? 'Bebas CBT' : attempt.status],
     ];
 
     metaRows.forEach((m, idx) => {
@@ -2634,7 +2658,9 @@ async function exportSingleStudentCbtExcel(attemptId, btnEl) {
     ws.getRow(8).height = 26;
     ws.mergeCells('A8:I8');
     const scoreCell = ws.getCell('A8');
-    scoreCell.value = `HASIL NILAI:  Pilihan Ganda = ${attempt.multipleChoiceScore}   |   Essay = ${attempt.essayScore}   |   TOTAL NILAI AKHIR = ${attempt.totalScore}`;
+    scoreCell.value = isExempt
+      ? 'HASIL NILAI: Terverifikasi (Bebas CBT)'
+      : `HASIL NILAI:  Pilihan Ganda = ${attempt.multipleChoiceScore}   |   Essay = ${attempt.essayScore}   |   TOTAL NILAI AKHIR = ${attempt.totalScore}`;
     scoreCell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
     scoreCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } }; // Teal 700
     scoreCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -2851,16 +2877,27 @@ async function printSingleStudentCbtResult(attemptId) {
     year: 'numeric'
   });
 
-  const startedAtFormatted = attempt.startedAt
-    ? new Date(attempt.startedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
-    : '-';
-  const completedAtFormatted = attempt.completedAt
-    ? new Date(attempt.completedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
-    : '-';
+  const isExempt = Boolean(
+    attempt.isExempt ||
+    (attempt.verificationNotes && (attempt.verificationNotes.toLowerCase().includes('bebas') || attempt.verificationNotes.toLowerCase().includes('offline')))
+  );
 
-  const totalScoreVal = attempt.totalScore != null ? Number(attempt.totalScore).toFixed(2) : '0.00';
-  const mcScoreVal = attempt.multipleChoiceScore != null ? Number(attempt.multipleChoiceScore).toFixed(2) : '0.00';
-  const essayScoreVal = attempt.essayScore != null ? Number(attempt.essayScore).toFixed(2) : '0.00';
+  const startedAtFormatted = isExempt
+    ? 'Bebas CBT'
+    : (attempt.startedAt
+      ? new Date(attempt.startedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+      : '-');
+  const completedAtFormatted = isExempt
+    ? 'Bebas CBT'
+    : (attempt.completedAt
+      ? new Date(attempt.completedAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+      : '-');
+
+  const totalScoreVal = isExempt
+    ? 'Terverifikasi (Bebas CBT)'
+    : (attempt.totalScore != null ? Number(attempt.totalScore).toFixed(2) : '0.00');
+  const mcScoreVal = isExempt ? '-' : (attempt.multipleChoiceScore != null ? Number(attempt.multipleChoiceScore).toFixed(2) : '0.00');
+  const essayScoreVal = isExempt ? '-' : (attempt.essayScore != null ? Number(attempt.essayScore).toFixed(2) : '0.00');
 
   const printHtml = `
     <!DOCTYPE html>
@@ -3379,15 +3416,25 @@ async function exportCbtResultsSummaryExcel() {
     data.forEach((row, idx) => {
       const rowNum = 3 + idx;
       const att = row.attempt;
+      const isExempt = Boolean(
+        row.isExempt ||
+        att?.isExempt ||
+        (att?.verificationNotes && (att.verificationNotes.toLowerCase().includes('bebas') || att.verificationNotes.toLowerCase().includes('offline')))
+      );
+
       let statusStr = 'Belum Mulai';
-      if (att) {
+      if (isExempt) {
+        statusStr = 'Bebas CBT';
+      } else if (att) {
         if (att.status === 'IN_PROGRESS') statusStr = 'Sedang Ujian';
         else if (att.status === 'COMPLETED') statusStr = 'Selesai';
         else if (att.status === 'EXPIRED') statusStr = 'Waktu Habis';
       }
 
       let gradingStr = '-';
-      if (att && (att.status === 'COMPLETED' || att.status === 'EXPIRED')) {
+      if (isExempt) {
+        gradingStr = 'Terverifikasi (Bebas CBT)';
+      } else if (att && (att.status === 'COMPLETED' || att.status === 'EXPIRED')) {
         if (att.gradingStatus === 'GRADED') gradingStr = 'Sudah Dinilai';
         else if (att.gradingStatus === 'NEEDS_ESSAY_GRADING') gradingStr = 'Perlu Nilai Essay';
         else gradingStr = 'Belum Dinilai';
@@ -3405,14 +3452,14 @@ async function exportCbtResultsSummaryExcel() {
       r.getCell(4).value = row.schoolName;
       r.getCell(5).value = row.classProgramName;
       r.getCell(6).value = statusStr;
-      r.getCell(7).value = isCompleted ? (att.durationFormatted || '-') : '-';
-      r.getCell(8).value = isCompleted ? (att.mcCorrect || 0) : 0;
-      r.getCell(9).value = isCompleted ? (att.mcIncorrect || 0) : 0;
-      r.getCell(10).value = isCompleted ? (att.mcUnanswered || 0) : 0;
-      r.getCell(11).value = isCompleted ? `${att.accuracyPercentage || 0}%` : '-';
-      r.getCell(12).value = isCompleted && att.multipleChoiceScore != null ? Number(att.multipleChoiceScore).toFixed(2) : 0;
-      r.getCell(13).value = isCompleted && att.essayScore != null ? Number(att.essayScore).toFixed(2) : 0;
-      r.getCell(14).value = isCompleted && att.totalScore != null ? Number(att.totalScore).toFixed(2) : 0;
+      r.getCell(7).value = isExempt ? 'Bebas CBT' : (isCompleted ? (att.durationFormatted || '-') : '-');
+      r.getCell(8).value = isExempt ? '-' : (isCompleted ? (att.mcCorrect || 0) : 0);
+      r.getCell(9).value = isExempt ? '-' : (isCompleted ? (att.mcIncorrect || 0) : 0);
+      r.getCell(10).value = isExempt ? '-' : (isCompleted ? (att.mcUnanswered || 0) : 0);
+      r.getCell(11).value = isExempt ? '-' : (isCompleted ? `${att.accuracyPercentage || 0}%` : '-');
+      r.getCell(12).value = isExempt ? '-' : (isCompleted && att.multipleChoiceScore != null ? Number(att.multipleChoiceScore).toFixed(2) : 0);
+      r.getCell(13).value = isExempt ? '-' : (isCompleted && att.essayScore != null ? Number(att.essayScore).toFixed(2) : 0);
+      r.getCell(14).value = isExempt ? 'Terverifikasi (Bebas CBT)' : (isCompleted && att.totalScore != null ? Number(att.totalScore).toFixed(2) : 0);
       r.getCell(15).value = gradingStr;
 
       // Alignments & borders for base columns
@@ -4924,18 +4971,30 @@ async function loadCbtVerificationTable() {
               </thead>
               <tbody>
                 ${data.map((row, idx) => {
+                  const isExempt = Boolean(
+                    row.isExempt ||
+                    (row.verificationNotes && (row.verificationNotes.toLowerCase().includes('bebas') || row.verificationNotes.toLowerCase().includes('offline')))
+                  );
+
                   let verifBadge = '<span class="badge badge-warning" style="font-size: 0.75rem;"><i class="fa-solid fa-clock"></i> Pending</span>';
                   if (row.verificationStatus === 'VERIFIED') {
-                    verifBadge = '<span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> Lulus Verifikasi</span>';
+                    verifBadge = isExempt
+                      ? '<span class="badge badge-success" style="font-size: 0.75rem; background: rgba(34, 197, 94, 0.15); color: #16a34a; border: 1px solid #86efac; font-weight: 700;"><i class="fa-solid fa-user-check"></i> Bebas CBT</span>'
+                      : '<span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-check"></i> Lulus Verifikasi</span>';
                   } else if (row.verificationStatus === 'REJECTED') {
                     verifBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; font-size: 0.75rem; font-weight: 700;"><i class="fa-solid fa-circle-xmark"></i> Ditolak</span>';
                   }
+
+                  const totalDisplay = isExempt
+                    ? '<span style="font-weight: 800; font-size: 0.8rem; color: #16a34a; background: rgba(34, 197, 94, 0.12); border: 1px solid #86efac; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">Terverifikasi (Bebas CBT)</span>'
+                    : `<span style="font-weight: 800; font-size: 0.95rem; color: #16a34a; background: rgba(34, 197, 94, 0.1); padding: 4px 8px; border-radius: 6px;">${row.totalScore}</span>`;
 
                   return `
                     <tr style="border-bottom: 1px solid var(--border-subtle);">
                       <td style="padding: 12px 8px; text-align: center; font-weight: 700; color: var(--text-muted);">${idx + 1}</td>
                       <td style="padding: 12px 8px;">
                         <code style="font-weight: 800; color: var(--primary-600); font-size: 0.85rem;">${row.registrationNumber}</code>
+                        ${isExempt ? '<div style="margin-top: 3px;"><span class="badge" style="background: rgba(34, 197, 94, 0.15); color: #16a34a; font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; font-weight: 700;">Bebas CBT</span></div>' : ''}
                       </td>
                       <td style="padding: 12px 8px;">
                         <div style="font-weight: 700; color: var(--text-heading);">${escapeHtml(row.candidateName)}</div>
@@ -4947,12 +5006,10 @@ async function loadCbtVerificationTable() {
                         <div style="font-weight: 600; color: var(--text-main);">${escapeHtml(row.classProgramName)}</div>
                         <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(row.schoolName)} &bull; ${escapeHtml(row.majorName)}</div>
                       </td>
-                      <td style="padding: 12px 8px; text-align: center; font-weight: 700; color: var(--text-main);">${row.multipleChoiceScore}</td>
-                      <td style="padding: 12px 8px; text-align: center; font-weight: 700; color: var(--text-main);">${row.essayScore}</td>
+                      <td style="padding: 12px 8px; text-align: center; font-weight: 700; color: var(--text-main);">${isExempt ? '-' : row.multipleChoiceScore}</td>
+                      <td style="padding: 12px 8px; text-align: center; font-weight: 700; color: var(--text-main);">${isExempt ? '-' : row.essayScore}</td>
                       <td style="padding: 12px 8px; text-align: center;">
-                        <span style="font-weight: 800; font-size: 0.95rem; color: #16a34a; background: rgba(34, 197, 94, 0.1); padding: 4px 8px; border-radius: 6px;">
-                          ${row.totalScore}
-                        </span>
+                        ${totalDisplay}
                       </td>
                       <td style="padding: 12px 8px;">
                         <div>${verifBadge}</div>
@@ -4964,6 +5021,10 @@ async function loadCbtVerificationTable() {
                         ${row.verificationNotes ? `
                           <div style="font-size: 0.7rem; color: var(--text-dim); font-style: italic; margin-top: 2px;">
                             "${escapeHtml(row.verificationNotes)}"
+                          </div>
+                        ` : isExempt ? `
+                          <div style="font-size: 0.7rem; color: #16a34a; font-style: italic; margin-top: 2px;">
+                            "Bebas CBT"
                           </div>
                         ` : ''}
                       </td>
@@ -5197,27 +5258,30 @@ function openExemptCbtModal(prefillRegId, prefillRegNum, prefillName, prefillSch
         `}
       </div>
 
-      <!-- Optional Score Input -->
+      <!-- Status Nilai CBT -->
       <div class="form-group" style="margin-bottom: 16px;">
-        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: flex; justify-content: space-between;">
-          <span>Nilai Tes Offline / Mandiri:</span>
-          <span style="font-weight: normal; color: var(--text-muted); font-size: 0.75rem;">(Opsional, default: 100)</span>
+        <label class="form-label" style="font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; display: flex; justify-content: space-between;">
+          <span>Status Nilai CBT:</span>
+          <span style="font-weight: normal; color: #16a34a; font-size: 0.75rem;"><i class="fa-solid fa-check"></i> Otomatis</span>
         </label>
-        <input type="number" id="exempt-score-input" class="form-control" placeholder="Kosongkan jika tidak ada rincian nilai (otomatis 100)" min="0" max="100" step="0.1" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;">
+        <div style="padding: 10px 14px; background: rgba(34, 197, 94, 0.08); border: 1.5px solid #22c55e; border-radius: var(--radius-md); display: flex; align-items: center; gap: 8px; font-weight: 800; color: #15803d; font-size: 0.9rem;">
+          <i class="fa-solid fa-circle-check"></i> Terverifikasi (Bebas CBT)
+        </div>
+        <input type="hidden" id="exempt-score-input" value="100">
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
-          Bisa diisi dengan nilai riil tes offline santri (misal: 85), atau dibiarkan kosong agar sistem mencatat nilai kelulusan penuh (100).
+          Nilai akan tercatat dan ditampilkan sebagai <strong>Terverifikasi (Bebas CBT)</strong> baik di web maupun di hasil export.
         </div>
       </div>
 
-      <!-- Optional Notes Input -->
+      <!-- Keterangan Bebas CBT -->
       <div class="form-group" style="margin-bottom: 18px;">
-        <label class="form-label" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; display: flex; justify-content: space-between;">
-          <span>Keterangan / Catatan Verifikasi:</span>
-          <span style="font-weight: normal; color: var(--text-muted); font-size: 0.75rem;">(Opsional)</span>
+        <label class="form-label" style="font-weight: 700; font-size: 0.85rem; margin-bottom: 6px; display: flex; justify-content: space-between;">
+          <span>Keterangan Status:</span>
+          <span style="font-weight: normal; color: var(--text-muted); font-size: 0.75rem;">(Bebas CBT)</span>
         </label>
-        <textarea id="exempt-notes-input" class="form-control" rows="2" placeholder="Contoh: Lulus Ujian Offline / Jalur Tes Mandiri / Santri Pindahan" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem;"></textarea>
+        <textarea id="exempt-notes-input" class="form-control" rows="2" placeholder="Contoh: Bebas CBT / Santri Prestasi / Ujian Mandiri" style="width: 100%; padding: 8px 12px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 700;">Bebas CBT</textarea>
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">
-          Catatan verifikasi internal untuk arsip panitia (tidak diumumkan secara khusus ke akun peserta).
+          Keterangan santri di tabel dan arsip panitia akan berlabel <strong>Bebas CBT</strong>.
         </div>
       </div>
 

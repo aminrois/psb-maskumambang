@@ -1706,10 +1706,16 @@ async function renderPesertaDashboard() {
 
     // State CBT & Verifikasi Ujian
     const cbt = reg.cbtAttempt;
+    const isCbtExempt = Boolean(
+      cbt && (
+        cbt.isExempt === true ||
+        (cbt.verificationNotes && (cbt.verificationNotes.toLowerCase().includes('bebas') || cbt.verificationNotes.toLowerCase().includes('offline')))
+      )
+    );
     const isCbtStarted = cbt && (cbt.status === 'IN_PROGRESS' || cbt.status === 'COMPLETED' || cbt.status === 'EXPIRED');
     const isCbtCompleted = cbt && (cbt.status === 'COMPLETED' || cbt.status === 'EXPIRED');
-    const isCbtVerified = cbt && cbt.verificationStatus === 'VERIFIED';
-    const isCbtPending = isCbtCompleted && cbt.verificationStatus === 'PENDING';
+    const isCbtVerified = (cbt && cbt.verificationStatus === 'VERIFIED') || isCbtExempt;
+    const isCbtPending = isCbtCompleted && cbt.verificationStatus === 'PENDING' && !isCbtExempt;
     const isCbtRejected = cbt && cbt.verificationStatus === 'REJECTED';
 
     // State Tes Praktik (BTQ, Wudhu & Salat)
@@ -2010,15 +2016,15 @@ async function renderPesertaDashboard() {
           </div>
 
           <!-- Step 4: Ujian CBT -->
-          <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 12px; border: 1px solid ${isCbtVerified ? '#10b981' : isCbtPending ? '#f59e0b' : isCbtRejected ? '#ef4444' : isFormVerified ? '#0284c7' : '#94a3b8'};">
+          <div style="background: var(--bg-body); border-radius: var(--radius-md); padding: 12px; border: 1px solid ${isCbtVerified || isCbtExempt ? '#10b981' : isCbtPending ? '#f59e0b' : isCbtRejected ? '#ef4444' : isFormVerified ? '#0284c7' : '#94a3b8'};">
             <div style="display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
-              <span style="width: 22px; height: 22px; border-radius: 50%; background: ${isCbtVerified ? '#10b981' : isCbtPending ? '#f59e0b' : isCbtRejected ? '#ef4444' : isFormVerified ? '#0284c7' : '#94a3b8'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex-shrink: 0;">
-                ${isCbtVerified ? '✓' : isCbtRejected ? '!' : '4'}
+              <span style="width: 22px; height: 22px; border-radius: 50%; background: ${isCbtVerified || isCbtExempt ? '#10b981' : isCbtPending ? '#f59e0b' : isCbtRejected ? '#ef4444' : isFormVerified ? '#0284c7' : '#94a3b8'}; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; flex-shrink: 0;">
+                ${isCbtVerified || isCbtExempt ? '✓' : isCbtRejected ? '!' : '4'}
               </span>
               <strong style="font-size: 0.78rem; color: var(--text-heading);">4. Ujian CBT</strong>
             </div>
-            <div style="font-size: 0.72rem; font-weight: 600; color: ${isCbtVerified ? '#059669' : isCbtPending ? '#d97706' : isCbtRejected ? '#dc2626' : isFormVerified ? '#0284c7' : '#64748b'};">
-              ${isCbtVerified ? 'Terverifikasi ✓' : isCbtPending ? 'Menunggu Verifikasi' : isCbtRejected ? 'Tidak Lulus' : isCbtStarted ? 'Sedang Ujian' : isFormVerified ? 'Siap Dikerjakan' : 'Menunggu Berkas'}
+            <div style="font-size: 0.72rem; font-weight: 600; color: ${isCbtVerified || isCbtExempt ? '#059669' : isCbtPending ? '#d97706' : isCbtRejected ? '#dc2626' : isFormVerified ? '#0284c7' : '#64748b'};">
+              ${isCbtExempt ? 'Bebas CBT ✓' : isCbtVerified ? 'Terverifikasi ✓' : isCbtPending ? 'Menunggu Verifikasi' : isCbtRejected ? 'Tidak Lulus' : isCbtStarted ? 'Sedang Ujian' : isFormVerified ? 'Siap Dikerjakan' : 'Menunggu Berkas'}
             </div>
           </div>
 
@@ -2272,24 +2278,26 @@ async function renderPesertaDashboard() {
 
         // 4. CARD UJIAN CBT ONLINE
         let cbtPriority = 35;
-        if (isFormVerified && !isCbtCompleted) cbtPriority = 92;
+        if (isFormVerified && !isCbtCompleted && !isCbtExempt) cbtPriority = 92;
         else if (isCbtPending) cbtPriority = 82;
-        else if (isCbtVerified) cbtPriority = 78;
+        else if (isCbtVerified || isCbtExempt) cbtPriority = 78;
 
         const cbtCardHtml = `
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 22px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: var(--shadow-sm);">
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <div style="width: 44px; height: 44px; border-radius: 10px; background: ${isCbtVerified ? 'rgba(16, 185, 129, 0.12)' : isFormVerified ? 'rgba(2, 132, 199, 0.12)' : 'rgba(148, 163, 184, 0.15)'}; color: ${isCbtVerified ? '#059669' : isFormVerified ? 'var(--primary-600)' : '#64748b'}; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
+                <div style="width: 44px; height: 44px; border-radius: 10px; background: ${isCbtVerified || isCbtExempt ? 'rgba(16, 185, 129, 0.12)' : isFormVerified ? 'rgba(2, 132, 199, 0.12)' : 'rgba(148, 163, 184, 0.15)'}; color: ${isCbtVerified || isCbtExempt ? '#059669' : isFormVerified ? 'var(--primary-600)' : '#64748b'}; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">
                   <i class="fa-solid fa-laptop-code"></i>
                 </div>
-                <span class="badge ${isCbtVerified ? 'badge-success' : isCbtPending ? 'badge-warning' : isCbtRejected ? 'badge-danger' : isFormVerified ? 'badge-primary' : 'badge-secondary'}" style="font-size: 0.75rem;">
-                  ${isCbtVerified ? '<i class="fa-solid fa-check-double"></i> LULUS CBT' : isCbtPending ? '<i class="fa-solid fa-hourglass-half"></i> REVIEW HASIL' : isCbtRejected ? '<i class="fa-solid fa-xmark"></i> TIDAK LULUS' : isFormVerified ? '<i class="fa-solid fa-unlock"></i> SIAP UJIAN' : '<i class="fa-solid fa-lock"></i> MENUNGGU VERIFIKASI'}
+                <span class="badge ${isCbtVerified || isCbtExempt ? 'badge-success' : isCbtPending ? 'badge-warning' : isCbtRejected ? 'badge-danger' : isFormVerified ? 'badge-primary' : 'badge-secondary'}" style="font-size: 0.75rem;">
+                  ${isCbtExempt ? '<i class="fa-solid fa-user-check"></i> BEBAS CBT' : isCbtVerified ? '<i class="fa-solid fa-check-double"></i> LULUS CBT' : isCbtPending ? '<i class="fa-solid fa-hourglass-half"></i> REVIEW HASIL' : isCbtRejected ? '<i class="fa-solid fa-xmark"></i> TIDAK LULUS' : isFormVerified ? '<i class="fa-solid fa-unlock"></i> SIAP UJIAN' : '<i class="fa-solid fa-lock"></i> MENUNGGU VERIFIKASI'}
                 </span>
               </div>
               <h3 style="font-size: 1.15rem; color: var(--text-heading); margin-bottom: 6px;">Ujian CBT Online</h3>
               <p style="color: var(--text-muted); font-size: 0.875rem; line-height: 1.5; margin-bottom: 16px;">
-                ${isCbtVerified
+                ${isCbtExempt
+            ? 'Status Anda: <strong>Terverifikasi (Bebas CBT)</strong>. Anda dapat langsung melanjutkan ke tahap seleksi berikutnya.'
+            : isCbtVerified
             ? 'Hasil ujian CBT Anda telah diverifikasi dan dinyatakan Lulus oleh panitia.'
             : isCbtPending
               ? 'Jawaban ujian Anda telah tersimpan dan sedang dalam proses review/penilaian oleh panitia.'
@@ -2301,7 +2309,11 @@ async function renderPesertaDashboard() {
               </p>
             </div>
             <div>
-              ${isFormVerified ? `
+              ${isCbtExempt ? `
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid #86efac; border-radius: 8px; padding: 10px 14px; font-size: 0.825rem; color: #15803d; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                  <i class="fa-solid fa-circle-check"></i> Terverifikasi (Bebas CBT)
+                </div>
+              ` : isFormVerified ? `
                 <a href="#cbt-peserta" class="btn btn-primary" style="width: 100%; text-align: center; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
                   <i class="fa-solid fa-laptop-code"></i> ${isCbtCompleted ? 'Lihat Status Ujian CBT' : 'Buka Halaman Ujian Online'}
                 </a>

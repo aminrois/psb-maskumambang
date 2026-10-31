@@ -2456,9 +2456,12 @@ async function loadPracticalVerificationTable() {
                       <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(item.className || item.waveName || '-')}</div>
                     </td>
                     <td style="padding: 12px 14px; text-align: center;">
-                      ${item.cbtScore != null 
-                        ? `<span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700; padding:3px 8px; border-radius:6px;">${item.cbtScore}</span>`
-                        : `<span style="color:var(--text-dim);">-</span>`
+                      ${item.isCbtExempt || item.cbtScoreDisplay === 'Terverifikasi (Bebas CBT)'
+                        ? `<span class="badge" style="background:rgba(34,197,94,0.12); color:#16a34a; border:1px solid #86efac; font-weight:700; padding:3px 8px; border-radius:6px; font-size:0.75rem;">Terverifikasi (Bebas CBT)</span>`
+                        : (item.cbtScore != null 
+                          ? `<span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:700; padding:3px 8px; border-radius:6px;">${item.cbtScore}</span>`
+                          : `<span style="color:var(--text-dim);">-</span>`
+                        )
                       }
                     </td>
                     <td style="padding: 12px 14px; text-align: center;">

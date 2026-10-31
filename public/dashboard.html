@@ -91,12 +91,6 @@
             <span class="role-badge-pill role-PESERTA" id="sidebar-role-badge" style="font-size: 0.7rem;">PESERTA</span>
           </div>
         </div>
-        <button type="button" onclick="handleLogout()" class="btn-sidebar-logout"
-          style="width: 100%; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.825rem; cursor: pointer; transition: all 0.2s;"
-          onmouseover="this.style.background='rgba(239, 68, 68, 0.3)';this.style.color='#ffffff'"
-          onmouseout="this.style.background='rgba(239, 68, 68, 0.15)';this.style.color='#fca5a5'">
-          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar / Logout
-        </button>
       </div>
     </aside>
 
@@ -129,6 +123,15 @@
               style="font-weight: 600; font-size: 0.85rem; color: var(--text-heading);">User</span>
             <span class="role-badge-pill role-PESERTA" id="topbar-role-badge" style="font-size: 0.65rem;">PESERTA</span>
           </div>
+
+          <button type="button" onclick="handleLogout()" class="btn-topbar-logout" id="btn-topbar-logout"
+            style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #ef4444; font-size: 0.825rem; font-weight: 700; cursor: pointer; transition: all 0.2s;"
+            onmouseover="this.style.background='rgba(239, 68, 68, 0.25)';this.style.color='#dc2626'"
+            onmouseout="this.style.background='rgba(239, 68, 68, 0.12)';this.style.color='#ef4444'"
+            title="Keluar / Logout dari Sistem">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            <span>Keluar</span>
+          </button>
         </div>
       </header>
 

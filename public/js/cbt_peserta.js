@@ -403,6 +403,10 @@ async function renderCbtPesertaView() {
     // ------------------------------------------------------------------------
     if (d.attemptState === 'COMPLETED') {
       const att = d.attempt;
+      const isExempt = Boolean(
+        att?.isExempt ||
+        (att?.verificationNotes && (att.verificationNotes.toLowerCase().includes('bebas') || att.verificationNotes.toLowerCase().includes('offline')))
+      );
       container.innerHTML = `
         <div style="max-width: 680px; margin: 30px auto;">
           <div class="card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-xl); padding: 36px 28px; text-align: center; box-shadow: var(--shadow-md);">
@@ -410,9 +414,11 @@ async function renderCbtPesertaView() {
               <i class="fa-solid fa-circle-check"></i>
             </div>
             
-            <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--text-heading); margin-bottom: 6px;">Ujian CBT Telah Selesai</h3>
+            <h3 style="font-size: 1.5rem; font-weight: 800; color: var(--text-heading); margin-bottom: 6px;">
+              ${isExempt ? 'Terverifikasi (Bebas CBT)' : 'Ujian CBT Telah Selesai'}
+            </h3>
             <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 24px;">
-              Terima kasih, Anda telah berhasil menyelesaikan dan mengumpulkan lembar jawaban ujian online.
+              ${isExempt ? 'Selamat! Anda dinyatakan <strong>Terverifikasi (Bebas CBT)</strong> dan dapat langsung melanjutkan ke tahapan seleksi berikutnya.' : 'Terima kasih, Anda telah berhasil menyelesaikan dan mengumpulkan lembar jawaban ujian online.'}
             </p>
 
             <div style="background: var(--bg-body); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 24px; text-align: left; font-size: 0.875rem;">
@@ -421,21 +427,23 @@ async function renderCbtPesertaView() {
                 <strong style="color: var(--text-heading);">${d.classProgramName || ''}</strong>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
-                <span style="color: var(--text-muted);">Waktu Mulai:</span>
-                <strong style="color: var(--text-heading);">${att?.startedAt ? new Date(att.startedAt).toLocaleString('id-ID') : '-'}</strong>
+                <span style="color: var(--text-muted);">${isExempt ? 'Status Nilai:' : 'Waktu Mulai:'}</span>
+                <strong style="color: ${isExempt ? '#16a34a' : 'var(--text-heading)'};">${isExempt ? 'Terverifikasi (Bebas CBT)' : (att?.startedAt ? new Date(att.startedAt).toLocaleString('id-ID') : '-')}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
-                <span style="color: var(--text-muted);">Waktu Selesai:</span>
-                <strong style="color: var(--text-heading);">${att?.completedAt ? new Date(att.completedAt).toLocaleString('id-ID') : '-'}</strong>
-              </div>
+              ${!isExempt ? `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+                  <span style="color: var(--text-muted);">Waktu Selesai:</span>
+                  <strong style="color: var(--text-heading);">${att?.completedAt ? new Date(att.completedAt).toLocaleString('id-ID') : '-'}</strong>
+                </div>
+              ` : ''}
               <div style="display: flex; justify-content: space-between;">
-                <span style="color: var(--text-muted);">Status Pengerjaan:</span>
-                <span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-check-double"></i> SUDAH DIKUMPULKAN</span>
+                <span style="color: var(--text-muted);">Status CBT:</span>
+                <span class="badge badge-success" style="font-size: 0.75rem;"><i class="fa-solid fa-check-double"></i> ${isExempt ? 'BEBAS CBT' : 'SUDAH DIKUMPULKAN'}</span>
               </div>
             </div>
 
             <div style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 24px;">
-              Selanjutnya, proses seleksi akan dilanjutkan ke tahap Wawancara. Jadwal dan informasi terkait pelaksanaan wawancara akan diumumkan melalui sistem ini.
+              Selanjutnya, proses seleksi akan dilanjutkan ke tahap Tes Praktik & Wawancara. Jadwal dan informasi terkait pelaksanaan tes akan diumumkan melalui sistem ini.
             </div>
 
             <a href="#overview" class="btn btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">

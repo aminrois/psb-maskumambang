@@ -1273,7 +1273,9 @@ async function renderInterviewScheduleParticipants(scheduleId) {
                       <div style="color: var(--text-muted); font-size: 0.75rem;">${escapeHtml(p.originSchool || '-')}</div>
                     </td>
                     <td style="padding: 14px 16px; text-align: center; font-weight: 800; color: #16a34a;">
-                      ${p.cbtScore !== null && p.cbtScore !== undefined ? Number(p.cbtScore).toFixed(1) : '-'}
+                      ${p.isCbtExempt || p.cbtScoreDisplay === 'Terverifikasi (Bebas CBT)'
+        ? '<span style="font-size:0.75rem; background:rgba(34,197,94,0.12); border:1px solid #86efac; padding:3px 6px; border-radius:4px; white-space:nowrap;">Terverifikasi (Bebas CBT)</span>'
+        : (p.cbtScore !== null && p.cbtScore !== undefined ? Number(p.cbtScore).toFixed(1) : '-')}
                     </td>
                     <td style="padding: 14px 16px; text-align: center;">
                       ${getInterviewStatusBadge(p.status)}

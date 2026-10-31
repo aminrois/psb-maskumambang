@@ -459,7 +459,7 @@ async function renderInterviewerProcess(identifier) {
                 </div>
                 <div>
                   <span style="color: var(--text-muted); display: block; font-size: 0.725rem; text-transform: uppercase; font-weight: 700;">Nilai CBT Online</span>
-                  <strong style="color: #16a34a; font-size: 1.05rem;">${participant.cbtScore !== null && participant.cbtScore !== undefined ? Number(participant.cbtScore).toFixed(1) : '-'}</strong>
+                  <strong style="color: #16a34a; font-size: 1.05rem;">${participant.isCbtExempt || participant.cbtScoreDisplay === 'Terverifikasi (Bebas CBT)' ? '<span style="font-size:0.85rem;">Terverifikasi (Bebas CBT)</span>' : (participant.cbtScore !== null && participant.cbtScore !== undefined ? Number(participant.cbtScore).toFixed(1) : '-')}</strong>
                 </div>
                 ${scheduleInfo.roomLocation ? `
                   <div>
